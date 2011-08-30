@@ -12,7 +12,7 @@
 	
 	<menupopup id="zotero-tb-actions-popup">
 		<!-- Make sure the menu separator for utilities is visible -->
-		<menuseparator id="zotero-tb-actions-utilities-separator" hidden="false"/>
+		<menuseparator id="zotero-tb-actions-plugins-separator" hidden="false"/>
 		<menuitem insertbefore="zotero-tb-actions-separator" label="&helloworldzotero.name;"
 			oncommand="Zotero.HelloWorldZotero.insertHello()"/>
 	</menupopup>
