@@ -4,9 +4,9 @@
 	
 	<Description about="urn:mozilla:install-manifest">
 		<em:id>helloworld@zotero.org</em:id>
-		<em:name>Hello World Utility for Zotero</em:name>
-		<em:version>1.0.3</em:version>
-		<em:description>A sample utility for Zotero</em:description>
+		<em:name>Hello World Plugin for Zotero</em:name>
+		<em:version>1.0.4.SVN</em:version>
+		<em:description>A sample plugin for Zotero</em:description>
 		<em:creator>Center for History and New Media<br/>George Mason University</em:creator>
 		<em:updateURL>https://www.zotero.org/download/plugins.rdf</em:updateURL>
 		<em:type>2</em:type> <!-- type=extension -->
@@ -17,8 +17,8 @@
 				<em:id>zotero@chnm.gmu.edu</em:id>
 				<em:name>Zotero</em:name>
 				<em:homepageURL>http://www.zotero.org</em:homepageURL>
-				<em:minVersion>1.0.0b4.r5</em:minVersion>
-				<em:maxVersion>1.0.4</em:maxVersion>
+				<em:minVersion>2.1</em:minVersion>
+				<em:maxVersion>3.0.*</em:maxVersion>
 			</Description>
 		</em:requires>
     
@@ -26,8 +26,8 @@
 		<em:targetApplication>
 			<Description>
 				<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
-				<em:minVersion>2.0</em:minVersion>
-				<em:maxVersion>2.0.0.*</em:maxVersion>
+				<em:minVersion>3.6</em:minVersion>
+				<em:maxVersion>7.*</em:maxVersion>
 			</Description>
 		</em:targetApplication>
 	</Description>
