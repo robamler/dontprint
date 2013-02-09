@@ -10,12 +10,14 @@
 			src="chrome://helloworldzotero/locale/hello.properties"/>
 	</stringbundleset>
 	
-	<menupopup id="zotero-tb-actions-popup">
-		<!-- Make sure the menu separator for utilities is visible -->
-		<menuseparator id="zotero-tb-actions-plugins-separator" hidden="false"/>
-		<menuitem insertbefore="zotero-tb-actions-separator" label="&helloworldzotero.name;"
-			oncommand="Zotero.HelloWorldZotero.insertHello()"/>
-	</menupopup>
+	<hbox id="zotero-items-toolbar">
+		<toolbarbutton id="robamler-zotero-tb-sendtokindle"
+			class="zotero-tb-button"
+			tooltiptext="&helloworldzotero.sendtokindlelabel;"
+			oncommand="Zotero.HelloWorldZotero.insertHello()"
+			insertbefore="zotero-tb-advanced-search" />
+		<toolbarseparator insertbefore="zotero-tb-advanced-search" />
+	</hbox>
 	
 	<!-- Include the main extension logic -->
 	<script src="chrome://zotero/content/include.js"/>
