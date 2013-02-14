@@ -12,6 +12,13 @@ Zotero.HelloWorldZotero = {
 		
 		// Register the callback in Zotero as an item observer
 		var notifierID = Zotero.Notifier.registerObserver(this.notifierCallback, ['item']);
+
+		var oldstop = Zotero.Sync.Runner.stop;
+		Zotero.Sync.Runner.stop = function () {
+			oldstop();
+			alert("snyc stopped");
+		}
+		var notifierID2 = Zotero.Notifier.registerObserver(this.notifierCallback, ['item']);
 		
 		// Unregister callback when the window closes (important to avoid a memory leak)
 		window.addEventListener('unload', function(e) {
@@ -20,7 +27,12 @@ Zotero.HelloWorldZotero = {
 	},
 	
 	insertHello: function() {
-		var data = {
+		// Make sure data is synced (copied from zoteroPane.xul's <toolbarbutton id="zotero-tb-sync">)
+		Zotero.Sync.Server.canAutoResetClient = true;
+		Zotero.Sync.Server.manualSyncRequired = false;
+		Zotero.Sync.Runner.sync();	// seems to be asynchroneous
+		
+/*		var data = {
 			title: "Zotero",
 			company: "Center for History and New Media",
 			creators: [
@@ -32,13 +44,14 @@ Zotero.HelloWorldZotero = {
 			place: 'Fairfax, VA',
 			url: 'http://www.zotero.org'
 		};
-		Zotero.Items.add('computerProgram', data); // returns a Zotero.Item instance
+		Zotero.Items.add('computerProgram', data); // returns a Zotero.Item instance*/
 	},
 	
 	// Callback implementing the notify() method to pass to the Notifier
 	notifierCallback: {
 		notify: function(event, type, ids, extraData) {
-			if (event == 'add' || event == 'modify' || event == 'delete') {
+//			alert("notify");
+/*			if (event == 'add' || event == 'modify' || event == 'delete') {
 				// Increment a counter every time an item is changed
 				Zotero.HelloWorldZotero.DB.query("UPDATE changes SET num = num + 1");
 				
@@ -88,7 +101,7 @@ Zotero.HelloWorldZotero = {
 					titles.join("\n");
 			}
 			
-			alert(str);
+			alert(str);*/
 		}
 	}
 };
