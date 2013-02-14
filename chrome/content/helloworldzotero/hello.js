@@ -27,24 +27,63 @@ Zotero.HelloWorldZotero = {
 	},
 	
 	insertHello: function() {
-		// Make sure data is synced (copied from zoteroPane.xul's <toolbarbutton id="zotero-tb-sync">)
+		// Make sure data is synced (code adapted from zoteroPane.xul's <toolbarbutton id="zotero-tb-sync">)
 		Zotero.Sync.Server.canAutoResetClient = true;
 		Zotero.Sync.Server.manualSyncRequired = false;
 		Zotero.Sync.Runner.sync();	// seems to be asynchroneous
+
+		var selectedItems = ZoteroPane.getSelectedItems();
+		alert("selectedItems.length = " + selectedItems.length);
+
+		// delete duplicates (e.g., if user selects both an attachment and its parent)
+		var entryIds = selectedItems.map(function(i) {
+			return i.getSource() || i.id;
+		});
+		var uniqueEntryIds = entryIds.filter(function(elem, pos, self) {
+			return self.indexOf(elem) == pos;
+		})
+		alert("slectedEntryIds = " + JSON.stringify(uniqueEntryIds));
+
+		// generate list of all metadata
+		var postData = uniqueEntryIds.map(function(id) {
+			var i = Zotero.Items.get(id);
+			var attachmentKeys = i.getAttachments(false).map(function(id) {
+				var a_item = Zotero.Items.get(id);
+				if (a_item.attachmentMIMEType == 'application/pdf') {
+					return a_item.getField('key');
+				} else {
+					return undefined;
+				}
+			}).filter(function(elem) {
+				return elem !== undefined;
+			});
+
+			return {
+				'key': i.getField('key'),
+				'title': i.getField('title'),
+				'attachments': attachmentKeys
+			};
+		});
+
+		// remove entries without attached PDF files
+		var noattach = postData.filter(function(elem) {
+			return elem.attachments.length == 0;
+		});
+		if (noattach.length) {
+			alert("The following selected items cannot be sent to your Kindle because they do not have an attached PDF file:\n\n" +
+				noattach.map(function(elem) { return elem.title; }).join("\n"));
+		}
 		
-/*		var data = {
-			title: "Zotero",
-			company: "Center for History and New Media",
-			creators: [
-				['Dan', 'Stillman', 'programmer'],
-				['Simon', 'Kornblith', 'programmer']
-			],
-			version: '1.0.1',
-			company: 'Center for History and New Media',
-			place: 'Fairfax, VA',
-			url: 'http://www.zotero.org'
-		};
-		Zotero.Items.add('computerProgram', data); // returns a Zotero.Item instance*/
+		postData = postData.filter(function(elem) {
+			return elem.attachments.length != 0;
+		});
+		if (postData.length == 0) {
+			alert("No documents sent to your Kindle. Select an item with an attached PDF file and try again.");
+			return;
+		}
+
+		// TODO: save list to class variable. Make XHR call as soon as sync is finished.
+		alert(JSON.stringify(postData));
 	},
 	
 	// Callback implementing the notify() method to pass to the Notifier
