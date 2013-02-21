@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8 />
+<title>PDFcrop</title>
+  <style type="text/css">
+	body, html { height:100%; background-color:#777777 }
+	#view-container {width:100%; height:100%}
+    #document-container { display:inline-block; position:relative; box-shadow:1px 2px 7px 1px; background-color:#fff }
+    #pdfcanvas { display:block }
+    #margins {opacity:0.3}
+    #document-container .margin {background-color:black; position:absolute}
+    #document-container .margin.v {width:5%; height:100%}
+    #document-container .margin.h {width:100%; height:5%}
+    #mt {top:0px}
+    #mb {bottom:0px}
+    #ml {left:0px; top:0px}
+    #mr {right:0px; top:0px}
+    #region {position:absolute; left:5%; right:5%; top:5%; bottom:5%; border:dashed 2px darkred; margin:-1px}
+    #region .handle {position:absolute}
+    #region .handle div {position:absolute; left:3px; top:3px; right:3px; bottom:3px}
+    #region .handle:hover div {border-radius:5px; background-color:blue; opacity:0.3; box-shadow: 0px 0px 3px 3px blue;}
+    #region .handle.v {width:16px; top:7px; bottom:7px}
+    #region .handle.h {height:16px; left:7px; right:7px}
+    #hl {cursor:w-resize; left:-9px}
+    #ht {cursor:n-resize; top:-9px}
+    #hr {cursor:e-resize; right:-9px}
+    #hb {cursor:s-resize; bottom:-9px}
+  </style>
+</head>
+<body>
+
+<div id="view-container">
+
+<div id="document-container">
+  <canvas id="pdfcanvas"></canvas>
+  <div id="margins">
+    <div id="ml" class="margin v"></div>
+    <div id="mt" class="margin h"></div>
+    <div id="mr" class="margin v"></div>
+    <div id="mb" class="margin h"></div>
+  </div>
+  <div id="region">
+    <div id="hl" class="handle v"><div></div></div>
+    <div id="ht" class="handle h"><div></div></div>
+    <div id="hr" class="handle v"><div></div></div>
+    <div id="hb" class="handle h"><div></div></div>
+  </div>
+</div>
+  
+</div>  
+
+
+  <!-- Use latest PDF.js build from Github -->
+  <script type="text/javascript" src="combined-pdf.js"></script>
+  
+  <script type="text/javascript">
+    //
+    // NOTE:
+    // Modifying the URL below to another server will likely *NOT* work. Because of browser
+    // security restrictions, we have to use a file server with special headers
+    // (CORS) - most servers don't support cross-origin browser requests.
+    //
+    var url = 'testpdfs/paper-charged-skyrmions.pdf';
+
+    //
+    // Disable workers to avoid yet another cross-origin issue (workers need the URL of
+    // the script to be loaded, and dynamically loading a cross-origin script does
+    // not work)
+    //
+    PDFJS.disableWorker = true;
+
+    //
+    // Asynchronous download PDF as an ArrayBuffer
+    //
+    PDFJS.getDocument(url).then(function getPdfHelloWorld(pdf) {
+      //
+      // Fetch the first page
+      //
+      pdf.getPage(1).then(function getPageHelloWorld(page) {
+		// get original size of page
+        var origviewport = page.getViewport(1);
+		var origw = Math.max(1, origviewport.width);
+		var origh = Math.max(1, origviewport.height);
+		var space = document.getElementById("view-container");
+		var availw = Math.max(100, space.offsetWidth - 30);
+		var availh = Math.max(100, space.offsetHeight - 30);
+		var scale = Math.min(availw/origw, availh/origh);
+
+		// get viewport with correct size
+		var viewport = page.getViewport(scale);
+
+        //
+        // Prepare canvas using PDF page dimensions
+        //
+        var canvas = document.getElementById('pdfcanvas');
+        var context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        //
+        // Render PDF page into canvas context
+        //
+        page.render({canvasContext: context, viewport: viewport});
+      });
+    });
+  </script>
+
+</body>
+</html>
