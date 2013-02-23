@@ -1,6 +1,6 @@
 PDFJS = (function() {
 
-mockPage = {
+var mockPage = {
 	getViewport: function(scale) {
 		return {width:10*scale, height:14*scale};
 	},
