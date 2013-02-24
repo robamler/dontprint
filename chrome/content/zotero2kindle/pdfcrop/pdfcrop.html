@@ -32,7 +32,7 @@
     #turnpages {text-align:center}
     
     #rightpanel {float:none; overflow:auto}
-    #values {background-color:#ddd; padding:10px; box-shadow:1px 2px 7px 1px; float:left; margin:10px; max-width:450px}
+    #values {background-color:#ddd; padding:10px; box-shadow:1px 2px 7px 1px; float:left; margin:10px; max-width:500px}
     #margin-inputs {margin-left:40px}
     #margin-inputs input {width:70px; text-align:center}
     input.invalid {background-color:#ffdddd}
@@ -93,6 +93,9 @@
   
   <div id="rightpanel">
   <div id="values">
+	Click and drag dashed red line or type in margins by hand.
+	<p><strong>Hint:</strong> Only cut off <em>visible</em> margins, such as repeating headers and page numbers. You don't need to cut very close to the content. Any remaining white margin will be removed automatically.
+	<hr>
     Margins (inches):
     <table id="margin-inputs">
       <tr>
@@ -127,7 +130,7 @@
       </tr>
     </table>
     <hr>
-    k2pdfopt options: -ml <span id="text0"></span> -mt <span id="text1"></span> -mr <span id="text2"></span> -mb <span id="text3"></span>
+    k2pdfopt -ui- -x -w 560 -h 720 -ml <span id="text0"></span> -mt <span id="text1"></span> -mr <span id="text2"></span> -mb <span id="text3"></span>
     <hr>
     <div id="buttons">
       <a href="#" id="abortbutton" class="btn">Cancel</a>
