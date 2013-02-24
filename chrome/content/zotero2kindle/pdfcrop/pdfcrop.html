@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8 />
+<title>PDFcrop</title>
+  <style type="text/css">
+	body, html { height:100%; background-color:#777777 }
+    #view-container {width:100%; height:100%; overflow:hidden}
+    #leftpanel {float:left; margin-right:20px}
+    #document-container { position:relative; box-shadow:1px 2px 7px 1px; background-color:#fff; width:300px; height:400px; margin:10px }
+    #pdfcanvas { display:block; width:100%; height:100% }
+    #margins {opacity:0.3}
+    .margin {background-color:black; position:absolute}
+    .margin.v {width:5%; height:100%}
+    .margin.h {width:100%; height:5%}
+    #m0 {left:0px; top:0px}
+    #m1 {left:0px; top:0px}
+    #m2 {right:0px; top:0px}
+    #m3 {left:0px; bottom:0px}
+    #region {position:absolute; left:5%; right:5%; top:5%; bottom:5%; border:dashed 2px darkred; margin:-1px}
+    .handle {position:absolute}
+	#region.dragging > .handle {opacity:0}
+    .handle > div {position:absolute; left:3px; top:3px; right:3px; bottom:3px}
+    .handle:hover > div {border-radius:5px; background-color:blue; opacity:0.3; box-shadow: 0px 0px 3px 3px blue;}
+    .handle.v {width:16px; top:7px; bottom:7px}
+    .handle.h {height:16px; left:7px; right:7px}
+    #h0 {cursor:w-resize; left:-9px}
+    #h1 {cursor:n-resize; top:-9px}
+    #h2 {cursor:e-resize; right:-9px}
+    #h3 {cursor:s-resize; bottom:-9px}
+    
+    #turnpages {text-align:center}
+	#turnpages > .btn {background-position:center center}
+	#prevbtn {background-image:url("prev.png")}
+	#nextbtn {background-image:url("next.png")}
+    
+    #rightpanel {float:none; overflow:auto}
+    #values {background-color:#ddd; padding:10px; box-shadow:1px 2px 7px 1px; float:left; margin:10px; max-width:500px}
+    #margin-inputs {margin-left:40px}
+    #margin-inputs input {width:70px; text-align:center}
+    input.invalid {background-color:#ffdddd}
+    #miscoptions td {vertical-align:top; padding:4px 0px}
+    #journalname {overflow:hidden;width:30px}
+    #buttons {text-align:right}
+    a.btn {text-decoration:none; color:#000; background-color:#aaa; border-color:#aaa; border-width:1px; border-style:outset;padding:5px 8px 5px 22px; display:inline-block; background-position:3px center; background-repeat:no-repeat; margin:0px 3px}
+    a.btn:hover {box-shadow:0px 0px 50px -25px #fff inset}
+    a.btn:active {border-style:inset}
+    a.btn.disabled {color:#555}
+    a.btn.disabled:hover {box-shadow:none}
+    a.btn.disabled:active {border-style:outset}
+    #startbtn {background-color:#c0e9bb;border-color:c0e9bb;background-image:url("start.png")}
+    #abortbtn {background-color:#e9c0bb;border-color:e9c0bb;background-image:url("abort.png")}
+    hr {border:none; height:1px; background-color:#efefef; box-shadow:0px 0px 2px 1px #fff; margin:15px 0px}
+
+	#magnifyer { display:none; position:absolute; margin:-1px; border:1px solid #cca; overflow:hidden; background-color:#fff; box-shadow:1px 2px 4px 3px #bb9 }
+	#magnifyer.dir0 { display:block; width:150px; height:70px }
+	#magnifyer.dir1 { display:block; height:150px; width:70px }
+	#magnifycanvas {box-shadow:1px 2px 7px 1px; position:absolute}
+	#magnifierline { position: absolute; left:0px; right:0px }
+	.dir0 > #magnifierline { width:74px; height:70px; padding-right:-1px; border-right:dashed 2px darkred }
+	.dir1 > #magnifierline { width:70px; height:74px; padding-bottom:-1px; border-bottom:dashed 2px darkred }
+	#magnifyoverlay { position:absolute; left:0px; right:0px; top:0px; bottom:0px; background-color:#ffc; opacity:0.2 }
+	#magnifyarrow { display:block; position:absolute; left:0px; right:0px; top:0px; bottom:0px; margin:auto }
+	.dir1 > #magnifyarrow {-moz-transform:rotate(90deg)}
+  </style>
+</head>
+<body>
+
+<div id="view-container">
+
+  <div id="leftpanel">
+<div id="document-container">
+  <canvas id="pdfcanvas"></canvas>
+  <div id="margins">
+    <div id="m0" class="margin v"></div>
+    <div id="m1" class="margin h"></div>
+    <div id="m2" class="margin v"></div>
+    <div id="m3" class="margin h"></div>
+  </div>
+  <div id="region">
+    <div id="h0" class="handle v"><div></div></div>
+    <div id="h1" class="handle h"><div></div></div>
+    <div id="h2" class="handle v"><div></div></div>
+    <div id="h3" class="handle h"><div></div></div>
+  </div>
+  <div id="magnifyer">
+	<canvas id="magnifycanvas"></canvas>
+	<div id="magnifyoverlay"></div>
+	<div id="magnifierline"></div>
+	<img id="magnifyarrow" alt="" src="magnifyarrow.png" />
+  </div>
+</div>
+    <div id="turnpages">
+      <a href="" class="btn" id="prevbtn">&nbsp;</a>
+      page <span id="pagenum"></span> of <span id="pagecount"></span>
+      <a href="" class="btn disabled" id="nextbtn">&nbsp;</a>
+    </div>
+  </div>
+  
+  <div id="rightpanel">
+  <div id="values">
+	Click and drag dashed red line or type in margins by hand.
+	<p><strong>Hint:</strong> Only cut off <em>visible</em> margins, such as repeating headers and page numbers. You don't need to cut very close to the content. Any remaining white margin will be removed automatically.
+	<hr>
+    Margins (inches):
+    <table id="margin-inputs">
+      <tr>
+        <td></td>
+        <td><input id="i1"></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><input id="i0"></td>
+        <td></td>
+        <td><input id="i2"></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><input id="i3"></td>
+        <td></td>
+      </tr>
+    </table>
+    <hr>
+    <table id="miscoptions">
+      <tr>
+        <td><input type="checkbox" id="coverpage"></td>
+        <td><label for="coverpage">Discard first page (cover page)</label></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" id="savetemplate" checked></td>
+        <td><label for="savetemplate">Remember settings for this journal (<span id="journalname">unknown journal</span>)</label></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" id="sendsettings" checked></td>
+        <td><label for="sendsettings">Send settings anonymously to the developer of zotero2kindle to help improve future versions (<a href="#">details</a>)</label></td>
+      </tr>
+    </table>
+    <hr>
+    k2pdfopt -ui- -x -w 560 -h 720 -ml <span id="text0"></span> -mt <span id="text1"></span> -mr <span id="text2"></span> -mb <span id="text3"></span>
+    <hr>
+    <div id="buttons">
+      <a href="#" id="abortbtn" class="btn">Cancel</a>
+      <a href="#" id="startbtn" class="btn">Start conversion</a>
+    </div>
+  </div>
+  </div>
+</div>
+
+
+
+<script type="text/javascript" src="jquery-1.9.1.min.js"></script>
+
+<script type="text/javascript">
+
+
+$(function() {
+
+
+var handles = [0,0,0,0];
+var margins = [0,0,0,0];
+var inputs = [0,0,0,0];
+var outputtext = [0,0,0,0];
+var region = $('#region');
+var doccontainer = $('#document-container');
+var dragproperty1 = null;
+var dragproperty2 = null;
+var dragproperty3 = null;
+var dragproperty4 = null;
+var dragproperty5 = null;
+var pdf;
+var pdfpage;
+var pagenum;
+var pagecount = 0;
+var pagenumDisplay = $("#pagenum");
+var pagecountDisplay = $("#pagecount");
+var canvas = document.getElementById('pdfcanvas');
+var context = canvas.getContext('2d');
+var magnifycanvas = document.getElementById('magnifycanvas');
+var magnifycontext = magnifycanvas.getContext('2d');
+var dirLength = ['width', 'height', 'width', 'height'];
+var dirPos = ['left', 'top', 'right', 'bottom'];
+var dirMousecoord = ['pageX', 'pageY', 'pageX', 'pageY'];
+var dirFactor = [1, 1, -1, -1];
+var dirReference = [0, 0, 0, 0];
+var setMargin = [0,0,0,0];
+var viewcontainer = document.getElementById("view-container");
+var availw, origw, availh, origh;
+var turnpagesheight = $("#turnpages").height();
+var voidfunction = function() {};
+var dragfunction = voidfunction;
+var magnifyfunction = voidfunction;
+var dpi = 1;
+var inmargins = [0.25,0.25,0.25,0.25];
+var pxdimensions = [0,0];
+var magnifyer = $("#magnifyer");
+var prevbtn = $("#prevbtn");
+var nextbtn = $("#nextbtn");
+var pageloading = false;
+var pageLoadingDeferred = false;
+
+// This hack avoids lookups in the arrays[direction] each time dragfunction is called.
+for (var i=0; i<4; i++) {
+	setMargin[i] = (function(direction) {
+		return function(invalue, blocktext) {
+			var pxvalue = dpi*invalue;
+			if (isNaN(pxvalue) || pxvalue<0 || pxvalue + dpi*inmargins[(direction+2)%4] > pxdimensions[direction%2]-70) {
+				return false;
+			}
+			margins[direction].css(dirLength[direction], pxvalue);
+			inmargins[direction] = invalue;
+			region.css(dirPos[direction], pxvalue);
+			outputtext[direction].text(invalue.toFixed(2));
+			if (!blocktext)
+				inputs[direction].val(invalue.toFixed(2));
+			return true;
+		};
+	}(i));
+};
+
+
+loadpage = function(thepagenum) {
+	if (pageloading || thepagenum < 1 || thepagenum > pagecount)
+		return false;
+	
+	pagenum = thepagenum;
+	prevbtn.toggleClass("disabled", pagenum === 1);
+	nextbtn.toggleClass("disabled", pagenum === pagecount);
+
+	pagenumDisplay.text(pagenum);
+    pdf.getPage(pagenum).then(function(page) {
+		pdfpage = page;
+		// get original size of page
+		var viewport = pdfpage.getViewport(1);
+		origw = Math.max(1, viewport.width);
+		origh = Math.max(1, viewport.height);
+
+		refreshpage();
+	});
+	return true;
+};
+
+donePageLoading = function() {
+	pageloading = false;
+	if (pageLoadingDeferred) {
+		pageLoadingDeferred = false;
+		refreshpage();
+	}
+}
+
+refreshpage = function() {
+	if (pdfpage === undefined)
+		return;
+	if (pageloading) {
+		pageLoadingDeferred = true;
+		return;
+	}
+	pageloading = true;
+
+	var scale = Math.min(availw/origw, availh/origh);
+	var viewport = pdfpage.getViewport(scale);
+	pxdimensions = [viewport.width, viewport.height];
+	canvas.width = viewport.width;
+	canvas.height = viewport.height;
+    doccontainer.height(viewport.height);
+    doccontainer.width(viewport.width);
+
+	var viewport2 = pdfpage.getViewport(3*scale);
+	magnifycanvas.width = viewport2.width;
+	magnifycanvas.height = viewport2.height;
+
+	dirReference[0] = dirReference[2] = doccontainer.offset().left;
+	dirReference[1] = dirReference[3] = doccontainer.offset().top;
+	dirReference[2] += doccontainer.width();
+	dirReference[3] += doccontainer.height();
+
+
+    //
+    // Render PDF page into canvas context
+    //
+	var job1running = true;
+	var job2running = true;
+	pdfpage.render({canvasContext: context, viewport: viewport}).then(function() {
+		job1running = false;
+		if (!job2running)
+			donePageLoading();
+	});
+    pdfpage.render({canvasContext: magnifycontext, viewport: viewport2}).then(function() {
+		job2running = false;
+		if (!job1running)
+			donePageLoading();
+	});
+
+	dpi = 72*scale;
+	for (var i=0; i<4; i++)
+		setMargin[i](inmargins[i]);
+};
+
+var resize = function(inPdfRendering) {
+	availw = Math.max(100, viewcontainer.offsetWidth - 380);
+	availh = Math.max(100, viewcontainer.offsetHeight - 45 - turnpagesheight);
+	refreshpage();
+}
+
+
+
+var begindrag = function(event, direction) {
+	enddrag();
+	region.addClass('dragging');
+
+	// resetting the dragfunction in begindrag() avoids lookups in arrays[dir] each time dragfunction is called
+	dragfunction = (function(dir) {
+		return function(event) {
+			var pxvalue = Math.max(0, dirFactor[dir] * (event[dirMousecoord[dir]] - dirReference[dir]));
+			setMargin[dir](pxvalue/dpi);
+		};
+	}(direction));
+
+	dragfunction(event);
+};
+
+var showMagnifier = function(event, direction) {
+	hideMagnifier();
+	magnifyer.addClass('dir' + (direction%2));
+
+	// resetting the magnifyfunction in begindrag() avoids lookups in arrays[dir] each time dragfunction is called
+	magnifyfunction = (function(dir) {
+		return function(event) {
+			var pxvalue = inmargins[dir]*dpi;
+			var pxvalue2 = Math.max(0, dirFactor[(dir+1)%2] * (event[dirMousecoord[(dir+1)%2]] - dirReference[(dir+1)%2]));
+			var pos2 = pxvalue2-85;
+			if (pos2 < -5)  pos2 += 100;
+			magnifyer.css(dirPos[dir], pxvalue-75);
+			magnifyer.css(dirPos[(dir+1)%2], pos2);
+			magnifycanvas.style[dirPos[dir]] = 75-3*pxvalue + "px";
+			magnifycanvas.style[dirPos[(dir+1)%2]] = 35-3*pxvalue2 + "px";
+		};
+	}(direction));
+
+	magnifyfunction(event);
+};
+
+var hideMagnifier = function() {
+	magnifyer.removeClass('dir0');
+	magnifyer.removeClass('dir1');
+	for (var i=0; i<4; i++) {
+		magnifyer.css(dirPos[i], "auto");
+		magnifycanvas.style[dirPos[i]] = "auto";
+	}
+	magnifyfunction = voidfunction;
+};
+
+var enddrag = function () {
+	if (dragfunction !== voidfunction) {
+		dragfunction = voidfunction;
+		region.removeClass('dragging');
+	}
+};
+
+var mousemove = function (event) {
+	dragfunction(event);
+	magnifyfunction(event)
+}
+
+var textChange = function(dir, block) {
+	var invalue = parseFloat(inputs[dir].val());
+
+	if (setMargin[dir](invalue, block)) {
+		inputs[dir].removeClass("invalid");
+	} else {
+		inputs[dir].addClass("invalid");
+	}
+}
+
+
+for (var i=0; i!=4; i++) {
+	margins[i] = $("#m"+i);
+	handles[i] = $("#h"+i);
+	inputs[i] = $("#i"+i);
+	outputtext[i] = $("#text"+i);
+
+	handles[i].mouseenter((function(j) {
+		return function(event) {
+			showMagnifier(event, j);
+		};
+	}(i))).mouseleave(
+		hideMagnifier
+	).mousedown((function(j) {
+		return function(event) {
+			begindrag(event, j);
+		};
+	}(i)));
+
+	inputs[i].keypress((function(j) {
+		return function(event) {
+			window.setTimeout(function () {
+				textChange(j, true);
+			});
+		};
+	}(i))).blur((function(j) {
+		return function(event) {
+			textChange(j, false);
+		};
+	}(i)));
+}
+
+$(document).mouseup(enddrag);
+$(document).mousemove(mousemove);
+
+
+loadpdf = function(url) {
+    PDFJS.disableWorker = true;
+    PDFJS.getDocument(url).then(function(loadedpdf) {
+		pdf = loadedpdf;
+		pagecount = pdf.numPages;
+		pagecountDisplay.text(pagecount);
+		loadpage(1);
+    });
+};
+
+resize();
+$(window).resize(resize);
+loadpdf('testpdfs/paper-charged-skyrmions.pdf');
+prevbtn.click(function() {
+	loadpage(pagenum-1);
+	return false;
+});
+nextbtn.click(function() {
+	loadpage(pagenum+1);
+	return false;
+});
+
+});
+</script>
+
+
+
+  <!-- Use latest PDF.js build from Github -->
+  <script type="text/javascript" src="combined-pdf.js"></script>
+<!--  <script type="text/javascript" src="mockpdf.js"></script> -->
+  
+  <script type="text/javascript">
+
+
+
+  </script>
+
+</body>
+</html>
