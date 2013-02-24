@@ -1,9 +1,9 @@
-Zotero.HelloWorldZotero = {
+Zotero.Zotero2kindle = {
 	DB: null,
 	
 	init: function () {
-		// Connect to (and create, if necessary) helloworld.sqlite in the Zotero directory
-		this.DB = new Zotero.DBConnection('helloworld');
+		// Connect to (and create, if necessary) zotero2kindle.sqlite in the Zotero directory
+		this.DB = new Zotero.DBConnection('zotero2kindle');
 		
 		if (!this.DB.tableExists('changes')) {
 			this.DB.query("CREATE TABLE changes (num INT)");
@@ -26,7 +26,7 @@ Zotero.HelloWorldZotero = {
 		}, false);
 	},
 	
-	insertHello: function() {
+	sendSelectionToKindle: function() {
 		// Make sure data is synced (code adapted from zoteroPane.xul's <toolbarbutton id="zotero-tb-sync">)
 		Zotero.Sync.Server.canAutoResetClient = true;
 		Zotero.Sync.Server.manualSyncRequired = false;
@@ -92,7 +92,7 @@ Zotero.HelloWorldZotero = {
 //			alert("notify");
 /*			if (event == 'add' || event == 'modify' || event == 'delete') {
 				// Increment a counter every time an item is changed
-				Zotero.HelloWorldZotero.DB.query("UPDATE changes SET num = num + 1");
+				Zotero.Zotero2kindle.DB.query("UPDATE changes SET num = num + 1");
 				
 				if (event != 'delete') {
 					// Retrieve the added/modified items as Item objects
@@ -135,7 +135,7 @@ Zotero.HelloWorldZotero = {
 						break;
 				}
 				
-				var str = document.getElementById('hello-world-zotero-strings').
+				var str = document.getElementById('zotero2kindle-strings').
 					getFormattedString(stringName, [titles.length]) + ":\n\n" +
 					titles.join("\n");
 			}
@@ -146,4 +146,4 @@ Zotero.HelloWorldZotero = {
 };
 
 // Initialize the utility
-window.addEventListener('load', function(e) { Zotero.HelloWorldZotero.init(); }, false);
+window.addEventListener('load', function(e) { Zotero.Zotero2kindle.init(); }, false);

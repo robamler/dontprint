@@ -3,12 +3,12 @@
 		xmlns:em="http://www.mozilla.org/2004/em-rdf#">
 	
 	<Description about="urn:mozilla:install-manifest">
-		<em:id>helloworld@zotero.org</em:id>
-		<em:name>Hello World Plugin for Zotero</em:name>
-		<em:version>1.0.4.SVN</em:version>
-		<em:description>A sample plugin for Zotero</em:description>
-		<em:creator>Center for History and New Media<br/>George Mason University</em:creator>
-		<em:updateURL>https://www.zotero.org/download/plugins.rdf</em:updateURL>
+		<em:id>zotero2kindle@robamler.github.com</em:id>
+		<em:name>Zotero to Kindle plugin</em:name>
+		<em:version>0.1</em:version>
+		<em:description>Send PDFs from Zotero to your Amazon Kindle. Automatically rearrange text flow to optimize for the Kindle form factor.</em:description>
+		<em:creator>Robert Bamler</em:creator>
+		<em:updateURL>https://www.zotero.org/download/plugins.rdf</em:updateURL> <!-- TODO -->
 		<em:type>2</em:type> <!-- type=extension -->
 		
 		<!-- Requires Zotero -->
