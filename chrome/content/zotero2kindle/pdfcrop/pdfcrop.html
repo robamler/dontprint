@@ -30,6 +30,9 @@
     #h3 {cursor:s-resize; bottom:-9px}
     
     #turnpages {text-align:center}
+	#turnpages > .btn {background-position:center center}
+	#prevbtn {background-image:url("prev.png")}
+	#nextbtn {background-image:url("next.png")}
     
     #rightpanel {float:none; overflow:auto}
     #values {background-color:#ddd; padding:10px; box-shadow:1px 2px 7px 1px; float:left; margin:10px; max-width:500px}
@@ -39,24 +42,26 @@
     #miscoptions td {vertical-align:top; padding:4px 0px}
     #journalname {overflow:hidden;width:30px}
     #buttons {text-align:right}
-    a.btn {text-decoration:none; color:#000; background-color:#aaa; border-color:#aaa; border-width:1px; border-style:outset;padding:5px 8px 5px 24px; display:inline-block;}
+    a.btn {text-decoration:none; color:#000; background-color:#aaa; border-color:#aaa; border-width:1px; border-style:outset;padding:5px 8px 5px 22px; display:inline-block; background-position:3px center; background-repeat:no-repeat; margin:0px 3px}
     a.btn:hover {box-shadow:0px 0px 50px -25px #fff inset}
     a.btn:active {border-style:inset}
     a.btn.disabled {color:#555}
     a.btn.disabled:hover {box-shadow:none}
     a.btn.disabled:active {border-style:outset}
-    #startbutton {background-color:#c0e9bb;border-color:c0e9bb}
-    #abortbutton {background-color:#e9c0bb;border-color:e9c0bb}
+    #startbtn {background-color:#c0e9bb;border-color:c0e9bb;background-image:url("start.png")}
+    #abortbtn {background-color:#e9c0bb;border-color:e9c0bb;background-image:url("abort.png")}
     hr {border:none; height:1px; background-color:#efefef; box-shadow:0px 0px 2px 1px #fff; margin:15px 0px}
 
-	#magnifyer { display:none; position:absolute; margin:-1px; border:1px solid #bca; overflow:hidden; background-color:#fff; box-shadow:1px 2px 4px 3px #ab9 }
+	#magnifyer { display:none; position:absolute; margin:-1px; border:1px solid #cca; overflow:hidden; background-color:#fff; box-shadow:1px 2px 4px 3px #bb9 }
 	#magnifyer.dir0 { display:block; width:150px; height:70px }
 	#magnifyer.dir1 { display:block; height:150px; width:70px }
 	#magnifycanvas {box-shadow:1px 2px 7px 1px; position:absolute}
 	#magnifierline { position: absolute; left:0px; right:0px }
 	.dir0 > #magnifierline { width:74px; height:70px; padding-right:-1px; border-right:dashed 2px darkred }
 	.dir1 > #magnifierline { width:70px; height:74px; padding-bottom:-1px; border-bottom:dashed 2px darkred }
-	#magnifyoverlay { position:absolute; left:0px; right:0px; top:0px; bottom:0px; background-color:#dfc; opacity:0.2 }
+	#magnifyoverlay { position:absolute; left:0px; right:0px; top:0px; bottom:0px; background-color:#ffc; opacity:0.2 }
+	#magnifyarrow { display:block; position:absolute; left:0px; right:0px; top:0px; bottom:0px; margin:auto }
+	.dir1 > #magnifyarrow {-moz-transform:rotate(90deg)}
   </style>
 </head>
 <body>
@@ -82,6 +87,7 @@
 	<canvas id="magnifycanvas"></canvas>
 	<div id="magnifyoverlay"></div>
 	<div id="magnifierline"></div>
+	<img id="magnifyarrow" alt="" src="magnifyarrow.png" />
   </div>
 </div>
     <div id="turnpages">
@@ -133,8 +139,8 @@
     k2pdfopt -ui- -x -w 560 -h 720 -ml <span id="text0"></span> -mt <span id="text1"></span> -mr <span id="text2"></span> -mb <span id="text3"></span>
     <hr>
     <div id="buttons">
-      <a href="#" id="abortbutton" class="btn">Cancel</a>
-      <a href="#" id="startbutton" class="btn">Start conversion</a>
+      <a href="#" id="abortbtn" class="btn">Cancel</a>
+      <a href="#" id="startbtn" class="btn">Start conversion</a>
     </div>
   </div>
   </div>
@@ -182,6 +188,7 @@ var availw, origw, availh, origh;
 var turnpagesheight = $("#turnpages").height();
 var voidfunction = function() {};
 var dragfunction = voidfunction;
+var magnifyfunction = voidfunction;
 var dpi = 1;
 var inmargins = [0.25,0.25,0.25,0.25];
 var pxdimensions = [0,0];
@@ -299,15 +306,27 @@ var resize = function(inPdfRendering) {
 var begindrag = function(event, direction) {
 	enddrag();
 	region.addClass('dragging');
-	magnifyer.addClass('dir' + (direction%2));
 
 	// resetting the dragfunction in begindrag() avoids lookups in arrays[dir] each time dragfunction is called
 	dragfunction = (function(dir) {
 		return function(event) {
 			var pxvalue = Math.max(0, dirFactor[dir] * (event[dirMousecoord[dir]] - dirReference[dir]));
-			var pxvalue2 = Math.max(0, dirFactor[(dir+1)%2] * (event[dirMousecoord[(dir+1)%2]] - dirReference[(dir+1)%2]));
 			setMargin[dir](pxvalue/dpi);
-			pxvalue = inmargins[dir]*dpi; // in case setMargins() did not accept the parameter
+		};
+	}(direction));
+
+	dragfunction(event);
+};
+
+var showMagnifier = function(event, direction) {
+	hideMagnifier();
+	magnifyer.addClass('dir' + (direction%2));
+
+	// resetting the magnifyfunction in begindrag() avoids lookups in arrays[dir] each time dragfunction is called
+	magnifyfunction = (function(dir) {
+		return function(event) {
+			var pxvalue = inmargins[dir]*dpi;
+			var pxvalue2 = Math.max(0, dirFactor[(dir+1)%2] * (event[dirMousecoord[(dir+1)%2]] - dirReference[(dir+1)%2]));
 			var pos2 = pxvalue2-85;
 			if (pos2 < -5)  pos2 += 100;
 			magnifyer.css(dirPos[dir], pxvalue-75);
@@ -317,24 +336,29 @@ var begindrag = function(event, direction) {
 		};
 	}(direction));
 
-	dragfunction(event);
+	magnifyfunction(event);
+};
+
+var hideMagnifier = function() {
+	magnifyer.removeClass('dir0');
+	magnifyer.removeClass('dir1');
+	for (var i=0; i<4; i++) {
+		magnifyer.css(dirPos[i], "auto");
+		magnifycanvas.style[dirPos[i]] = "auto";
+	}
+	magnifyfunction = voidfunction;
 };
 
 var enddrag = function () {
 	if (dragfunction !== voidfunction) {
-		magnifyer.removeClass('dir0');
-		magnifyer.removeClass('dir1');
 		dragfunction = voidfunction;
 		region.removeClass('dragging');
-		for (var i=0; i<4; i++) {
-			magnifyer.css(dirPos[i], "auto");
-			magnifycanvas.style[dirPos[i]] = "auto";
-		}
 	}
 };
 
-var drag = function (event) {
+var mousemove = function (event) {
 	dragfunction(event);
+	magnifyfunction(event)
 }
 
 var textChange = function(dir, block) {
@@ -353,19 +377,26 @@ for (var i=0; i!=4; i++) {
 	handles[i] = $("#h"+i);
 	inputs[i] = $("#i"+i);
 	outputtext[i] = $("#text"+i);
-	handles[i].mousedown((function(j) {
+
+	handles[i].mouseenter((function(j) {
+		return function(event) {
+			showMagnifier(event, j);
+		};
+	}(i))).mouseleave(
+		hideMagnifier
+	).mousedown((function(j) {
 		return function(event) {
 			begindrag(event, j);
 		};
 	}(i)));
+
 	inputs[i].keypress((function(j) {
 		return function(event) {
 			window.setTimeout(function () {
 				textChange(j, true);
 			});
 		};
-	}(i)));
-	inputs[i].blur((function(j) {
+	}(i))).blur((function(j) {
 		return function(event) {
 			textChange(j, false);
 		};
@@ -373,7 +404,7 @@ for (var i=0; i!=4; i++) {
 }
 
 $(document).mouseup(enddrag);
-$(document).mousemove(drag);
+$(document).mousemove(mousemove);
 
 
 loadpdf = function(url) {
