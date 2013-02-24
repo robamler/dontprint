@@ -29,11 +29,13 @@ Zotero.Zotero2kindle = {
 			var i = Zotero.Items.get(id);
 			var attachmentKeys = i.getAttachments(false).map(function(id) {
 				var a_item = Zotero.Items.get(id);
-				if (a_item.attachmentMIMEType == 'application/pdf') {
-					return a_item.getField('key');
-				} else {
-					return undefined;
+				if (a_item.attachmentMIMEType === 'application/pdf') {
+					var file = a_item.getFile();
+					if (file) {
+						return file.path;
+					}
 				}
+				return undefined;
 			}).filter(function(elem) {
 				return elem !== undefined;
 			});
@@ -62,13 +64,17 @@ Zotero.Zotero2kindle = {
 			return;
 		}
 
-//		alert(JSON.stringify(docData));
-
-//		alert("opening tab");
-		var browserWindow = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+		var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 			.getService(Components.interfaces.nsIWindowMediator)
-			.getMostRecentWindow("navigator:browser");
-		var tab = browserWindow.gBrowser.loadOneTab("chrome://zotero2kindle/content/pdfcrop.xul", {inBackground:false});
+			.getMostRecentWindow("navigator:browser").gBrowser;
+		var newTabBrowser = gBrowser.getBrowserForTab(
+			gBrowser.loadOneTab("chrome://zotero2kindle/content/pdfcrop/pdfcrop.html", {inBackground:false})
+		);
+		newTabBrowser.addEventListener("load", function () {
+			newTabBrowser.contentWindow.PDFCropInit(docData[0].attachments[0]);
+		}, true);
+		//TODO: don't forget to remove event listener (avoid memory leak)
+		//TODO: launch k2pdfopt application as in launchFile() in zoteroPane.js
 	}
 };
 

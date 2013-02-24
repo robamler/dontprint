@@ -136,7 +136,7 @@
       </tr>
     </table>
     <hr>
-    k2pdfopt -ui- -x -w 560 -h 720 -ml <span id="text0"></span> -mt <span id="text1"></span> -mr <span id="text2"></span> -mb <span id="text3"></span>
+    k2pdfopt -ui- -x -w 560 -h 720 -ml <span id="text0"></span> -mt <span id="text1"></span> -mr <span id="text2"></span> -mb <span id="text3"></span> '<span id="textFilepath"></span>' -o converted.pdf
     <hr>
     <div id="buttons">
       <a href="#" id="abortbtn" class="btn">Cancel</a>
@@ -152,9 +152,37 @@
 
 <script type="text/javascript">
 
+/*alert("try");
+
+try {
+Components.classes["@mozilla.org/globalmessagemanager;1"].getService(Components.interfaces.nsIContentFrameMessageManager);
+} catch (e) {
+	alert(e);
+}
+
+alert("done");
+
+var test = Components.classes["@mozilla.org/parentprocessmessagemanager;1"];
+alert("test: " + !!test);
+var avail = Object.keys(Components.classes);
+alert(avail.length);
+while(avail.length >0)
+	alert(avail.splice(0,100));
+alert(!!Components);
+alert(!!Components.interfaces);
+alert(!!Components.interfaces.nsIContentFrameMessageManager);
+alert(Object.keys(Components.interfaces));
+alert(!!test.getService);
+var test2= test.getService(Components.interfaces.nsIContentFrameMessageManager);
+alert("test2: " + !!test2);*/
+
+function PDFCropInit(url) {
+	$(function() {
+		loadpdf(url);
+	});
+}
 
 $(function() {
-
 
 var handles = [0,0,0,0];
 var margins = [0,0,0,0];
@@ -171,6 +199,7 @@ var pdf;
 var pdfpage;
 var pagenum;
 var pagecount = 0;
+var filepathDisplay = $("#textFilepath");
 var pagenumDisplay = $("#pagenum");
 var pagecountDisplay = $("#pagecount");
 var canvas = document.getElementById('pdfcanvas');
@@ -407,9 +436,12 @@ $(document).mouseup(enddrag);
 $(document).mousemove(mousemove);
 
 
-loadpdf = function(url) {
-    PDFJS.disableWorker = true;
-    PDFJS.getDocument(url).then(function(loadedpdf) {
+loadpdf = function(path) {
+//    PDFJS.disableWorker = true;
+	filepathDisplay.text(path);
+
+	PDFJS.workerSrc = 'combined-pdf.js'
+    PDFJS.getDocument("file://" + path).then(function(loadedpdf) {
 		pdf = loadedpdf;
 		pagecount = pdf.numPages;
 		pagecountDisplay.text(pagecount);
@@ -417,9 +449,10 @@ loadpdf = function(url) {
     });
 };
 
+
 resize();
 $(window).resize(resize);
-loadpdf('testpdfs/paper-charged-skyrmions.pdf');
+//loadpdf('file:///home/robamler/.mozilla/firefox/f571m4kc.dev/zotero/storage/JAV82TPH/e058104.pdf');
 prevbtn.click(function() {
 	loadpage(pagenum-1);
 	return false;
@@ -429,7 +462,10 @@ nextbtn.click(function() {
 	return false;
 });
 
+
 });
+
+
 </script>
 
 
