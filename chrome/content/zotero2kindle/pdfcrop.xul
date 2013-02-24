@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<!-- Extremely recommended to keep this css include!! -->
+<window id="pdfcrop-window" title="PDFCrop!" disablechrome="true"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+<p xmlns="http://www.w3.org/1999/xhtml">Test2 <a href="http://google.com">link</a>.</p>
+
+</window>
