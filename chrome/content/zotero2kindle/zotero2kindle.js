@@ -71,7 +71,7 @@ Zotero.Zotero2kindle = {
 			gBrowser.loadOneTab("chrome://zotero2kindle/content/pdfcrop/pdfcrop.html", {inBackground:false})
 		);
 		newTabBrowser.addEventListener("load", function () {
-			newTabBrowser.contentWindow.PDFCropInit(docData[0].attachments[0]);
+			newTabBrowser.contentWindow.PDFCrop.init(docData[0].attachments[0]);
 		}, true);
 		//TODO: don't forget to remove event listener (avoid memory leak)
 		//TODO: launch k2pdfopt application as in launchFile() in zoteroPane.js
