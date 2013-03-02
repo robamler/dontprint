@@ -2,5 +2,5 @@
 
 # this script patches pdf.js so that it works also in xhtml which is embedded in xul
 
-perl -pe 's/\bdocument\.createElement\(/document.createElementNS("http:\/\/www.w3.org\/1999\/xhtml", /g' < chrome/content/zotero2kindle/pdfcrop/combined-pdf.js > chrome/content/zotero2kindle/pdfcrop/combined-pdf-patched.js
+perl -pe 's/\bdocument\.createElement\(/document.createElementNS("http:\/\/www.w3.org\/1999\/xhtml", /g' < chrome/content/dontprint/pdfcrop/combined-pdf.js > chrome/content/dontprint/pdfcrop/combined-pdf-patched.js
 

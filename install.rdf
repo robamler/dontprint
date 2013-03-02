@@ -3,12 +3,12 @@
 		xmlns:em="http://www.mozilla.org/2004/em-rdf#">
 	
 	<Description about="urn:mozilla:install-manifest">
-		<em:id>zotero2kindle@robamler.github.com</em:id>
-		<em:name>Zotero to Kindle plugin</em:name>
+		<em:id>dontprint@robamler.github.com</em:id>
+		<em:name>Dontprint plugin for Zotero</em:name>
 		<em:version>0.1</em:version>
 		<em:description>Send PDFs from Zotero to your Amazon Kindle. Automatically rearrange text flow to optimize for the Kindle form factor.</em:description>
 		<em:creator>Robert Bamler</em:creator>
-		<em:updateURL>https://www.zotero.org/download/plugins.rdf</em:updateURL> <!-- TODO -->
+		<em:updateURL></em:updateURL> <!-- TODO -->
 		<em:type>2</em:type> <!-- type=extension -->
 		
 		<!-- Requires Zotero -->

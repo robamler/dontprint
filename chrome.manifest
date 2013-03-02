@@ -1,5 +1,5 @@
-content	zotero2kindle				chrome/content/zotero2kindle/
-locale	zotero2kindle	en-US		chrome/locale/en-US/zotero2kindle/
-skin	zotero2kindle	default		chrome/skin/default/zotero2kindle/
+content	dontprint				chrome/content/dontprint/
+locale	dontprint	en-US		chrome/locale/en-US/dontprint/
+skin	dontprint	default		chrome/skin/default/dontprint/
 
-overlay	chrome://zotero/content/zoteroPane.xul	chrome://zotero2kindle/content/overlay.xul
+overlay	chrome://zotero/content/zoteroPane.xul	chrome://dontprint/content/overlay.xul

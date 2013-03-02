@@ -1,9 +1,9 @@
-Zotero.Zotero2kindle = {
+Zotero.Dontprint = {
 	DB: null,
 	
 	init: function () {
-		// Connect to (and create, if necessary) zotero2kindle.sqlite in the Zotero directory
-/*		this.DB = new Zotero.DBConnection('zotero2kindle');
+		// Connect to (and create, if necessary) dontprint.sqlite in the Zotero directory
+/*		this.DB = new Zotero.DBConnection('dontprint');
 		
 		if (!this.DB.tableExists('changes')) {
 			this.DB.query("CREATE TABLE changes (num INT)");
@@ -68,7 +68,7 @@ Zotero.Zotero2kindle = {
 			.getService(Components.interfaces.nsIWindowMediator)
 			.getMostRecentWindow("navigator:browser").gBrowser;
 		var newTabBrowser = gBrowser.getBrowserForTab(
-			gBrowser.loadOneTab("chrome://zotero2kindle/content/pdfcrop/pdfcrop.html", {inBackground:false})
+			gBrowser.loadOneTab("chrome://dontprint/content/pdfcrop/pdfcrop.html", {inBackground:false})
 		);
 		newTabBrowser.addEventListener("load", function () {
 			newTabBrowser.contentWindow.PDFCrop.init(docData[0].attachments[0]);
@@ -79,4 +79,4 @@ Zotero.Zotero2kindle = {
 };
 
 // Initialize the utility
-window.addEventListener('load', function(e) { Zotero.Zotero2kindle.init(); }, false);
+window.addEventListener('load', function(e) { Zotero.Dontprint.init(); }, false);
