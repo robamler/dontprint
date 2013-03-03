@@ -1,14 +1,13 @@
 PDFCrop = (function() {
 	// Constants
 	const voidfunction = function() {};
-	const outputtext = [0,0,0,0];
 	const dirLength = ['width', 'height', 'width', 'height'];
 	const dirPos = ['left', 'top', 'right', 'bottom'];
 	const dirMousecoord = ['pageX', 'pageY', 'pageX', 'pageY'];
 	const dirFactor = [1, 1, -1, -1];
 
 	// variables that represent DOM elements
-	var region , doccontainer, filepathDisplay, pagenumDisplay, pagecountDisplay, canvas, context, magnifycanvas, magnifycontext, viewcontainer, turnpagesheight, magnifyer, prevbtn, nextbtn;
+	var region, doccontainer, pagenumDisplay, pagecountDisplay, canvas, context, magnifycanvas, magnifycontext, viewcontainer, turnpagesheight, magnifyer, prevbtn, nextbtn;
 
 	// status variables
 	var handles = [0,0,0,0];
@@ -184,8 +183,6 @@ PDFCrop = (function() {
 
 	var loadpdf = function(path) {
 	//    PDFJS.disableWorker = true;
-		filepathDisplay.text(path);
-
 		PDFJS.workerSrc = 'combined-pdf.js'
 		PDFJS.getDocument("file://" + path).then(function(loadedpdf) {
 			pdf = loadedpdf;
@@ -218,7 +215,6 @@ PDFCrop = (function() {
 		// Initialize DOM elements
 		region = $('#region');
 		doccontainer = $('#document-container');
-		filepathDisplay = $("#textFilepath");
 		pagenumDisplay = $("#pagenum");
 		pagecountDisplay = $("#pagecount");
 		canvas = document.getElementById('pdfcanvas');
@@ -243,7 +239,6 @@ PDFCrop = (function() {
 					margins[direction].css(dirLength[direction], pxvalue);
 					inmargins[direction] = invalue;
 					region.css(dirPos[direction], pxvalue);
-					outputtext[direction].text(invalue.toFixed(2));
 					if (!blocktext)
 						inputs[direction].val(invalue.toFixed(2));
 					return true;
@@ -255,7 +250,6 @@ PDFCrop = (function() {
 			margins[i] = $("#m"+i);
 			handles[i] = $("#h"+i);
 			inputs[i] = $("#i"+i);
-			outputtext[i] = $("#text"+i);
 
 			handles[i].mouseenter((function(j) {
 				return function(event) {
