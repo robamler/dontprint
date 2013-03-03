@@ -27,6 +27,7 @@ PDFCrop = (function() {
 	var pagenum = 1;
 	var availw, origw, availh, origh;
 	var pdf, pdfpage;
+	var documentData, callback, attachmentIndex;
 
 	// private methods
 	var loadpage = function(thepagenum) {
@@ -194,7 +195,26 @@ PDFCrop = (function() {
 		});
 	};
 
-	var doInit = function(url) {
+	var startConversion = function() {
+		callback(documentData, attachmentIndex, inmargins);
+		window.close();
+	};
+
+	var abortConversion = function() {
+		window.close();
+	};
+
+	var doInit = function(theDocumentData, theAttachmentIndex, theCallback) {
+		// process parameters
+		documentData = theDocumentData;
+		attachmentIndex = theAttachmentIndex;
+		callback = theCallback;
+		$('#journalname').text(
+			documentData.journalShortname !== undefined ? documentData.journalShortname : (
+				documentData.journalLongname !== undefined ? documentData.journalLongname :
+					'unknown journal'
+		));
+
 		// Initialize DOM elements
 		region = $('#region');
 		doccontainer = $('#document-container');
@@ -275,17 +295,20 @@ PDFCrop = (function() {
 			return false;
 		});
 
+		$("#startbtn").click(startConversion);
+		$("#abortbtn").click(abortConversion);
+
 		resize();
 
 		// Load the page
-		loadpdf(url);
+		loadpdf(documentData.attachments[attachmentIndex]);
 	};
 
 	// public methods
 	return {
-		init: function(url) {
+		init: function(theDocumentData, theAttachmentIndex, theCallback) {
 			$(function() {
-				doInit(url);
+				doInit(theDocumentData, theAttachmentIndex, theCallback);
 			});
 		}
 	};
