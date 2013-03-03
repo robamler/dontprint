@@ -11,10 +11,10 @@
 	</stringbundleset>
 	
 	<hbox id="zotero-items-toolbar">
-		<toolbarbutton id="dontprint-tb-sendtokindle"
+		<toolbarbutton id="dontprint-tbbtn"
 			class="zotero-tb-button"
-			tooltiptext="&dontprint.sendtokindlelabel;"
-			oncommand="Zotero.Dontprint.sendSelectionToKindle()"
+			tooltiptext="&dontprint.tbbtnlabel;"
+			oncommand="Zotero.Dontprint.dontprintSelection()"
 			insertbefore="zotero-tb-advanced-search" />
 		<toolbarseparator insertbefore="zotero-tb-advanced-search" />
 	</hbox>

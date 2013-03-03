@@ -1,4 +1,4 @@
-#dontprint-tb-sendtokindle
+#dontprint-tbbtn
 {
-	list-style-image: url('chrome://dontprint/skin/kindle.png');
+	list-style-image: url('chrome://dontprint/skin/dontprint-btn.png');
 }

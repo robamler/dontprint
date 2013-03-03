@@ -11,7 +11,7 @@ Zotero.Dontprint = {
 		}*/
 	},
 	
-	sendSelectionToKindle: function() {
+	dontprintSelection: function() {
 		var selectedItems = ZoteroPane.getSelectedItems();
 //		alert("selectedItems.length = " + selectedItems.length);
 
@@ -52,7 +52,7 @@ Zotero.Dontprint = {
 			return elem.attachments.length == 0;
 		});
 		if (noattach.length) {
-			alert("The following selected items cannot be sent to your Kindle because they do not have an attached PDF file:\n\n" +
+			alert("The following selected items cannot be sent to your e-reader because they do not have an attached PDF file:\n\n" +
 				noattach.map(function(elem) { return elem.title; }).join("\n"));
 		}
 		
@@ -60,7 +60,7 @@ Zotero.Dontprint = {
 			return elem.attachments.length != 0;
 		});
 		if (docData.length == 0) {
-			alert("No documents sent to your Kindle. Select an item with an attached PDF file and try again.");
+			alert("No documents sent to your e-reader. Select an item with an attached PDF file and try again.");
 			return;
 		}
 
