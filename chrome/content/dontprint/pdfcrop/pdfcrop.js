@@ -193,7 +193,11 @@ PDFCrop = (function() {
 	};
 
 	var startConversion = function() {
-		callback(documentData, attachmentIndex, inmargins);
+		callback(documentData, attachmentIndex, {
+			margins: inmargins,
+			startpage: $("#coverpage").prop("checked") ? 2 : 1,
+			endpage: pagecount
+		});
 		window.close();
 	};
 

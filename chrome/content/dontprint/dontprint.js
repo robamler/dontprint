@@ -11,7 +11,7 @@ Zotero.Dontprint = (function() {
 		}*/
 	};
 
-	var startConversion = function(documentData, attachmentIndex, inmargins) {
+	var startConversion = function(documentData, attachmentIndex, settings) {
 		// TODO: create preferences frontend to set:
 		// * extensions.zotero.dontprint.k2pdfoptpath
 		// * extensions.zotero.dontprint.outputdirectory
@@ -33,10 +33,11 @@ Zotero.Dontprint = (function() {
 
 			var args = [
 				'-ui-', '-x', '-w', '557', '-h', '721',
-				'-ml', inmargins[0],
-				'-mt', inmargins[1],
-				'-mr', inmargins[2],
-				'-mb', inmargins[3],
+				'-ml', settings.margins[0],
+				'-mt', settings.margins[1],
+				'-mr', settings.margins[2],
+				'-mb', settings.margins[3],
+				'-p', settings.startpage + '-' + settings.endpage,
 				documentData.attachments[attachmentIndex],
 				'-o', outputpath
 			];
