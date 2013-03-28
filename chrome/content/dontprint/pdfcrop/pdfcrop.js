@@ -20,13 +20,13 @@ PDFCrop = (function() {
 	var dragfunction = voidfunction;
 	var magnifyfunction = voidfunction;
 	var dpi = 1;
-	var inmargins = [0.25,0.25,0.25,0.25];
+	var inmargins = [0,0,0,0];
 	var pxdimensions = [0,0];
 	var pagecount = 0;
 	var pagenum = 1;
 	var availw, origw, availh, origh;
 	var pdf, pdfpage;
-	var documentData, callback, attachmentIndex;
+	var documentData, callback, attachmentIndex, builtinJournal;
 
 	// private methods
 	var loadpage = function(thepagenum) {
@@ -194,9 +194,11 @@ PDFCrop = (function() {
 
 	var startConversion = function() {
 		callback(documentData, attachmentIndex, {
-			margins: inmargins,
-			startpage: $("#coverpage").prop("checked") ? 2 : 1,
-			endpage: pagecount
+			coverpage: $("#coverpage").prop("checked"),
+			remember: $("#savetemplate").prop("checked"),
+			sendsettings: $("#sendsettings").prop("checked"),
+			builtin: builtinJournal,
+			m1: inmargins[0], m2: inmargins[1], m3: inmargins[2], m4: inmargins[3]
 		});
 		window.close();
 	};
@@ -205,17 +207,7 @@ PDFCrop = (function() {
 		window.close();
 	};
 
-	var doInit = function(theDocumentData, theAttachmentIndex, theCallback) {
-		// process parameters
-		documentData = theDocumentData;
-		attachmentIndex = theAttachmentIndex;
-		callback = theCallback;
-		$('#journalname').text(
-			documentData.journalShortname !== undefined ? documentData.journalShortname : (
-				documentData.journalLongname !== undefined ? documentData.journalLongname :
-					'unknown journal'
-		));
-
+	var doInit = function(theDocumentData, theAttachmentIndex, presets, theCallback) {
 		// Initialize DOM elements
 		region = $('#region');
 		doccontainer = $('#document-container');
@@ -230,6 +222,25 @@ PDFCrop = (function() {
 		magnifyer = $("#magnifyer");
 		prevbtn = $("#prevbtn");
 		nextbtn = $("#nextbtn");
+
+		// process parameters
+		documentData = theDocumentData;
+		attachmentIndex = theAttachmentIndex;
+		callback = theCallback;
+		$('#journalname').text(
+			documentData.journalShortname !== undefined ? documentData.journalShortname : (
+				documentData.journalLongname !== undefined ? documentData.journalLongname :
+					'unknown journal'
+		));
+
+		// set presets
+		builtinJournal = presets.builtin;
+		if (presets.builtin) $('#remember-display').hide();
+		else $('#savetemplate').prop("checked", presets.remember);
+		$("#coverpage").prop("checked", presets.coverpage);
+		for (var i=1; i<=4; i++) {
+			inmargins[i-1] = parseFloat(presets['m'+i]);
+		}
 
 		// Set up event handlers
 		// This hack avoids lookups in the arrays[direction] each time dragfunction is called.
@@ -304,9 +315,9 @@ PDFCrop = (function() {
 
 	// public methods
 	return {
-		init: function(theDocumentData, theAttachmentIndex, theCallback) {
+		init: function(theDocumentData, theAttachmentIndex, thePresets, theCallback) {
 			$(function() {
-				doInit(theDocumentData, theAttachmentIndex, theCallback);
+				doInit(theDocumentData, theAttachmentIndex, thePresets, theCallback);
 			});
 		}
 	};
