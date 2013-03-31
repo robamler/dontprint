@@ -131,6 +131,8 @@ Zotero.Dontprint = (function() {
 				"https://script.google.com/macros/s/AKfycbzS9ZRuiITZnQPIgLdJHlXWts6AGvlKuT-sU1l3K5E5cl38On2p/exec",
 				{inBackground:false, postData:postData}
 			);
+			
+			incrementQueueLength(-1);
 		};
 		
 		req.open('PUT', location, true);
@@ -192,12 +194,44 @@ Zotero.Dontprint = (function() {
 	}
 	};
 	
+	var incrementQueueLength = (function() {
+		// local variables
+		var queuelength = 0;
+		var timer = null;
+		var button = document.getElementById('dontprint-tbbtn');
+		var state = 0;
+		
+		// the actual function "incrementQueueLength()"
+		return function(inc) {
+			if (!button)
+				button = document.getElementById('dontprint-tbbtn');
+			clearInterval(timer);
+			queuelength = Math.max(0, queuelength+inc);
+			
+			if (queuelength === 0) {
+				button.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/idle.png')";
+			} else {
+				var len = Math.min(10, queuelength);
+				var timerfunc = function() {
+					button.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png')";
+					state = (state+1)%2;
+				};
+				timerfunc();
+				timer = setInterval(timerfunc, 2000);
+			}
+			
+			return queuelength;
+		};
+	}());
+	
 	var startConversion = function(documentData, attachmentIndex, settings) {
 		// TODO: create preferences frontend to set:
 		// * extensions.zotero.dontprint.k2pdfoptpath
 		// * extensions.zotero.dontprint.outputdirectory
 		
 		try {
+			incrementQueueLength(1);
+			
 			var exec = Components.classes["@mozilla.org/file/local;1"]
 						.createInstance(Components.interfaces.nsILocalFile);
 			
@@ -244,7 +278,6 @@ Zotero.Dontprint = (function() {
 					);
 				}
 			});
-			//TODO: provide some feedback that conversion has started
 		}
 		catch (e) {
 			alert('Dontprint: faild to launch k2pdfopt: ' + e.toString());
