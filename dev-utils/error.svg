@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 12.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 51448)  -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   height="136.927"
+   id="Layer_1"
+   inkscape:version="0.48.3.1 r9886"
+   sodipodi:docname="tasto_8_architetto_franc_01.svg"
+   sodipodi:version="0.32"
+   space="preserve"
+   style="overflow:visible;enable-background:new 0 0 136.93 136.927;"
+   version="1.1"
+   viewBox="0 0 136.93 136.927"
+   width="136.93"
+   inkscape:export-filename="/home/robamler/Desktop/dontprint/error.png"
+   inkscape:export-xdpi="15.12"
+   inkscape:export-ydpi="15.12">
+  <defs
+     id="defs35" />
+  <sodipodi:namedview
+     bordercolor="#666666"
+     borderopacity="1.0"
+     id="base"
+     inkscape:current-layer="g3"
+     inkscape:cx="-15.02244"
+     inkscape:cy="68.463501"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:window-height="1056"
+     inkscape:window-width="1855"
+     inkscape:window-x="65"
+     inkscape:window-y="24"
+     inkscape:zoom="2.6291381"
+     pagecolor="#ffffff"
+     showgrid="false"
+     inkscape:window-maximized="1" />
+  <g
+     id="g3">
+    <radialGradient
+       cx="66.3477"
+       cy="21.8091"
+       gradientUnits="userSpaceOnUse"
+       id="XMLID_2_"
+       r="91.9457">
+      <stop
+         id="stop6"
+         offset="0"
+         style="stop-color:#F28888" />
+      <stop
+         id="stop8"
+         offset="1"
+         style="stop-color:#D82A2A" />
+    </radialGradient>
+    <path
+       d="M132.99,99.316c-6.597-6.595-13.189-13.188-19.785-19.783   c-3.288-3.288-6.576-6.577-9.864-9.865c-1.915-1.915-0.106-2.309,1.725-4.14c8.093-8.095,16.188-16.19,24.281-24.283   c2.697-2.7,5.927-5.249,6.376-9.333c0.617-5.644-4.11-9.153-7.651-12.693c-5.773-5.773-17.326-22.657-27.023-16.643   c-7.658,4.75-14.12,13.764-20.432,20.076c-3.479,3.479-6.957,6.957-10.436,10.434c-2.15,2.15-1.827,1.591-3.996-0.576   c-8.051-8.051-16.104-16.102-24.157-24.153c-2.328-2.328-4.845-5.592-8.057-6.692c-6.127-2.095-10.011,2.47-13.826,6.281   C14.543,13.548-1.539,24.544,1.678,33.958c1.098,3.213,4.361,5.729,6.688,8.059c4.404,4.404,8.807,8.807,13.212,13.212   c3.648,3.648,7.296,7.296,10.945,10.947c2.167,2.167,2.726,1.845,0.576,3.996c-7.969,7.967-15.936,15.936-23.905,23.904   c-2.152,2.152-4.979,4.335-6.608,6.962c-3.749,6.042,0.466,10.843,4.523,14.898c5.48,5.48,15.905,20.748,24.816,19.772   c8.071-0.884,17.021-14.063,22.218-19.261c4.016-4.012,8.029-8.025,12.043-12.039c2.167-2.167,1.845-2.726,3.994-0.575   c8.245,8.242,16.489,16.485,24.732,24.729c2.883,2.883,5.76,6.67,10.104,7.146c5.642,0.617,9.15-4.11,12.691-7.65   C123.649,122.116,142.588,108.906,132.99,99.316"
+       id="path10"
+       style="fill:#4b1b1b;fill-opacity:1" />
+    <path
+       d="M30.881,0.022c-7.374,0-14.027,9.615-18.709,14.297C6.497,19.993-4.236,27.591,1.789,36.731   c3.84,5.826,10.373,10.68,15.26,15.567c5.387,5.388,10.777,10.771,16.161,16.163C24.478,77.182,15.756,85.913,7.029,94.64   c-4.257,4.257-8.981,8.757-6.191,15.486c2.154,5.201,8.574,9.712,12.414,13.552c3.698,3.698,7.337,8.499,11.725,11.435   c6.522,4.365,12.054,0.048,16.563-4.459c8.978-8.978,17.962-17.951,26.934-26.934c8.722,8.732,17.454,17.454,26.181,26.179   c4.257,4.255,8.753,8.979,15.485,6.191c5.199-2.153,9.711-8.571,13.552-12.412c3.697-3.697,8.499-7.335,11.434-11.723   c4.325-6.462,0.058-12.045-4.458-16.563c-8.979-8.978-17.952-17.96-26.935-26.932c8.722-8.732,17.454-17.456,26.182-26.183   c4.242-4.242,8.927-8.711,6.212-15.419c-2.119-5.23-8.59-9.774-12.435-13.62c-3.701-3.699-7.355-8.548-11.768-11.46   c-6.517-4.301-12.021-0.013-16.521,4.485c-8.978,8.978-17.96,17.951-26.932,26.934c-6.127-6.135-12.26-12.26-18.39-18.392   C45.346,10.073,38.364,0.018,30.881,0.022 M24.951,132.175c-6.719-6.717-29.727-22.531-19.429-32.829   C15.818,89.052,26.112,78.755,36.409,68.46C29.856,61.908,23.303,55.353,16.748,48.8C11.567,43.619-3.434,33.12,4.826,24.862   c6.609-6.608,13.221-13.217,19.831-19.825c8.307-8.303,17.728,5.276,23.09,10.636c6.891,6.891,13.782,13.782,20.673,20.671   c0.104,0.104,17.34-17.238,18.626-18.522c5.156-5.156,16.596-21.437,24.944-13.079c7.122,5.452,13.205,13.201,19.557,19.548   c8.67,8.668-4.56,17.713-10.288,23.443c-6.909,6.909-13.817,13.818-20.727,20.728c10.312,10.309,22.737,20.149,31.657,31.657   c8.243,8.24-7.113,18.976-12.248,24.109c-5.53,5.527-12.562,15.199-20.584,7.178c-6.651-6.65-13.301-13.302-19.953-19.952   c-2.148-2.147-9.521-12.34-12.118-9.746c-6.862,6.862-13.724,13.722-20.585,20.584C41.743,127.246,32.726,139.969,24.951,132.175"
+       id="path32"
+       style="fill:#280f0f;fill-opacity:1" />
+  </g>
+  <metadata
+     id="metadata4638">
+    <rdf:RDF>
+      <cc:Work>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <cc:license
+           rdf:resource="http://creativecommons.org/licenses/publicdomain/" />
+        <dc:publisher>
+          <cc:Agent
+             rdf:about="http://openclipart.org/">
+            <dc:title>Open Clip Art Library</dc:title>
+          </cc:Agent>
+        </dc:publisher>
+        <dc:title></dc:title>
+        <dc:date>2010-03-28T09:28:26</dc:date>
+        <dc:description>Drawing by Francesco 'Architetto' Rollandin. From OCAL 0.18 release.</dc:description>
+        <dc:source>http://openclipart.org/detail/34729/architetto----tasto-8-by-anonymous</dc:source>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Anonymous</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>sign</rdf:li>
+            <rdf:li>symbol</rdf:li>
+            <rdf:li>icon</rdf:li>
+            <rdf:li>button</rdf:li>
+            <rdf:li>cross</rdf:li>
+            <rdf:li>multiply</rdf:li>
+            <rdf:li>cancel</rdf:li>
+            <rdf:li>remove</rdf:li>
+            <rdf:li>delete</rdf:li>
+            <rdf:li>red</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+      </cc:Work>
+      <cc:License
+         rdf:about="http://creativecommons.org/licenses/publicdomain/">
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#Reproduction" />
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#Distribution" />
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#DerivativeWorks" />
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+</svg>

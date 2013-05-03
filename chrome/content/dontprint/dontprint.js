@@ -100,37 +100,52 @@ Zotero.Dontprint = (function() {
 		
 		req.onload = function () {
 // 			alert("async done:" + req.responseText);
-			var id = JSON.parse(req.responseText).id;
-// 			alert("id: " + id);
 			
-			// Note: This is a small security issue: anyone who can redirect the user
-			// to this site and knows the id of a file in the users drive can send
-			// that file to the users kindle. Not sure if that's really a problem.
+			var url = googleOauthService.buildURL(
+				"chrome://dontprint/content/sendmail.html",
+				{fileId: JSON.parse(req.responseText).id}
+			);
 			
-			var dataString = "fileId=" + encodeURIComponent(id);
-			
-			// POST method requests must wrap the encoded text in a MIME stream
-			var stringStream = Components.classes["@mozilla.org/io/string-input-stream;1"]
-				.createInstance(Components.interfaces.nsIStringInputStream);
-			if ("data" in stringStream) // Gecko 1.9 or newer
-				stringStream.data = dataString;
-			else // 1.8 or older
-				stringStream.setData(dataString, dataString.length);
-			
-			var postData = Components.classes["@mozilla.org/network/mime-input-stream;1"]
-				.createInstance(Components.interfaces.nsIMIMEInputStream);
-			postData.addHeader("Content-Type", "application/x-www-form-urlencoded");
-			postData.addContentLength = true;
-			postData.setData(stringStream);
-
-			// Open tab with post data
+			// Open tab in background
 			var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 				.getService(Components.interfaces.nsIWindowMediator)
 				.getMostRecentWindow("navigator:browser").gBrowser;
-			gBrowser.loadOneTab(
-				"https://script.google.com/macros/s/AKfycbzS9ZRuiITZnQPIgLdJHlXWts6AGvlKuT-sU1l3K5E5cl38On2p/exec",
-				{inBackground:false, postData:postData}
-			);
+			var tab = gBrowser.loadOneTab(url, {inBackground:true});
+			var newTabBrowser = gBrowser.getBrowserForTab(tab);
+			var win = newTabBrowser.contentWindow;
+			
+			// set onload-handler for new tab. This cannot be done in Google Apps Script because we need the rights to close the tab.
+			var onloadFunction = function () {
+				if (win.location.href.match(/^https\:\/\/accounts\.google\.com\//)) {
+					// The user either needs to authorize dontprint or authenticate himself. In either case, bring tab to front.
+					gBrowser.selectedTab = tab;
+				} else if (win.document.title.match(/ \(Dontprint plugin for Zotero\)$/)) {
+					var favicon = win.document.createElement('link');
+					favicon.type = 'image/x-icon';
+					favicon.rel = 'shortcut icon';
+					favicon.href = 'http://robamler.github.io/dontprint/webapp/favicon.png';
+					win.document.getElementsByTagName('head')[0].appendChild(favicon);
+					
+					if (win.document.title.match(/^Success\: /)) {
+						newTabBrowser.removeEventListener("load", onloadFunction, true);
+						var timeout = 60;
+						var timer = setInterval(function() {
+							if (
+								win.frames.length === 1 &&
+								win.frames[0].document.getElementsByTagName("span").length === 1
+							) {
+								if (timeout === 0) {
+									clearInterval(timer);
+									win.close();
+								}
+								win.frames[0].document.getElementsByTagName("span")[0].textContent = timeout;
+								timeout -= 5;
+							}
+						}, 5000);
+					}
+				}
+			};
+			newTabBrowser.addEventListener("load", onloadFunction, true);
 			
 			incrementQueueLength(-1);
 		};
@@ -198,7 +213,7 @@ Zotero.Dontprint = (function() {
 		// local variables
 		var queuelength = 0;
 		var timer = null;
-		var button = document.getElementById('dontprint-tbbtn');
+		var button = null;
 		var state = 0;
 		
 		// the actual function "incrementQueueLength()"
