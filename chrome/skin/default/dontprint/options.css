@@ -1,0 +1,9 @@
+row, hbox {
+	-moz-box-align: center;
+}
+row label:first-child {
+	text-align: right;
+}
+description {
+	width: 70ex;
+}

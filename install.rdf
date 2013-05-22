@@ -6,10 +6,11 @@
 		<em:id>dontprint@robamler.github.com</em:id>
 		<em:name>Dontprint plugin for Zotero</em:name>
 		<em:version>0.1</em:version>
-		<em:description>Send PDFs from Zotero to your Amazon Kindle. Automatically rearrange text flow to optimize for the Kindle form factor.</em:description>
+		<em:description>Send PDFs from Zotero to your Amazon Kindle. Automatically rearrange text flow to optimize for the Kindle's form factor.</em:description>
 		<em:creator>Robert Bamler</em:creator>
 		<em:updateURL></em:updateURL> <!-- TODO -->
 		<em:type>2</em:type> <!-- type=extension -->
+		<em:optionsURL>chrome://dontprint/content/options.xul</em:optionsURL>
 		
 		<!-- Requires Zotero -->
 		<em:requires>
@@ -22,19 +23,12 @@
 			</Description>
 		</em:requires>
     
-		<!-- Requires Firefox or Zotero Standalone -->
+		<!-- Requires Firefox (Zotero Standalone not yet supported) -->
 		<em:targetApplication>
 			<Description>
 				<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
 				<em:minVersion>3.6</em:minVersion>
 				<em:maxVersion>12.*</em:maxVersion>
-			</Description>
-		</em:targetApplication>
-		<em:targetApplication>
-			<Description>
-				<em:id>zotero@chnm.gmu.edu</em:id>
-				<em:minVersion>3.0b1</em:minVersion>
-				<em:maxVersion>3.0.*</em:maxVersion>
 			</Description>
 		</em:targetApplication>
 	</Description>
