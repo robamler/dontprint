@@ -3,7 +3,7 @@ Zotero.Dontprint = (function() {
 	var googleOauthService = null;
 
 	var defaultCropParams = {
-		builtin:false, remember:true, coverpage:false, m1:0.25, m2:0.25, m3:0.25, m4:0.25
+		builtin:false, remember:true, coverpage:false, m1:0.52, m2:0.2, m3:0.2, m4:0.2
 	};
 
 	var init = function () {
