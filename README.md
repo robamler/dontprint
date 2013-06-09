@@ -15,17 +15,38 @@ Here's a more verbose list of planned features:
 * Optionally, send the optimized PDF document to your Amazon Kindle's email address. For other e-book readers, Dontprint will place the output PDF in a directory of your choice.
 
 
-Current Status
+Installation
 -------------------------------
 
-This is just some small gadged I'm writing in my spare time. I'll probably publish a first usable version on addons.mozilla.org in Q2 2013. Please drop me a note if you would like to get involved. You find my contact information at http://www.thp.uni-koeln.de/~rbamler/.
+This is just some small gadged I'm writing in my spare time. On Linux, the core functionality mostly works but it's missing some front-end for configurations and I might still change the implementation in a non-backward compatible way. I'll publish Dontprint on addons.mozilla.org as soon as it's more stable. If you're adventurous, here's how to install the development version of Dontprint on a Linux machine.
+
+1. Create a Google account on http://gmail.com if you don't already have one. Dontprint sends emails to your Kindle from your Gmail address. This eliminates server costs so that Dontprint can stay free of charge. Dontprint uses OAuth for authorization so you never have to give any passwords to Dontprint. Also, Dontprint will get only very restricted access to your Google account (uploading files to Drive and sending emails).
+2. On your country's Amazon website, go to "Manage Your Kindle" and make sure that your Gmail address is white-listed to send documents to your Kindle.
+3. Download K2pdfopt from http://www.willus.com/k2pdfopt.
+4. Install the Zotero plugin for Firefox from http://zotero.org.
+
+5. Open a terminal, `cd` to the directory where you want to clone the Dontprint source code and type
+ ```bash
+ you@yourmachine:~$ git clone -b testing git://github.com/robamler/dontprint.git
+ you@yourmachine:~/dontprint$ cd dontprint
+ you@yourmachine:~/dontprint$ pwd > ~/.mozilla/firefox/*.default/extensions/dontprint@robamler.github.com
+ ```
+6. Restart Firefox.
+7. Type `about:config` in the location bar and create the following string preferences by right-clicking --> New --> String:
+
+ | Preference Name                             | Value                        |
+ | ------------------------------------------- | ---------------------------- |
+ | extensions.zotero.dontprint.k2pdfoptpath    | /path/to/k2pdfopt/executable |
+ | extensions.zotero.dontprint.outputdirectory | Temporary directory for the converted PDF documents, e.g., `/tmp` |
+ | extensions.zotero.dontprint.recipientEmail  | your-kindle-address@free.kindle.com |
+8. Select an item that has an attached PDF document in Zotero and click the Dontprint button (![Dontprint icon](http://robamler.github.io/dontprint/webapp/favicon.png)) in the Zotero pane. The following should happen: A new tab should pop up where you can set the margins to crop headers and footers (Dontprint remembers margins for each journal, so you will usually skip this step). When you confirm with the green button, the document will be optimized by k2pdfopt (this may take some time). Dontprint will then temporarily upload the optimized document to your Google Drive account and, from there, send it by email to your Kindle address. When Dontprint runs for the first time, you'll have to authorize both the uploading and the email sending. If everything worked, a confirmation tab should open in the background. The next time you dontprint an article from the same journal, it should be a one-click experience.
 
 
 License & Copyright
 -------------------------------
 
 Dontprint &ndash; Web browser plugin to send scientific articles to your e-book reader in an optimized layout.<br>
-Copyright &copy; 2013  Robert Bamler	
+Copyright &copy; 2013  Robert Bamler  
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License, version 3 (AGPLv3),
