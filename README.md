@@ -29,9 +29,9 @@ This is just some small gadged I'm writing in my spare time. On Linux, the core 
  ```bash
  you@yourmachine:~$ git clone -b testing git://github.com/robamler/dontprint.git
  you@yourmachine:~$ cd dontprint
- you@yourmachine:~/dontprint$ pwd > ~/.mozilla/firefox/*.default/extensions/dontprint@robamler.github.com
+ you@yourmachine:~/dontprint$ pwd > `echo ~/.mozilla/firefox/*.default/extensions`/dontprint@robamler.github.com
  ```
-6. Restart Firefox.
+6. Restart Firefox. It will greet you with a warning about a new extension. Select the checkbox to accept the installation and restart again.
 7. Type `about:config` in the location bar and create the following string preferences by right-clicking --> New --> String:
 
  | Preference Name                             | Value                        |
@@ -46,7 +46,7 @@ License & Copyright
 -------------------------------
 
 Dontprint &ndash; Web browser plugin to send scientific articles to your e-book reader in an optimized layout.<br>
-Copyright &copy; 2013  Robert Bamler  
+Copyright &copy; 2013  Robert Bamler
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License, version 3 (AGPLv3),
