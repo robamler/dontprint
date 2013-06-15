@@ -21,7 +21,7 @@
 			<preference id="screenWidth_symbol" name="extensions.zotero.dontprint.screenWidth" type="int"/>
 			<preference id="screenHeight_symbol" name="extensions.zotero.dontprint.screenHeight" type="int"/>
 			<preference id="sendEmail_symbol" name="extensions.zotero.dontprint.sendEmail" type="bool"/>
-			<preference id="outputdirectory_symbol" name="extensions.zotero.dontprint.outputdirectory" type="string"/>
+			<!--			<preference id="outputdirectory_symbol" name="extensions.zotero.dontprint.outputdirectory" type="string"/> -->
 			<preference id="placeInFolder_symbol" name="extensions.zotero.dontprint.placeInFolder" type="bool"/>
 		</preferences>
 		<groupbox>
@@ -77,10 +77,10 @@
 						</hbox>
 						<textbox preference="recipientEmail_symbol" id="otherEmail_control"/>
 					</row>
-					<row>
+<!--					<row>
 						<checkbox label="&dontprint.preferences.placeInFolder;" preference="placeInFolder_symbol" id="placeInFolder_control" oncommand="onPlaceInFolderClicked()"/>
 						<textbox preference="outputdirectory_symbol" id="outputdirectory_control"/>
-					</row>
+					</row> -->
 				</rows>
 			</grid>
 			

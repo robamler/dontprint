@@ -1,4 +1,5 @@
 <!ENTITY dontprint.tbbtnlabel						"Dontprint selected item(s) (send to e-reader)">
+<!ENTITY dontprint.statusimglabel					"Dontprint document (send to e-reader)">
 <!ENTITY dontprint.preferences.title				"Dontprint plugin for Zotero - Settings">
 <!ENTITY dontprint.preferences.general				"General settings">
 <!ENTITY dontprint.preferences.device				"Device settings">

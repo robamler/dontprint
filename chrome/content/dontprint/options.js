@@ -26,7 +26,7 @@ function onSendEmailClicked() {
 
 function onPlaceInFolderClicked() {
 	var value = document.getElementById('placeInFolder_control').checked;
-	document.getElementById('outputdirectory_control').disabled = !value;
+//	document.getElementById('outputdirectory_control').disabled = !value;
 }
 
 

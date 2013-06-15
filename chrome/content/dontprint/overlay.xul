@@ -14,9 +14,23 @@
 		<toolbarbutton id="dontprint-tbbtn"
 			class="zotero-tb-button"
 			tooltiptext="&dontprint.tbbtnlabel;"
-			oncommand="Zotero.Dontprint.dontprintSelection()"
+			oncommand="Zotero.Dontprint.dontprintSelectionInZotero()"
 			insertbefore="zotero-tb-advanced-search" />
 		<toolbarseparator insertbefore="zotero-tb-advanced-search" />
+	</hbox>
+	
+	<!-- "Dontprint this page" icon in urlbar -->
+	<hbox id="urlbar-icons">
+		<popupset>
+			<menupopup id="dontprint-status-image-context" onpopupshowing="Zotero.Dontprint.onStatusPopupShowing(event)" />
+		</popupset>
+		<image
+			id="dontprint-status-image"
+			src="chrome://dontprint/skin/dontprint-btn/idle.png"
+			tooltiptext="&dontprint.statusimglabel;"
+			context="dontprint-status-image-context"
+			onclick="if(event.button === 0) Zotero.Dontprint.dontprintThisPage()"
+			position="1" hidden="true" />
 	</hbox>
 	
 	<!-- Include the main extension logic -->

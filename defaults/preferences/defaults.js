@@ -1,7 +1,6 @@
 pref("extensions.zotero.dontprint.copyInGoogleDrive", false);
 pref("extensions.zotero.dontprint.copyToMe", false);
 pref("extensions.zotero.dontprint.k2pdfoptpath", "");
-pref("extensions.zotero.dontprint.outputdirectory", "");
 pref("extensions.zotero.dontprint.recipientEmailPrefix", "");
 pref("extensions.zotero.dontprint.recipientEmailSuffix", "@free.kindle.com");
 pref("extensions.zotero.dontprint.deviceClass", "kindle");

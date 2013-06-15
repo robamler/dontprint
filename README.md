@@ -37,7 +37,6 @@ This is just some small gadged I'm writing in my spare time. On Linux, the core 
  | Preference Name                             | Value                        |
  | ------------------------------------------- | ---------------------------- |
  | extensions.zotero.dontprint.k2pdfoptpath    | /path/to/k2pdfopt/executable |
- | extensions.zotero.dontprint.outputdirectory | Temporary directory for the converted PDF documents, e.g., `/tmp` |
  | extensions.zotero.dontprint.recipientEmail  | your-kindle-address@free.kindle.com |
 8. Select an item that has an attached PDF document in Zotero and click the Dontprint button (![Dontprint icon](http://robamler.github.io/dontprint/webapp/favicon.png)) in the Zotero pane. The following should happen: A new tab should pop up where you can set the margins to crop headers and footers (Dontprint remembers margins for each journal, so you will usually skip this step). When you confirm with the green button, the document will be optimized by k2pdfopt (this may take some time). Dontprint will then temporarily upload the optimized document to your Google Drive account and, from there, send it by email to your Kindle address. When Dontprint runs for the first time, you'll have to authorize both the uploading and the email sending. If no errors occur a confirmation tab should open in the background. The next time you dontprint an article from the same journal it should be a one-click experience because you skip the cropping and the authorization.
 

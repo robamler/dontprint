@@ -1,12 +1,15 @@
 Zotero.Dontprint = (function() {
 	var DB = null;
 	var googleOauthService = null;
-
+	var statusImage = null;
+	
 	var defaultCropParams = {
 		builtin:false, remember:true, coverpage:false, m1:0.52, m2:0.2, m3:0.2, m4:0.2
 	};
 
 	var init = function () {
+		statusImage = document.getElementById("dontprint-status-image");
+		
 		// Connect to (and create, if necessary) dontprint.sqlite in the Zotero directory
 		this.DB = new Zotero.DBConnection('dontprint');
 		
@@ -45,8 +48,137 @@ Zotero.Dontprint = (function() {
 				showAuthPage.call(that, url, callback);
 			}
 		);
+		
+		// Inject some own code into Zotero's updateStatus() function. This function
+		// is called to show or hide the "scrape this"-icon in the address bar.
+		// We first call the original Zotero implemntation and then add our own icon.
+		var oldUpdateStatus = Zotero_Browser.updateStatus;
+		Zotero_Browser.updateStatus = function() {
+			oldUpdateStatus.apply(Zotero_Browser, arguments);
+			
+			var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+			
+			var showUpdateStatus = false;
+			if(tab.page.translators && tab.page.translators.length) {
+				var itemType = tab.page.translators[0].itemType;
+				if (itemType !== "multiple")		//TODO: implement itemType === "multiple"
+					showUpdateStatus = true;
+			}
+			
+			statusImage.hidden = !showUpdateStatus;
+		};
 	};
 	
+	/*
+	 * Gets a data object given a browser window object
+	 */
+	var _getTabObject = function(browser) {
+		if(!browser) return false;
+		if(!browser.zoteroBrowserData) {
+			browser.zoteroBrowserData = new Zotero_Browser.Tab(browser);
+		}
+		return browser.zoteroBrowserData;
+	};
+	
+	/**
+	 * Called when the user right-clicks the dontprint-icon in the address bar.
+	 * Show a list of available translators to dontprint the document represented
+	 * by the current page.
+	 */
+	var onStatusPopupShowing = function(e) {
+		var popup = e.target;
+		while (popup.hasChildNodes())
+			popup.removeChild(popup.lastChild);
+		
+		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+		var translators = tab.page.translators;
+		for (var i=0, n=translators.length; i<n; i++) {
+			let translator = translators[i];
+			
+			var menuitem = document.createElement("menuitem");
+			menuitem.setAttribute("label", "Dontprint document using " + translator.label + (i===0 ? " (recommended)" : ""));
+			menuitem.setAttribute("image", (translator.itemType === "multiple"
+				? "chrome://zotero/skin/treesource-collection.png"
+				: Zotero.ItemTypes.getImageSrc(translator.itemType)));
+			menuitem.setAttribute("class", "menuitem-iconic");
+			menuitem.addEventListener("command", function(e) {
+ 				dontprintThisPage(translator);
+			}, false);
+			popup.appendChild(menuitem);
+		}
+	};
+	
+	/**
+	 * Dontprint the document represented by the current page. Use functionality
+	 * originally developed for Zotero to get the original PDF file and its meta
+	 * data. Use the specified translator, or the translator that fits best for the
+	 * current page if translator === undefined.
+	 * This function is called with translator===undefined when the user clicks the
+	 * dontprint icon in the address bar and with translator!==undefined when the
+	 * user right-clicks the dontprint icon in the address bar and picks a custom
+	 * translator.
+	 */
+	var dontprintThisPage = function(translator) {
+		// Perform translation
+		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+		if (!tab.page.translators || !tab.page.translators.length) {
+			alert("error: no translators available");
+			return false;
+		}
+		
+		Components.utils.import("resource://gre/modules/FileUtils.jsm");
+		var pdfFile = FileUtils.getFile("TmpD", ["dontprint-original.pdf"]);
+		pdfFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+		
+		var translate = new Zotero.Translate.Dontprint();
+		translate.setDocument(tab.page.translate.document);
+		translate.setDestFile(pdfFile);
+		translate.setTranslator(translator || tab.page.translators[0]);
+		translate.clearHandlers("done");
+		translate.clearHandlers("itemDone");
+		
+		// Call dontprintPdf(pdfData) as soon as both the "itemDone" handler was fired and
+		// the "attachDone" handler was fired, independently of which one happens first.
+		// But make sure to call dontprintPdf(pdfData) no more than once
+		var pdfData = null;
+		var attachDone = false;
+		var dontprintStarted = false;
+		
+		translate.setHandler("itemDone", function(obj, dbItem, item) {
+			// Apparently, this is called when the item meta data is ready but attachments may still be being downloaded
+			pdfData = {
+				key: checkUndefined(item.id, "noid"),
+				title: checkUndefined(item.title, "Untitled document"),
+				journalLongname : checkUndefined(item.publicationTitle),
+				journalShortname : checkUndefined(item.journalAbbreviation),
+				attachments: [pdfFile.path],
+				deleteFileWhenDone: true
+			};
+			if (attachDone && !dontprintStarted) {
+				dontprintStarted = true;
+				Zotero.Dontprint.dontprintPdf(pdfData);
+			}
+		});
+		
+		translate.setAttachDoneHandler(function() {
+			attachDone = true;
+			if (pdfData !== null && !dontprintStarted) {
+				dontprintStarted = true;
+				Zotero.Dontprint.dontprintPdf(pdfData);
+			}
+		});
+		
+		//TODO: test what happens when user clicks "save to zotero" shortly after clicking "dontprint" (or vice versa)
+		translate.translate(null);
+	};
+	
+	/**
+	 * return value if value isn't undefined; otherwise, return defaultTo or empty string
+	 */
+	var checkUndefined = function(value, defaultTo) {
+		return value === undefined ? (defaultTo === undefined ? '' : defaultTo) : value;
+	};
+
 	var showAuthPage = function(url, callback) {
 		var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 			.getService(Components.interfaces.nsIWindowMediator)
@@ -147,7 +279,8 @@ Zotero.Dontprint = (function() {
 			};
 			newTabBrowser.addEventListener("load", onloadFunction, true);
 			
-			incrementQueueLength(-1);
+			incrementQueueLength(-1);	//TODO: doesn't really make sense for dontprintThisPage()
+			file.remove(false);
 		};
 		
 		req.open('PUT', location, true);
@@ -242,7 +375,6 @@ Zotero.Dontprint = (function() {
 	var startConversion = function(documentData, attachmentIndex, settings) {
 		// TODO: create preferences frontend to set:
 		// * extensions.zotero.dontprint.k2pdfoptpath
-		// * extensions.zotero.dontprint.outputdirectory
 		
 		try {
 			incrementQueueLength(1);
@@ -259,8 +391,10 @@ Zotero.Dontprint = (function() {
 							.createInstance(Components.interfaces.nsIProcess);
 			proc.init(exec);
 			
-			var outputpath = Zotero.Prefs.get("dontprint.outputdirectory") + '/converted_' + documentData.key + '_' + attachmentIndex + '.pdf';
-			// TODO: use file path separator according to system
+			Components.utils.import("resource://gre/modules/FileUtils.jsm");
+			var outFile = FileUtils.getFile("TmpD", ["dontprint-converted.pdf"]);
+			outFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+			var outputpath = outFile.path;
 			
 			var args = [
 				'-ui-', '-x', '-w', '557', '-h', '721',
@@ -276,7 +410,6 @@ Zotero.Dontprint = (function() {
 			var that = this;
 			proc.runwAsync(args, args.length, {
 				observe: function(subject, topic, data) {
-// 					alert('k2pdfopt done. Output file: ' + outputpath);
 					googleOauthService.apicall(
 						function(accessToken, onSuccess, onFail, onAuthFail) {
 							uploadFileToGoogleDrive.call(
@@ -291,6 +424,15 @@ Zotero.Dontprint = (function() {
 							);
 						}
 					);
+					
+					if (documentData.deleteFileWhenDone) {
+						var origFile = Components.classes["@mozilla.org/file/local;1"]
+										.createInstance(Components.interfaces.nsILocalFile);
+						origFile.initWithPath(documentData.attachments[attachmentIndex]);
+						if (origFile.exists()) {
+							origFile.remove(false);
+						}
+					}
 				}
 			});
 		}
@@ -316,8 +458,12 @@ Zotero.Dontprint = (function() {
 		startConversion(documentData, attachmentIndex, settings);
 	};};
 	
-	var dontprintSelection = function() {
+	/**
+	 * Called when the user cilcks the dontprint button in the Zotero pane.
+	 */
+	var dontprintSelectionInZotero = function() {
 		var selectedItems = ZoteroPane.getSelectedItems();
+		
 		// delete duplicates (e.g., if user selects both an attachment and its parent)
 		var entryIds = selectedItems.map(function(i) {
 			return i.getSource() || i.id;
@@ -342,7 +488,7 @@ Zotero.Dontprint = (function() {
 				return elem !== undefined;
 			});
 
-			// Find field names in Zotero's resource/schema/system.sql (search "INSERT INTO fields")
+			// Find field names in Zotero's resource/schema/system.sql (grep "INSERT INTO fields" in zotero source code to get a list of field names)
 			return {
 				'key': i.getField('key'),
 				'title': i.getField('title'),
@@ -369,12 +515,19 @@ Zotero.Dontprint = (function() {
 			return;
 		}
 		
-		var sqlparams = [docData[0].journalLongname, docData[0].journalShortname];
+		var that = this;
+		docData.forEach(function(i) {
+			dontprintPdf.call(that, i);
+		});
+	};
+	
+	var dontprintPdf = function(pdfData) {
+		var sqlparams = [pdfData.journalLongname, pdfData.journalShortname];
 		var sqlresult = this.DB.query("SELECT * FROM journals WHERE (longname = ? AND longname != '') OR (shortname = ? AND shortname != '')", sqlparams);
 		var cropParams = sqlresult !== false ? sqlresult[0] : defaultCropParams;
 		
 		if (sqlresult !== false && cropParams.remember) {
-			startConversion(docData[0], 0, cropParams);
+			startConversion(pdfData, 0, cropParams);
 		} else {
 			var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 				.getService(Components.interfaces.nsIWindowMediator)
@@ -385,7 +538,7 @@ Zotero.Dontprint = (function() {
 			
 			var thisdb = this.DB;
 			newTabBrowser.addEventListener("load", function () {
-				newTabBrowser.contentWindow.PDFCrop.init(docData[0], 0, cropParams, pdfcropCallback(thisdb));
+				newTabBrowser.contentWindow.PDFCrop.init(pdfData, 0, cropParams, pdfcropCallback(thisdb));
 			}, true);
 			//TODO: this doesn't seem to call init if page has already been loaded by that time
 			//TODO: don't forget to remove event listener (avoid memory leak)
@@ -394,7 +547,10 @@ Zotero.Dontprint = (function() {
 	
 	return {
 		init: init,
-		dontprintSelection: dontprintSelection
+		dontprintSelectionInZotero: dontprintSelectionInZotero,
+		onStatusPopupShowing: onStatusPopupShowing,
+		dontprintThisPage: dontprintThisPage,
+		dontprintPdf: dontprintPdf
 	};
 }());
 
