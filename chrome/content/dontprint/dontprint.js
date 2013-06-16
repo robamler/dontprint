@@ -332,7 +332,7 @@ Zotero.Dontprint = (function() {
 				recipientEmail:		Zotero.Prefs.get("dontprint.recipientEmail"),
 				copyToMe:			Zotero.Prefs.get("dontprint.copyToMe"),
 				copyInGoogleDrive:	Zotero.Prefs.get("dontprint.copyInGoogleDrive"),
-				itemKey:			documentData.itemKey
+				itemKey:			documentData.key
 			})
 		});
 		
