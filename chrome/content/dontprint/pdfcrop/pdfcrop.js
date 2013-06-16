@@ -26,7 +26,8 @@ PDFCrop = (function() {
 	var pagenum = 1;
 	var availw, origw, availh, origh;
 	var pdf, pdfpage;
-	var documentData, callback, attachmentIndex, builtinJournal;
+	var documentData, successCallback, failCallback, attachmentIndex, builtinJournal;
+	var successState = false;
 
 	// private methods
 	var loadpage = function(thepagenum) {
@@ -193,21 +194,28 @@ PDFCrop = (function() {
 	};
 
 	var startConversion = function() {
-		callback(documentData, attachmentIndex, {
+		successCallback(documentData, attachmentIndex, {
 			coverpage: $("#coverpage").prop("checked"),
 			remember: $("#savetemplate").prop("checked"),
 			sendsettings: $("#sendsettings").prop("checked"),
 			builtin: builtinJournal,
 			m1: inmargins[0], m2: inmargins[1], m3: inmargins[2], m4: inmargins[3]
 		});
+		successState = true;
 		window.close();
 	};
 
 	var abortConversion = function() {
-		window.close();
+		window.close();		// implicitly calls windowUnload()
 	};
-
-	var doInit = function(theDocumentData, theAttachmentIndex, presets, theCallback) {
+	
+	var windowUnload = function() {
+		if (!successState) {
+			failCallback(documentData, attachmentIndex);
+		}
+	};
+	
+	var doInit = function(theDocumentData, theAttachmentIndex, presets, theSuccessCallback, theFailCallback) {
 		// Initialize DOM elements
 		region = $('#region');
 		doccontainer = $('#document-container');
@@ -226,7 +234,8 @@ PDFCrop = (function() {
 		// process parameters
 		documentData = theDocumentData;
 		attachmentIndex = theAttachmentIndex;
-		callback = theCallback;
+		successCallback = theSuccessCallback;
+		failCallback = theFailCallback;
 		$('#journalname').text(
 			documentData.journalShortname !== undefined ? documentData.journalShortname : (
 				documentData.journalLongname !== undefined ? documentData.journalLongname :
@@ -306,6 +315,7 @@ PDFCrop = (function() {
 
 		$("#startbtn").click(startConversion);
 		$("#abortbtn").click(abortConversion);
+		$(window).unload(windowUnload);
 
 		resize();
 
@@ -315,9 +325,9 @@ PDFCrop = (function() {
 
 	// public methods
 	return {
-		init: function(theDocumentData, theAttachmentIndex, thePresets, theCallback) {
+		init: function(theDocumentData, theAttachmentIndex, thePresets, theCallback, theFailCallback) {
 			$(function() {
-				doInit(theDocumentData, theAttachmentIndex, thePresets, theCallback);
+				doInit(theDocumentData, theAttachmentIndex, thePresets, theCallback, theFailCallback);
 			});
 		}
 	};

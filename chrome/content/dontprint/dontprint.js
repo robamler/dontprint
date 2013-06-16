@@ -1,18 +1,22 @@
 Zotero.Dontprint = (function() {
 	var database = null;
 	var googleOauthService = null;
-	var statusImage = null;
+	var dontprintThisPageImg = null;
+	var dontprintProgressImg = null;
+	var dontprintFromZoteroBtn = null;
+	var queuedUrls = [];
 	
 	var defaultCropParams = {
 		builtin:false, remember:true, coverpage:false, m1:0.52, m2:0.2, m3:0.2, m4:0.2
 	};
 
 	var init = function () {
-		statusImage = document.getElementById("dontprint-status-image");
+		dontprintThisPageImg   = document.getElementById("dontprint-status-image");
+		dontprintFromZoteroBtn = document.getElementById("dontprint-tbbtn");
+		dontprintProgressImg   = document.getElementById("dontprint-progress-image");
 		
 		// Connect to (and create, if necessary) dontprint.sqlite in the Zotero directory
 		database = new Zotero.DBConnection('dontprint');
-		
 		if (!database.tableExists('journals')) {
 			database.query("CREATE TABLE journals (" +
 				"longname  TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
@@ -53,20 +57,26 @@ Zotero.Dontprint = (function() {
 		// is called to show or hide the "scrape this"-icon in the address bar.
 		// We first call the original Zotero implemntation and then add our own icon.
 		var oldUpdateStatus = Zotero_Browser.updateStatus;
+		
 		Zotero_Browser.updateStatus = function() {
 			oldUpdateStatus.apply(Zotero_Browser, arguments);
-			
-			var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-			
-			var showUpdateStatus = false;
-			if(tab.page.translators && tab.page.translators.length) {
-				var itemType = tab.page.translators[0].itemType;
-				if (itemType !== "multiple")		//TODO: implement itemType === "multiple"
-					showUpdateStatus = true;
-			}
-			
-			statusImage.hidden = !showUpdateStatus;
+			updateDontprintIconVisibility();
 		};
+	};
+	
+	var updateDontprintIconVisibility = function() {
+		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+		
+		var showDontprintIcon = false;
+		if (tab && tab.page.translators && tab.page.translators.length) {
+			var itemType = tab.page.translators[0].itemType;
+			if (itemType !== "multiple")		//TODO: implement itemType === "multiple"
+				showDontprintIcon = true;
+		}
+		
+		var alreadyProcessing = showDontprintIcon && queuedUrls.indexOf(tab.page.document.location.href) !== -1;
+		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
+		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
 	};
 	
 	/*
@@ -121,10 +131,14 @@ Zotero.Dontprint = (function() {
 	var dontprintThisPage = function(translator) {
 		// Perform translation
 		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-		if (!tab.page.translators || !tab.page.translators.length) {
+		if (!tab || !tab.page.translators || !tab.page.translators.length) {
 			alert("error: no translators available");
 			return false;
 		}
+		
+		// show progress indicator
+		var pageurl = tab.page.document.location.href;
+		incrementQueueLength(+1, pageurl);
 		
 		Components.utils.import("resource://gre/modules/FileUtils.jsm");
 		var pdfFile = FileUtils.getFile("TmpD", ["dontprint-original.pdf"]);
@@ -152,7 +166,8 @@ Zotero.Dontprint = (function() {
 				journalLongname : checkUndefined(item.publicationTitle),
 				journalShortname : checkUndefined(item.journalAbbreviation),
 				attachments: [pdfFile.path],
-				deleteFileWhenDone: true
+				deleteFileWhenDone: true,
+				pageurl: pageurl
 			};
 			if (attachDone && !dontprintStarted) {
 				dontprintStarted = true;
@@ -196,15 +211,13 @@ Zotero.Dontprint = (function() {
 	var receiveAuthorizationCode = function(cwin, callback) {
 		var found = /^Success state=([^&]+)&code=(\S+)$/.exec(cwin.document.title);
 		if (found) {
-// 			alert("received: " + found[2]);
 			cwin.close();
 			callback(found[2]);
 		}
 	};
 	
-	var doFileUpload = function(that, filepath, accessToken, onSuccess, onFail, onAuthFail) { return function() {
+	var doFileUpload = function(that, documentData, filepath, accessToken, onSuccess, onFail, onAuthFail) { return function() {
 	try {
-// 		alert("dofileupload: " + this.responseText + "\n" + this.getAllResponseHeaders());
 		if (this.responseText !== "" && JSON.parse(this.responseText).error !== undefined) {
 			onAuthFail();
 			return;
@@ -231,12 +244,11 @@ Zotero.Dontprint = (function() {
 							.createInstance(Components.interfaces.nsIXMLHttpRequest);
 		
 		req.onload = function () {
-// 			alert("async done:" + req.responseText);
-			
 			var url = googleOauthService.buildURL(
 				"chrome://dontprint/content/sendmail.html",
 				{fileId: JSON.parse(req.responseText).id}
 			);
+			var queueLengthDecremented = false;
 			
 			// Open tab in background
 			var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
@@ -250,8 +262,17 @@ Zotero.Dontprint = (function() {
 			var onloadFunction = function () {
 				if (win.location.href.match(/^https\:\/\/accounts\.google\.com\//)) {
 					// The user either needs to authorize dontprint or authenticate himself. In either case, bring tab to front.
+					if (!queueLengthDecremented) {
+						incrementQueueLength(-1, documentData.pageurl);
+						queueLengthDecremented = true;
+					}
 					gBrowser.selectedTab = tab;
 				} else if (win.document.title.match(/ \(Dontprint plugin for Zotero\)$/)) {
+					if (!queueLengthDecremented) {
+						incrementQueueLength(-1, documentData.pageurl);
+						queueLengthDecremented = true;
+					}
+					
 					var favicon = win.document.createElement('link');
 					favicon.type = 'image/x-icon';
 					favicon.rel = 'shortcut icon';
@@ -279,7 +300,6 @@ Zotero.Dontprint = (function() {
 			};
 			newTabBrowser.addEventListener("load", onloadFunction, true);
 			
-			incrementQueueLength(-1);	//TODO: doesn't really make sense for dontprintThisPage()
 			file.remove(false);
 		};
 		
@@ -299,21 +319,20 @@ Zotero.Dontprint = (function() {
 		return str.length + (m ? m.length : 0);
 	};
 	
-	var uploadFileToGoogleDrive = function(filepath, filename, itemKey, accessToken, onSuccess, onFail, onAuthFail) { try {
+	var uploadFileToGoogleDrive = function(documentData, filepath, accessToken, onSuccess, onFail, onAuthFail) { try {
 		// TODO: create preferences frontend to set:
 		// * extensions.zotero.dontprint.recipientEmail
 		// * extensions.zotero.dontprint.copyToMe
 		// * extensions.zotero.dontprint.copyInGoogleDrive
 		
 // 		alert("uploading");
-		filename = filename.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf";
 		var metadata = JSON.stringify({
-			title: filename,
+			title: documentData.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
 			description: JSON.stringify({
 				recipientEmail:		Zotero.Prefs.get("dontprint.recipientEmail"),
 				copyToMe:			Zotero.Prefs.get("dontprint.copyToMe"),
 				copyInGoogleDrive:	Zotero.Prefs.get("dontprint.copyInGoogleDrive"),
-				itemKey:				itemKey
+				itemKey:			documentData.itemKey
 			})
 		});
 		
@@ -329,7 +348,7 @@ Zotero.Dontprint = (function() {
 // 		alert("size: " + filesize);
 		
 		var req = new XMLHttpRequest();
-		req.onload = doFileUpload(this, filepath, accessToken, onSuccess, onFail, onAuthFail);
+		req.onload = doFileUpload(this, documentData, filepath, accessToken, onSuccess, onFail, onAuthFail);
 		req.open("post", "https://www.googleapis.com/upload/drive/v2/files?uploadType=resumable", true);
 		req.setRequestHeader("Authorization", "OAuth " + accessToken);
 		req.setRequestHeader("Content-Length", lengthInUtf8Bytes(metadata));
@@ -346,22 +365,34 @@ Zotero.Dontprint = (function() {
 		// local variables
 		var queuelength = 0;
 		var timer = null;
-		var button = null;
 		var state = 0;
 		
 		// the actual function "incrementQueueLength()"
-		return function(inc) {
-			if (!button)
-				button = document.getElementById('dontprint-tbbtn');
+		return function(inc, url) {
 			clearInterval(timer);
+			
+			if (url !== undefined) {
+				if (inc > 0) {
+					queuedUrls.push(url);
+				} else if (inc < 0) {
+					var index = queuedUrls.indexOf(url);
+					if (index !== -1) {
+						queuedUrls.splice(index, 1);
+					}
+				}
+				updateDontprintIconVisibility();
+			}
+			
 			queuelength = Math.max(0, queuelength+inc);
 			
 			if (queuelength === 0) {
-				button.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/idle.png')";
+				dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/idle.png')";
+				dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/idle.png";
 			} else {
 				var len = Math.min(10, queuelength);
 				var timerfunc = function() {
-					button.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png')";
+					dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png')";
+					dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png";
 					state = (state+1)%2;
 				};
 				timerfunc();
@@ -377,8 +408,6 @@ Zotero.Dontprint = (function() {
 		// * extensions.zotero.dontprint.k2pdfoptpath
 		
 		try {
-			incrementQueueLength(1);
-			
 			var exec = Components.classes["@mozilla.org/file/local;1"]
 						.createInstance(Components.interfaces.nsILocalFile);
 			
@@ -414,9 +443,8 @@ Zotero.Dontprint = (function() {
 						function(accessToken, onSuccess, onFail, onAuthFail) {
 							uploadFileToGoogleDrive.call(
 								that,
+								documentData,
 								outputpath,
-								documentData.title,
-								documentData.key,
 								accessToken,
 								onSuccess,
 								onFail,
@@ -441,7 +469,7 @@ Zotero.Dontprint = (function() {
 		}
 	};
 	
-	var pdfcropCallback = function(documentData, attachmentIndex, settings) {
+	var pdfcropSuccessCallback = function(documentData, attachmentIndex, settings) {
 		if (!settings.builtin) {
 			database.query("INSERT INTO journals VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)", [
 				documentData.journalLongname,
@@ -456,6 +484,18 @@ Zotero.Dontprint = (function() {
 		}
 		
 		startConversion(documentData, attachmentIndex, settings);
+	};
+	
+	var pdfcropFailCallback = function(documentData, attachmentIndex) {
+		incrementQueueLength(-1, documentData.pageurl);
+		if (documentData.deleteFileWhenDone) {
+			var origFile = Components.classes["@mozilla.org/file/local;1"]
+							.createInstance(Components.interfaces.nsILocalFile);
+			origFile.initWithPath(documentData.attachments[attachmentIndex]);
+			if (origFile.exists()) {
+				origFile.remove(false);
+			}
+		}
 	};
 	
 	/**
@@ -517,6 +557,7 @@ Zotero.Dontprint = (function() {
 		
 		var that = this;
 		docData.forEach(function(i) {
+			incrementQueueLength(+1);
 			dontprintPdf.call(that, i);
 		});
 	};
@@ -537,11 +578,15 @@ Zotero.Dontprint = (function() {
 			);
 			
 			newTabBrowser.addEventListener("load", function () {
-				newTabBrowser.contentWindow.PDFCrop.init(pdfData, 0, cropParams, pdfcropCallback);
+				newTabBrowser.contentWindow.PDFCrop.init(pdfData, 0, cropParams, pdfcropSuccessCallback, pdfcropFailCallback);
 			}, true);
 			//TODO: this doesn't seem to call init if page has already been loaded by that time
 			//TODO: don't forget to remove event listener (avoid memory leak)
 		}
+	};
+	
+	var showProgress = function() {
+		//TODO
 	};
 	
 	return {
@@ -549,7 +594,8 @@ Zotero.Dontprint = (function() {
 		dontprintSelectionInZotero: dontprintSelectionInZotero,
 		onStatusPopupShowing: onStatusPopupShowing,
 		dontprintThisPage: dontprintThisPage,
-		dontprintPdf: dontprintPdf
+		dontprintPdf: dontprintPdf,
+		showProgress: showProgress
 	};
 }());
 

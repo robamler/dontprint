@@ -31,6 +31,15 @@
 			context="dontprint-status-image-context"
 			onclick="if(event.button === 0) Zotero.Dontprint.dontprintThisPage()"
 			position="1" hidden="true" />
+			
+		<!-- Progress indicator in urlbar is shown if the currently displayd page is currently being processed -->
+		<image
+			id="dontprint-progress-image"
+			src="chrome://dontprint/skin/dontprint-btn/idle.png"
+			tooltiptext="&dontprint.progressimglabel;"
+			context="dontprint-status-image-context"
+			onclick="if(event.button === 0) Zotero.Dontprint.showProgress()"
+			position="1" hidden="true" />
 	</hbox>
 	
 	<!-- Include the main extension logic -->
