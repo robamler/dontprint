@@ -1,5 +1,5 @@
 Zotero.Dontprint = (function() {
-	var DB = null;
+	var database = null;
 	var googleOauthService = null;
 	var statusImage = null;
 	
@@ -11,10 +11,10 @@ Zotero.Dontprint = (function() {
 		statusImage = document.getElementById("dontprint-status-image");
 		
 		// Connect to (and create, if necessary) dontprint.sqlite in the Zotero directory
-		this.DB = new Zotero.DBConnection('dontprint');
+		database = new Zotero.DBConnection('dontprint');
 		
-		if (!this.DB.tableExists('journals')) {
-			this.DB.query("CREATE TABLE journals (" +
+		if (!database.tableExists('journals')) {
+			database.query("CREATE TABLE journals (" +
 				"longname  TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
 				"shortname TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
 				"builtin INT," +
@@ -27,8 +27,8 @@ Zotero.Dontprint = (function() {
 			")");
 		}
 		
-		if (!this.DB.tableExists('oauth')) {
-			this.DB.query("CREATE TABLE oauth (" +
+		if (!database.tableExists('oauth')) {
+			database.query("CREATE TABLE oauth (" +
 				"service TEXT UNIQUE ON CONFLICT REPLACE," +
 				"access_token TEXT, expiration_date TEXT, refresh_token TEXT" +
 			")");
@@ -43,7 +43,7 @@ Zotero.Dontprint = (function() {
 			"urn:ietf:wg:oauth:2.0:oob",					// redirect URI
 			"https://www.googleapis.com/auth/drive.file",	// scope
 			"https://accounts.google.com/o/oauth2/token",	// URL to exchange token
-			this.DB,
+			database,
 			function(url, callback) {
 				showAuthPage.call(that, url, callback);
 			}
@@ -441,9 +441,9 @@ Zotero.Dontprint = (function() {
 		}
 	};
 	
-	var pdfcropCallback = function(db) {return function(documentData, attachmentIndex, settings) {
+	var pdfcropCallback = function(documentData, attachmentIndex, settings) {
 		if (!settings.builtin) {
-			db.query("INSERT INTO journals VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)", [
+			database.query("INSERT INTO journals VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)", [
 				documentData.journalLongname,
 				documentData.journalShortname,
 				settings.remember ? 1 : 0,
@@ -456,7 +456,7 @@ Zotero.Dontprint = (function() {
 		}
 		
 		startConversion(documentData, attachmentIndex, settings);
-	};};
+	};
 	
 	/**
 	 * Called when the user cilcks the dontprint button in the Zotero pane.
@@ -523,7 +523,7 @@ Zotero.Dontprint = (function() {
 	
 	var dontprintPdf = function(pdfData) {
 		var sqlparams = [pdfData.journalLongname, pdfData.journalShortname];
-		var sqlresult = this.DB.query("SELECT * FROM journals WHERE (longname = ? AND longname != '') OR (shortname = ? AND shortname != '')", sqlparams);
+		var sqlresult = database.query("SELECT * FROM journals WHERE (longname = ? AND longname != '') OR (shortname = ? AND shortname != '')", sqlparams);
 		var cropParams = sqlresult !== false ? sqlresult[0] : defaultCropParams;
 		
 		if (sqlresult !== false && cropParams.remember) {
@@ -536,9 +536,8 @@ Zotero.Dontprint = (function() {
 				gBrowser.loadOneTab("chrome://dontprint/content/pdfcrop/pdfcrop.html", {inBackground:false})
 			);
 			
-			var thisdb = this.DB;
 			newTabBrowser.addEventListener("load", function () {
-				newTabBrowser.contentWindow.PDFCrop.init(pdfData, 0, cropParams, pdfcropCallback(thisdb));
+				newTabBrowser.contentWindow.PDFCrop.init(pdfData, 0, cropParams, pdfcropCallback);
 			}, true);
 			//TODO: this doesn't seem to call init if page has already been loaded by that time
 			//TODO: don't forget to remove event listener (avoid memory leak)
