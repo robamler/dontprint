@@ -245,9 +245,10 @@ Zotero.Dontprint = (function() {
 							.createInstance(Components.interfaces.nsIXMLHttpRequest);
 		
 		req.onload = function () {
+			var fileId = JSON.parse(req.responseText).id;
 			var url = googleOauthService.buildURL(
 				"chrome://dontprint/content/sendmail.html",
-				{fileId: JSON.parse(req.responseText).id}
+				{fileId: fileId}
 			);
 			var queueLengthDecremented = false;
 			
@@ -297,6 +298,16 @@ Zotero.Dontprint = (function() {
 							}
 						}, 5000);
 					}
+					
+					if (!Zotero.Prefs.get("dontprint.copyInGoogleDrive")) {
+						// delete file on Google Drive for good (upload only places file in trash)
+						var delreq = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
+											.createInstance(Components.interfaces.nsIXMLHttpRequest);
+						delreq.open('DELETE', 'https://www.googleapis.com/drive/v2/files/' + encodeURIComponent(fileId));
+						delreq.setRequestHeader("Authorization", "OAuth " + accessToken);
+						delreq.send();
+						// Don't care about response. If delete fails then so be it.
+					}
 				}
 			};
 			newTabBrowser.addEventListener("load", onloadFunction, true);
@@ -327,15 +338,17 @@ Zotero.Dontprint = (function() {
 		// * extensions.zotero.dontprint.copyInGoogleDrive
 		
 // 		alert("uploading");
-		var metadata = JSON.stringify({
-			title: documentData.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
+		var metadata = {
+			title: 					documentData.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
+			labels: {
+				trashed: 			!Zotero.Prefs.get("dontprint.copyInGoogleDrive")
+			},
 			description: JSON.stringify({
 				recipientEmail:		Zotero.Prefs.get("dontprint.recipientEmail"),
 				ccEmails:			Zotero.Prefs.get("dontprint.ccEmails"),
-				copyInGoogleDrive:	Zotero.Prefs.get("dontprint.copyInGoogleDrive"),
 				itemKey:			documentData.key
 			})
-		});
+		};
 		
 // 		alert("token: " + accessToken);
 		
@@ -356,7 +369,7 @@ Zotero.Dontprint = (function() {
 		req.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
 		req.setRequestHeader("X-Upload-Content-Type", "application/pdf");
 		req.setRequestHeader("X-Upload-Content-Length", filesize);
-		req.send(metadata);
+		req.send(JSON.stringify(metadata));
 	} catch (e) {
 		alert("err: " + e.toString());
 	}

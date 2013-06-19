@@ -53,9 +53,6 @@ function doGet(e) {
     );
     
     file.setDescription(SENTSTRING);
-    if (!metadata.copyInGoogleDrive) {
-      file.setTrashed(true);
-    }
     
     // Get convenient unit for file size and display result with at most one decimal but at least two significant digits
     filesize = file.getSize();
