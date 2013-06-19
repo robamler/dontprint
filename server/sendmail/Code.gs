@@ -40,10 +40,10 @@ function doGet(e) {
     var pdf = file.getAs('application/pdf').getBytes();
     var attach = {fileName: filename, content:pdf, mimeType:'application/pdf'};
     
-    var emailOptions = {attachments:[attach]};
-    if (metadata.copyToMe) {
-      emailOptions.cc = Session.getActiveUser().getEmail();
-    }
+    var emailOptions = {
+      attachments: [attach],
+      cc: metadata.ccEmails
+    };
     
     MailApp.sendEmail(
       metadata.recipientEmail,

@@ -40,10 +40,10 @@ Zotero.Dontprint = (function() {
 		
 		var that = this;
 		googleOauthService = new this.OauthService(
-			"google",									// internally used service name
+			"google",										// internally used service name
 			"https://accounts.google.com/o/oauth2/auth",	// URL to authorize app
-			"233418378471.apps.googleusercontent.com",	// client ID
-			"Tc9B-5BfkUe6Y-YbBaXITe5_",					// client secret
+			"87904320419-ln2m751m5ddpuh4801tjbv1c2k6b1q8d.apps.googleusercontent.com", // client ID
+			"BXBhZwni65Sl1V8jHhtSCMHh",						// client secret
 			"urn:ietf:wg:oauth:2.0:oob",					// redirect URI
 			"https://www.googleapis.com/auth/drive.file",	// scope
 			"https://accounts.google.com/o/oauth2/token",	// URL to exchange token
@@ -219,6 +219,7 @@ Zotero.Dontprint = (function() {
 	var doFileUpload = function(that, documentData, filepath, accessToken, onSuccess, onFail, onAuthFail) { return function() {
 	try {
 		if (this.responseText !== "" && JSON.parse(this.responseText).error !== undefined) {
+			alert("File Upload failed. The server returned the following error message:\n" + JSON.parse(this.responseText).error.message)
 			onAuthFail();
 			return;
 		}
@@ -260,7 +261,7 @@ Zotero.Dontprint = (function() {
 			
 			// set onload-handler for new tab. This cannot be done in Google Apps Script because we need the rights to close the tab.
 			var onloadFunction = function () {
-				if (win.location.href.match(/^https\:\/\/accounts\.google\.com\//)) {
+				if (win.location.href.match(/^https\:\/\/accounts\.google\.com\//) || win.document.title.match(/Authorization needed/)) {
 					// The user either needs to authorize dontprint or authenticate himself. In either case, bring tab to front.
 					if (!queueLengthDecremented) {
 						incrementQueueLength(-1, documentData.pageurl);
@@ -322,7 +323,7 @@ Zotero.Dontprint = (function() {
 	var uploadFileToGoogleDrive = function(documentData, filepath, accessToken, onSuccess, onFail, onAuthFail) { try {
 		// TODO: create preferences frontend to set:
 		// * extensions.zotero.dontprint.recipientEmail
-		// * extensions.zotero.dontprint.copyToMe
+		// * extensions.zotero.dontprint.ccEmails
 		// * extensions.zotero.dontprint.copyInGoogleDrive
 		
 // 		alert("uploading");
@@ -330,7 +331,7 @@ Zotero.Dontprint = (function() {
 			title: documentData.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
 			description: JSON.stringify({
 				recipientEmail:		Zotero.Prefs.get("dontprint.recipientEmail"),
-				copyToMe:			Zotero.Prefs.get("dontprint.copyToMe"),
+				ccEmails:			Zotero.Prefs.get("dontprint.ccEmails"),
 				copyInGoogleDrive:	Zotero.Prefs.get("dontprint.copyInGoogleDrive"),
 				itemKey:			documentData.key
 			})

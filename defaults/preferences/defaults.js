@@ -1,5 +1,5 @@
 pref("extensions.zotero.dontprint.copyInGoogleDrive", false);
-pref("extensions.zotero.dontprint.copyToMe", false);
+pref("extensions.zotero.dontprint.ccEmails", "");
 pref("extensions.zotero.dontprint.k2pdfoptpath", "");
 pref("extensions.zotero.dontprint.recipientEmailPrefix", "");
 pref("extensions.zotero.dontprint.recipientEmailSuffix", "@free.kindle.com");
