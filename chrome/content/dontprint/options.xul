@@ -11,18 +11,18 @@
 
 	<prefpane id="dontprint-prefpane-general">
 		<preferences>
-			<preference id="k2pdfoptpath_symbol" name="extensions.zotero.dontprint.k2pdfoptpath" type="string"/>
-			<preference id="recipientEmailPrefix_symbol" name="extensions.zotero.dontprint.recipientEmailPrefix" type="string"/>
-			<preference id="recipientEmailSuffix_symbol" name="extensions.zotero.dontprint.recipientEmailSuffix" type="string"/>
-			<preference id="deviceClass_symbol" name="extensions.zotero.dontprint.deviceClass" type="string"/>
-			<preference id="copyInGoogleDrive_symbol" name="extensions.zotero.dontprint.copyInGoogleDrive" type="bool"/>
-			<preference id="copyToMe_symbol" name="extensions.zotero.dontprint.copyToMe" type="bool"/>
-			<preference id="kindleModel_symbol" name="extensions.zotero.dontprint.kindleModel" type="string"/>
-			<preference id="screenWidth_symbol" name="extensions.zotero.dontprint.screenWidth" type="int"/>
-			<preference id="screenHeight_symbol" name="extensions.zotero.dontprint.screenHeight" type="int"/>
-			<preference id="sendEmail_symbol" name="extensions.zotero.dontprint.sendEmail" type="bool"/>
-			<!--			<preference id="outputdirectory_symbol" name="extensions.zotero.dontprint.outputdirectory" type="string"/> -->
-			<preference id="placeInFolder_symbol" name="extensions.zotero.dontprint.placeInFolder" type="bool"/>
+			<preference id="k2pdfoptpath_symbol" name="extensions.dontprint.k2pdfoptpath" type="string"/>
+			<preference id="recipientEmailPrefix_symbol" name="extensions.dontprint.recipientEmailPrefix" type="string"/>
+			<preference id="recipientEmailSuffix_symbol" name="extensions.dontprint.recipientEmailSuffix" type="string"/>
+			<preference id="deviceClass_symbol" name="extensions.dontprint.deviceClass" type="string"/>
+			<preference id="copyInGoogleDrive_symbol" name="extensions.dontprint.copyInGoogleDrive" type="bool"/>
+			<preference id="ccEmails_symbol" name="extensions.dontprint.ccEmails" type="bool"/>
+			<preference id="kindleModel_symbol" name="extensions.dontprint.kindleModel" type="string"/>
+			<preference id="screenWidth_symbol" name="extensions.dontprint.screenWidth" type="int"/>
+			<preference id="screenHeight_symbol" name="extensions.dontprint.screenHeight" type="int"/>
+			<preference id="sendEmail_symbol" name="extensions.dontprint.sendEmail" type="bool"/>
+			<!--			<preference id="outputdirectory_symbol" name="extensions.dontprint.outputdirectory" type="string"/> -->
+			<preference id="placeInFolder_symbol" name="extensions.dontprint.placeInFolder" type="bool"/>
 		</preferences>
 		<groupbox>
 			<caption label="&dontprint.preferences.device;"/>
@@ -89,11 +89,22 @@
 			<caption label="&dontprint.preferences.advanced;"/>
 			
 			<vbox>
-				<hbox>
-					<label control="k2pdfoptpath_control" value="&dontprint.preferences.k2pdfoptpath;"/>
-					<textbox preference="k2pdfoptpath_symbol" id="k2pdfoptpath_control"/>
-				</hbox>
-				<checkbox label="&dontprint.preferences.copyToMe;" preference="copyToMe_symbol"/>
+				<grid>
+					<columns>
+						<column/>
+						<column/>
+					</columns>
+					<rows>
+						<row>
+							<label control="k2pdfoptpath_control" value="&dontprint.preferences.k2pdfoptpath;"/>
+							<textbox preference="k2pdfoptpath_symbol" id="k2pdfoptpath_control"/>
+						</row>
+						<row>
+							<label control="ccEmails_control" value="&dontprint.preferences.ccEmails;"/>
+							<textbox preference="ccEmails_symbol" id="ccEmails_control"/>
+						</row>
+					</rows>
+				</grid>
 				<checkbox label="&dontprint.preferences.copyInGoogleDrive;" preference="copyInGoogleDrive_symbol"/>
 			</vbox>
 		</groupbox>

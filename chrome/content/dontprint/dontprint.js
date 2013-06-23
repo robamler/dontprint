@@ -1,42 +1,64 @@
-Zotero.Dontprint = (function() {
-	var database = null;
+Dontprint = (function() {
+	var databasePath = null;
 	var googleOauthService = null;
 	var dontprintThisPageImg = null;
 	var dontprintProgressImg = null;
 	var dontprintFromZoteroBtn = null;
 	var queuedUrls = [];
+	var prefs_ = null;
 	
 	var defaultCropParams = {
 		builtin:false, remember:true, coverpage:false, m1:0.52, m2:0.2, m3:0.2, m4:0.2
 	};
 
 	var init = function () {
+		Components.utils.import("resource://gre/modules/FileUtils.jsm");
+		Components.utils.import("resource://gre/modules/Sqlite.jsm")
+		Components.utils.import("resource://gre/modules/Task.jsm");
+		
 		dontprintThisPageImg   = document.getElementById("dontprint-status-image");
 		dontprintFromZoteroBtn = document.getElementById("dontprint-tbbtn");
 		dontprintProgressImg   = document.getElementById("dontprint-progress-image");
 		
-		// Connect to (and create, if necessary) dontprint.sqlite in the Zotero directory
-		database = new Zotero.DBConnection('dontprint');
-		if (!database.tableExists('journals')) {
-			database.query("CREATE TABLE journals (" +
-				"longname  TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
-				"shortname TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
-				"builtin INT," +
-				"remember INT," +
-				"coverpage INT," +
-				"m1 TEXT," +				// for some reason, using FLOAT here dosn't work
-				"m2 TEXT," +
-				"m3 TEXT," +
-				"m4 TEXT" +
-			")");
-		}
+		prefs_ = Components.classes["@mozilla.org/preferences-service;1"]
+						.getService(Components.interfaces.nsIPrefService)
+						.getBranch("extensions.dontprint.");
 		
-		if (!database.tableExists('oauth')) {
-			database.query("CREATE TABLE oauth (" +
-				"service TEXT UNIQUE ON CONFLICT REPLACE," +
-				"access_token TEXT, expiration_date TEXT, refresh_token TEXT" +
-			")");
-		}
+		// Initialize database in file "dontprint/db.sqlite" in the profile directory
+		// FileUtils.getFile() creates the directory (but not the file) if necessary
+		let dbfile = FileUtils.getFile("ProfD", ["dontprint", "db.sqlite"]);
+		databasePath = dbfile.path
+		
+		Task.spawn(function initDatabase() {
+			try {
+				// Sqlite.openConnection() creates the file if necessary
+				var conn = yield Sqlite.openConnection({path: databasePath});
+				let exists = yield conn.tableExists("journals");
+				if (!exists) {
+					yield conn.execute("CREATE TABLE journals (" +
+						"longname  TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
+						"shortname TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
+						"builtin INT," +
+						"remember INT," +
+						"coverpage INT," +
+						"m1 TEXT," +				// for some reason, using FLOAT here dosn't work
+						"m2 TEXT," +
+						"m3 TEXT," +
+						"m4 TEXT" +
+					")");
+				}
+				
+				exists = yield conn.tableExists("oauth");
+				if (!exists) {
+					yield conn.execute("CREATE TABLE oauth (" +
+						"service TEXT UNIQUE ON CONFLICT REPLACE," +
+						"data TEXT" +
+					")");
+				}
+			} finally {
+				yield conn.close();
+			}
+		});
 		
 		var that = this;
 		googleOauthService = new this.OauthService(
@@ -47,9 +69,14 @@ Zotero.Dontprint = (function() {
 			"urn:ietf:wg:oauth:2.0:oob",					// redirect URI
 			"https://www.googleapis.com/auth/drive.file",	// scope
 			"https://accounts.google.com/o/oauth2/token",	// URL to exchange token
-			database,
-			function(url, callback) {
-				showAuthPage.call(that, url, callback);
+			function(service, callback) {					// function to read state from data base
+				readOauthData.call(that, service, callback);
+			},
+			function(service, data) {						// function to write state to data base
+				writeOauthData.call(that, service, data);
+			},
+			function(service, url, callback) {				// function to open an authorization page
+				showAuthPage.call(that, service, url, callback);
 			}
 		);
 		
@@ -62,6 +89,28 @@ Zotero.Dontprint = (function() {
 			oldUpdateStatus.apply(Zotero_Browser, arguments);
 			updateDontprintIconVisibility();
 		};
+	};
+	
+	var prefs = function() {
+		return prefs_;
+	};
+	
+	var getK2pdfopt = function() {
+		var path = prefs().getCharPref("k2pdfoptpath");
+		var ret;
+		
+		if (path[0] === "%") {
+			// path is relative to profile directory.
+			// Always use "/" file separator when storing relative paths.
+			// Use FileUtils to convert to system file separator.
+			var ret = FileUtils.getFile("ProfD", path.substring(1).split("/"));
+		} else {
+			// path is absolute
+			ret = Components.classes["@mozilla.org/file/local;1"]
+						.createInstance(Components.interfaces.nsILocalFile);
+			ret.initWithPath(path);
+		}
+		return ret;
 	};
 	
 	var updateDontprintIconVisibility = function() {
@@ -140,7 +189,6 @@ Zotero.Dontprint = (function() {
 		var pageurl = tab.page.document.location.href;
 		incrementQueueLength(+1, pageurl);
 		
-		Components.utils.import("resource://gre/modules/FileUtils.jsm");
 		var pdfFile = FileUtils.getFile("TmpD", ["dontprint-original.pdf"]);
 		pdfFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 		
@@ -171,7 +219,7 @@ Zotero.Dontprint = (function() {
 			};
 			if (attachDone && !dontprintStarted) {
 				dontprintStarted = true;
-				Zotero.Dontprint.dontprintPdf(pdfData);
+				Dontprint.dontprintPdf(pdfData);
 			}
 		});
 		
@@ -179,7 +227,7 @@ Zotero.Dontprint = (function() {
 			attachDone = true;
 			if (pdfData !== null && !dontprintStarted) {
 				dontprintStarted = true;
-				Zotero.Dontprint.dontprintPdf(pdfData);
+				Dontprint.dontprintPdf(pdfData);
 			}
 		});
 		
@@ -194,7 +242,7 @@ Zotero.Dontprint = (function() {
 		return value === undefined ? (defaultTo === undefined ? '' : defaultTo) : value;
 	};
 
-	var showAuthPage = function(url, callback) {
+	var showAuthPage = function(service, url, callback) {
 		var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 			.getService(Components.interfaces.nsIWindowMediator)
 			.getMostRecentWindow("navigator:browser").gBrowser;
@@ -206,6 +254,33 @@ Zotero.Dontprint = (function() {
 		newTabBrowser.addEventListener("load", function () {
 			receiveAuthorizationCode.call(that, newTabBrowser.contentWindow, callback);
 		}, true);
+	};
+	
+	var readOauthData = function(service, callback) {
+		Task.spawn(function readFromDb() {
+			var ret = null;
+			try {
+				var conn = yield Sqlite.openConnection({path: databasePath});
+				var sqlresult = yield conn.executeCached("SELECT data FROM oauth WHERE service = ?", [service]);
+				ret = sqlresult.length === 0 ? null : sqlresult[0].getResultByName("data");
+			} finally {
+				yield conn.close();
+			}
+			throw new Task.Result(ret);
+		}).then(function (ret) {
+			callback(ret);
+		});
+	};
+
+	var writeOauthData = function(service, data) {
+		Task.spawn(function readFromDb() {
+			try {
+				var conn = yield Sqlite.openConnection({path: databasePath});
+				var sqlresult = yield conn.executeCached("INSERT INTO oauth VALUES (?, ?)", [service, data]);
+			} finally {
+				yield conn.close();
+			}
+		});
 	};
 	
 	var receiveAuthorizationCode = function(cwin, callback) {
@@ -299,7 +374,7 @@ Zotero.Dontprint = (function() {
 						}, 5000);
 					}
 					
-					if (!Zotero.Prefs.get("dontprint.copyInGoogleDrive")) {
+					if (!prefs().getBoolPref("copyInGoogleDrive")) {
 						// delete file on Google Drive for good (upload only places file in trash)
 						var delreq = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
 											.createInstance(Components.interfaces.nsIXMLHttpRequest);
@@ -333,19 +408,20 @@ Zotero.Dontprint = (function() {
 	
 	var uploadFileToGoogleDrive = function(documentData, filepath, accessToken, onSuccess, onFail, onAuthFail) { try {
 		// TODO: create preferences frontend to set:
-		// * extensions.zotero.dontprint.recipientEmail
-		// * extensions.zotero.dontprint.ccEmails
-		// * extensions.zotero.dontprint.copyInGoogleDrive
+		// * extensions.dontprint.recipientEmailPrefix
+		// * extensions.dontprint.recipientEmailfix
+		// * extensions.dontprint.ccEmails
+		// * extensions.dontprint.copyInGoogleDrive
 		
 // 		alert("uploading");
 		var metadata = {
 			title: 					documentData.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
 			labels: {
-				trashed: 			!Zotero.Prefs.get("dontprint.copyInGoogleDrive")
+				trashed: 			!prefs().getBoolPref("copyInGoogleDrive")
 			},
 			description: JSON.stringify({
-				recipientEmail:		Zotero.Prefs.get("dontprint.recipientEmail"),
-				ccEmails:			Zotero.Prefs.get("dontprint.ccEmails"),
+				recipientEmail:		prefs().getCharPref("recipientEmailPrefix") + prefs().getCharPref("recipientEmailSuffix"),
+				ccEmails:			prefs().getCharPref("ccEmails"),
 				itemKey:			documentData.key
 			})
 		};
@@ -419,22 +495,18 @@ Zotero.Dontprint = (function() {
 	
 	var startConversion = function(documentData, attachmentIndex, settings) {
 		// TODO: create preferences frontend to set:
-		// * extensions.zotero.dontprint.k2pdfoptpath
+		// * extensions.dontprint.k2pdfoptpath
 		
 		try {
-			var exec = Components.classes["@mozilla.org/file/local;1"]
-						.createInstance(Components.interfaces.nsILocalFile);
-			
-			exec.initWithPath(Zotero.Prefs.get("dontprint.k2pdfoptpath"));
+			var exec = getK2pdfopt();
 			if (!exec.exists()) {
-				throw (path + " does not exist");
+				throw (exec.path + " does not exist");
 			}
 			
 			var proc = Components.classes["@mozilla.org/process/util;1"]
 							.createInstance(Components.interfaces.nsIProcess);
 			proc.init(exec);
 			
-			Components.utils.import("resource://gre/modules/FileUtils.jsm");
 			var outFile = FileUtils.getFile("TmpD", ["dontprint-converted.pdf"]);
 			outFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 			var outputpath = outFile.path;
@@ -485,16 +557,23 @@ Zotero.Dontprint = (function() {
 	
 	var pdfcropSuccessCallback = function(documentData, attachmentIndex, settings) {
 		if (!settings.builtin) {
-			database.query("INSERT INTO journals VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)", [
-				documentData.journalLongname,
-				documentData.journalShortname,
-				settings.remember ? 1 : 0,
-				settings.coverpage ? 1 : 0,
-				""+settings.m1,		// explicitly cast margins to strings
-				""+settings.m2,		// (don't know why this is necessary
-				""+settings.m3,		// but, whithout this, sqlite would
-				""+settings.m4		// only store the integer part)
-			]);
+			Task.spawn(function storeInDb() {
+				try {
+					var conn = yield Sqlite.openConnection({path: databasePath});
+					yield conn.executeCached("INSERT INTO journals VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)", [
+						documentData.journalLongname,
+						documentData.journalShortname,
+						settings.remember ? 1 : 0,
+						settings.coverpage ? 1 : 0,
+						""+settings.m1,		// explicitly cast margins to strings
+						""+settings.m2,		// (don't know why this is necessary
+						""+settings.m3,		// but, whithout this, sqlite would
+						""+settings.m4		// only store the integer part)
+					]);
+				} finally {
+					yield conn.close();
+				}
+			});
 		}
 		
 		startConversion(documentData, attachmentIndex, settings);
@@ -577,26 +656,45 @@ Zotero.Dontprint = (function() {
 	};
 	
 	var dontprintPdf = function(pdfData) {
-		var sqlparams = [pdfData.journalLongname, pdfData.journalShortname];
-		var sqlresult = database.query("SELECT * FROM journals WHERE (longname = ? AND longname != '') OR (shortname = ? AND shortname != '')", sqlparams);
-		var cropParams = sqlresult !== false ? sqlresult[0] : defaultCropParams;
-		
-		if (sqlresult !== false && cropParams.remember) {
-			startConversion(pdfData, 0, cropParams);
-		} else {
-			var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-				.getService(Components.interfaces.nsIWindowMediator)
-				.getMostRecentWindow("navigator:browser").gBrowser;
-			var newTabBrowser = gBrowser.getBrowserForTab(
-				gBrowser.loadOneTab("chrome://dontprint/content/pdfcrop/pdfcrop.html", {inBackground:false})
-			);
+		Task.spawn(function storeInDb() {
+			try {
+				var conn = yield Sqlite.openConnection({path: databasePath});
+				var sqlparams = [pdfData.journalLongname, pdfData.journalShortname];
+				var sqlresult = yield conn.executeCached("SELECT * FROM journals WHERE (longname = ? AND longname != '') OR (shortname = ? AND shortname != '')", sqlparams);
+			} finally {
+				yield conn.close();
+			}
+			throw new Task.Result(sqlresult);
+		}).then(function (sqlresult) {
+			var cropParams;
+			if (sqlresult.length === 0) {
+				cropParams = defaultCropParams;
+			} else {
+				cropParams = {};
+				["longname", "shortname", "builtin", "remember", "coverpage", "m1", "m2", "m3", "m4"].forEach(
+					function(key) {
+						cropParams[key] = sqlresult[0].getResultByName(key);
+					}
+				);
+			}
 			
-			newTabBrowser.addEventListener("load", function () {
-				newTabBrowser.contentWindow.PDFCrop.init(pdfData, 0, cropParams, pdfcropSuccessCallback, pdfcropFailCallback);
-			}, true);
-			//TODO: this doesn't seem to call init if page has already been loaded by that time
-			//TODO: don't forget to remove event listener (avoid memory leak)
-		}
+			if (sqlresult.length !== 0 && cropParams.remember) {
+				startConversion(pdfData, 0, cropParams);
+			} else {
+				var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+					.getService(Components.interfaces.nsIWindowMediator)
+					.getMostRecentWindow("navigator:browser").gBrowser;
+				var newTabBrowser = gBrowser.getBrowserForTab(
+					gBrowser.loadOneTab("chrome://dontprint/content/pdfcrop/pdfcrop.html", {inBackground:false})
+				);
+				
+				newTabBrowser.addEventListener("load", function () {
+					newTabBrowser.contentWindow.PDFCrop.init(pdfData, 0, cropParams, pdfcropSuccessCallback, pdfcropFailCallback);
+				}, true);
+				//TODO: this doesn't seem to call init if page has already been loaded by that time
+				//TODO: don't forget to remove event listener (avoid memory leak)
+			}
+		});
 	};
 	
 	var showProgress = function() {
@@ -609,9 +707,10 @@ Zotero.Dontprint = (function() {
 		onStatusPopupShowing: onStatusPopupShowing,
 		dontprintThisPage: dontprintThisPage,
 		dontprintPdf: dontprintPdf,
-		showProgress: showProgress
+		showProgress: showProgress,
+		prefs: prefs
 	};
 }());
 
 // Initialize the utility
-window.addEventListener('load', function(e) { Zotero.Dontprint.init(); }, false);
+window.addEventListener('load', function(e) { Dontprint.init(); }, false);

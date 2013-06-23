@@ -14,7 +14,7 @@
 		<toolbarbutton id="dontprint-tbbtn"
 			class="zotero-tb-button"
 			tooltiptext="&dontprint.tbbtnlabel;"
-			oncommand="Zotero.Dontprint.dontprintSelectionInZotero()"
+			oncommand="Dontprint.dontprintSelectionInZotero()"
 			insertbefore="zotero-tb-advanced-search" />
 		<toolbarseparator insertbefore="zotero-tb-advanced-search" />
 	</hbox>
@@ -22,14 +22,14 @@
 	<!-- "Dontprint this page" icon in urlbar -->
 	<hbox id="urlbar-icons">
 		<popupset>
-			<menupopup id="dontprint-status-image-context" onpopupshowing="Zotero.Dontprint.onStatusPopupShowing(event)" />
+			<menupopup id="dontprint-status-image-context" onpopupshowing="Dontprint.onStatusPopupShowing(event)" />
 		</popupset>
 		<image
 			id="dontprint-status-image"
 			src="chrome://dontprint/skin/dontprint-btn/idle.png"
 			tooltiptext="&dontprint.statusimglabel;"
 			context="dontprint-status-image-context"
-			onclick="if(event.button === 0) Zotero.Dontprint.dontprintThisPage()"
+			onclick="if(event.button === 0) Dontprint.dontprintThisPage()"
 			position="1" hidden="true" />
 			
 		<!-- Progress indicator in urlbar is shown if the currently displayd page is currently being processed -->
@@ -38,7 +38,7 @@
 			src="chrome://dontprint/skin/dontprint-btn/idle.png"
 			tooltiptext="&dontprint.progressimglabel;"
 			context="dontprint-status-image-context"
-			onclick="if(event.button === 0) Zotero.Dontprint.showProgress()"
+			onclick="if(event.button === 0) Dontprint.showProgress()"
 			position="1" hidden="true" />
 	</hbox>
 	

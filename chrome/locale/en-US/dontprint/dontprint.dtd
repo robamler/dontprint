@@ -8,7 +8,7 @@
 <!ENTITY dontprint.preferences.k2pdfoptpath			"Path to k2pdfopt executable:">
 <!ENTITY dontprint.preferences.recipientEmail		"E-mail address of my Kindle:">
 <!ENTITY dontprint.preferences.copyInGoogleDrive	"When sending a document by e-mail, keep a copy of the document in my Google Drive account.">
-<!ENTITY dontprint.preferences.copyToMe				"When sending a document by e-mail, send a copy to my Gmail address.">
+<!ENTITY dontprint.preferences.ccEmails				"When sending a document by e-mail, send a copy to the following e-mail address (optional):">
 <!ENTITY dontprint.preferences.device.class			"E-reader brand:">
 <!ENTITY dontprint.preferences.device.kindle		"Amazon Kindle (557x721 pixels)">
 <!ENTITY dontprint.preferences.device.other			"other">
