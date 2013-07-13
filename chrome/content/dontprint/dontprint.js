@@ -525,19 +525,7 @@ Dontprint = (function() {
 			var that = this;
 			proc.runwAsync(args, args.length, {
 				observe: function(subject, topic, data) {
-					googleOauthService.apicall(
-						function(accessToken, onSuccess, onFail, onAuthFail) {
-							uploadFileToGoogleDrive.call(
-								that,
-								documentData,
-								outputpath,
-								accessToken,
-								onSuccess,
-								onFail,
-								onAuthFail
-							);
-						}
-					);
+					authorizeSendmail.call(that, documentData, outputpath);
 					
 					if (documentData.deleteFileWhenDone) {
 						var origFile = Components.classes["@mozilla.org/file/local;1"]
@@ -553,6 +541,183 @@ Dontprint = (function() {
 		catch (e) {
 			alert('Dontprint: faild to launch k2pdfopt: ' + e.toString());
 		}
+	};
+	
+	var authorizeSendmail = function(documentData, filePath) {
+// 		alert("authorizeSendmail 1");
+		var url = googleOauthService.buildURL(
+			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
+			{authorize: (new Date()).getTime()}  // circumvent cache
+		);
+		
+		// Open tab in background
+		var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+			.getService(Components.interfaces.nsIWindowMediator)
+			.getMostRecentWindow("navigator:browser").gBrowser;
+		var tab = gBrowser.loadOneTab(url, {inBackground:true});
+		var tabBrowser = gBrowser.getBrowserForTab(tab);
+		// 		alert("authorizeSendmail 2");
+		
+		// set onload-handler for new tab. This cannot be done in Google Apps Script because we need the rights to close the tab.
+		var onloadFunction = makeSendmailOnloadHandler(tab, tabBrowser, documentData, filePath);
+		tabBrowser.addEventListener("load", onloadFunction, true);
+// 		tabBrowser.addEventListener("load", onloadFunction, false);
+// 		alert("authorizeSendmail 3");
+	};
+	
+	var makeSendmailOnloadHandler = function(tab, tabBrowser, documentData, filePath) {
+		var queueLengthDecremented = false;
+		var win = tabBrowser.contentWindow;
+		
+		var file = Components.classes["@mozilla.org/file/local;1"]
+					.createInstance(Components.interfaces.nsILocalFile);
+		file.initWithPath(filePath);
+		if (!file.exists()) {
+			alert("Error: " + filePath + " does not exist");
+		}
+		
+		var clientState = "waiting";
+		
+// 		alert("makeSendmailOnloadHandler 2");
+// 		alert(!!win);
+		var handler = function(event) {
+			if (event.originalTarget.nodeName !== "#document") {
+				return;  // ignore calls due to favicon load
+			}
+			
+// 			alert(event.originalTarget.getElementsByName("dontprint-state").length);
+			if (clientState === "waiting" &&
+				(win.location.href.match(/^https\:\/\/accounts\.google\.com\//) ||
+				win.document.title.match(/Authorization needed/) ||
+				win.document.getElementById("auth-required") !== null)) {
+				// The user either needs to authorize Dontprint or to authenticate himself. In any case, bring tab to front.
+				//TODO: test if this detection works if user is not signed in
+				clientState = "authorizing";
+				if (!queueLengthDecremented) {
+					incrementQueueLength(-1, documentData.pageurl);
+					queueLengthDecremented = true;
+				}
+				gBrowser.selectedTab = tab;
+				alert("Please sign in to your Google account and allow Dontprint to send e-mails from your Gmail address.");
+			} else if (
+				win.frames.length === 1 &&
+				win.frames[0].document.getElementsByName("dontprint-state").length === 1
+			) {
+				// Set Dontprint favicon
+				var favicon = win.document.createElement('link');
+				favicon.type = 'image/x-icon';
+				favicon.rel = 'shortcut icon';
+				favicon.href = 'http://robamler.github.io/dontprint/webapp/favicon.png';
+				win.document.getElementsByTagName('head')[0].appendChild(favicon);
+				
+				let serverState = win.frames[0].document.getElementsByName("dontprint-state")[0].value;
+				
+				if (serverState === "waiting" && (clientState === "waiting" || clientState === "authorizing")) {
+					clientState = "uploading";
+					
+					//TODO: this interrupts page loading and animations on the page and
+					// changes the tab title to "Connecting", which is wrong.
+					// try if an XMLHttpRequest works here. (we already know 
+					// that the user is signed in). To do so, the web app should
+					// use ContentService.createTextOutput() to send back JSON;
+					// Two potential difficulties: Cookies that are required to
+					// authenticate and the redirect performed by Google Apps script.
+					sendDocumentByMail(tabBrowser, documentData, file);
+				} else if (serverState === "upload-success" && clientState === "uploading") {
+					clientState = "upload-success";
+					
+					if (!queueLengthDecremented) {
+						incrementQueueLength(-1, documentData.pageurl);
+						queueLengthDecremented = true;
+					}
+					
+					let timerSpan = win.frames[0].document.getElementsByTagName("span")[0];
+					let timeout = 60;
+					var countDownTimer = setInterval(function() {
+						timeout -= 5;
+						if (timeout < 0) {
+							clearInterval(countDownTimer);
+							win.close();
+						}
+						timerSpan.textContent = timeout;
+					}, 5000);
+					
+					win.addEventListener("unload", function() {
+						clearInterval(countDownTimer);
+					}, false);
+					
+					file.remove(false);
+				} else if (serverState === "error" && clientState !== "error") {
+					clientState = "error";
+					if (!queueLengthDecremented) {
+						incrementQueueLength(-1, documentData.pageurl);
+						queueLengthDecremented = true;
+					}
+					file.remove(false);
+				}
+			}
+		};
+		
+		// This is an extremely ugly hack to work around a deficiency in Firefox
+		// where "load" events are fired for iframes before the DOM of the
+		// iframe content is available.
+		// TODO: fix this;
+		// FIXME: when clicking the dontprint button several times, this sometimes fails
+		return function(event) {
+			setTimeout(function() {
+				handler(event);
+			}, 0);
+		};
+	};
+	
+	var sendDocumentByMail = function(tabBrowser, documentData, file) {
+		// TODO: create preferences frontend to set:
+		// * extensions.dontprint.recipientEmailPrefix
+		// * extensions.dontprint.recipientEmailSuffix
+		// * extensions.dontprint.ccEmails
+		
+		var url = googleOauthService.buildURL(
+			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
+			{
+				filename:		documentData.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
+				recipientEmail:	prefs().getCharPref("recipientEmailPrefix") + prefs().getCharPref("recipientEmailSuffix"),
+				ccEmails:		prefs().getCharPref("ccEmails"),
+				itemKey:		documentData.key
+			}
+		);
+		
+		// Prepare post data
+		var stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
+					.createInstance(Components.interfaces.nsIFileInputStream);
+		stream.init(file, 0x04 | 0x08, 0644, 0x04);
+		var postData = Components.classes["@mozilla.org/network/mime-input-stream;1"].
+					createInstance(Components.interfaces.nsIMIMEInputStream);
+		postData.addHeader("Content-Type", "application/pdf");
+		postData.addContentLength = true;
+		postData.setData(stream);
+		
+		// Use XHR to send POST data because sending POST data directly to the new
+		// tab will freeze the interface and change the tab's title to "Connecting",
+		// which is wrong.
+		var req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
+							.createInstance(Components.interfaces.nsIXMLHttpRequest);
+		
+		req.onload = function () {
+			alert(req.responseText);
+			file.remove(false);
+		};
+		req.onerror = function (e) {
+			alert("error");
+			alert(e.toString());
+		};
+		req.open('POST', url, true);
+		alert("sending");
+		req.send(stream);
+		// this actually works. TODO: get progress information (either from req or from stream)
+
+
+		// Send post data to existing tabBrowser
+//		tabBrowser.loadURIWithFlags(url, tabBrowser.webNavigation.LOAD_FLAGS_REPLACE_HISTORY, null, null, postData);
 	};
 	
 	var pdfcropSuccessCallback = function(documentData, attachmentIndex, settings) {
