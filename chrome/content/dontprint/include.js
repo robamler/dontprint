@@ -4,5 +4,4 @@ if (window.Dontprint === undefined) {
 					.getService(Components.interfaces.mozIJSSubScriptLoader);
 	loader.loadSubScript("chrome://dontprint/content/translate.js");
 	loader.loadSubScript("chrome://dontprint/content/dontprint.js");
-	loader.loadSubScript("chrome://dontprint/content/oauthservice.js");
 }

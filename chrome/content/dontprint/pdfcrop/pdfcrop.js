@@ -26,7 +26,7 @@ PDFCrop = (function() {
 	var pagenum = 1;
 	var availw, origw, availh, origh;
 	var pdf, pdfpage;
-	var documentData, successCallback, failCallback, attachmentIndex, builtinJournal;
+	var job, successCallback, failCallback, builtinJournal;
 	var successState = false;
 
 	// private methods
@@ -194,13 +194,15 @@ PDFCrop = (function() {
 	};
 
 	var startConversion = function() {
-		successCallback(documentData, attachmentIndex, {
-			coverpage: $("#coverpage").prop("checked"),
-			remember: $("#savetemplate").prop("checked"),
-			sendsettings: $("#sendsettings").prop("checked"),
-			builtin: builtinJournal,
-			m1: inmargins[0], m2: inmargins[1], m3: inmargins[2], m4: inmargins[3]
-		});
+		job.crop.coverpage    = $("#coverpage").prop("checked");
+		job.crop.remember     = $("#savetemplate").prop("checked");
+		job.crop.sendsettings = $("#sendsettings").prop("checked");
+		job.crop.m1           = inmargins[0];
+		job.crop.m2           = inmargins[1];
+		job.crop.m3           = inmargins[2];
+		job.crop.m4           = inmargins[3];
+		
+		successCallback();
 		successState = true;
 		window.close();
 	};
@@ -211,11 +213,11 @@ PDFCrop = (function() {
 	
 	var windowUnload = function() {
 		if (!successState) {
-			failCallback(documentData, attachmentIndex);
+			failCallback("canceled");;
 		}
 	};
 	
-	var doInit = function(theDocumentData, theAttachmentIndex, presets, theSuccessCallback, theFailCallback) {
+	var doInit = function(theJob, theSuccessCallback, theFailCallback) {
 		// Initialize DOM elements
 		region = $('#region');
 		doccontainer = $('#document-container');
@@ -232,23 +234,22 @@ PDFCrop = (function() {
 		nextbtn = $("#nextbtn");
 
 		// process parameters
-		documentData = theDocumentData;
-		attachmentIndex = theAttachmentIndex;
+		job = theJob;
 		successCallback = theSuccessCallback;
 		failCallback = theFailCallback;
 		$('#journalname').text(
-			documentData.journalShortname !== undefined ? documentData.journalShortname : (
-				documentData.journalLongname !== undefined ? documentData.journalLongname :
+			job.journalShortname !== undefined ? job.journalShortname : (
+				job.journalLongname !== undefined ? job.journalLongname :
 					'unknown journal'
 		));
 
 		// set presets
-		builtinJournal = presets.builtin;
-		if (presets.builtin) $('#remember-display').hide();
-		else $('#savetemplate').prop("checked", presets.remember);
-		$("#coverpage").prop("checked", presets.coverpage);
+		builtinJournal = job.crop.builtin;
+		if (job.crop.builtin) $('#remember-display').hide();
+		else $('#savetemplate').prop("checked", job.crop.remember);
+		$("#coverpage").prop("checked", job.crop.coverpage);
 		for (var i=1; i<=4; i++) {
-			inmargins[i-1] = parseFloat(presets['m'+i]);
+			inmargins[i-1] = parseFloat(job.crop['m'+i]);
 		}
 
 		// Set up event handlers
@@ -320,14 +321,14 @@ PDFCrop = (function() {
 		resize();
 
 		// Load the page
-		loadpdf(documentData.attachments[attachmentIndex]);
+		loadpdf(job.originalFilePath);
 	};
 
 	// public methods
 	return {
-		init: function(theDocumentData, theAttachmentIndex, thePresets, theCallback, theFailCallback) {
+		init: function(theJob, theSuccessCallback, theFailCallback)  {
 			$(function() {
-				doInit(theDocumentData, theAttachmentIndex, thePresets, theCallback, theFailCallback);
+				doInit(theJob, theSuccessCallback, theFailCallback);
 			});
 		}
 	};

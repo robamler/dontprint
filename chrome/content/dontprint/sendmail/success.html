@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8 />
+<link rel="shortcut icon" href="favicon.png">
+<title>Success: Document sent to e-reader. (Dontprint)</title>
+<base target="_blank">
+<style type="text/css">
+body{font-family: sans-serif; font-size:18px}
+#container{margin:0 auto; max-width:800px; min-height:100%; padding:0; position:absolute; text-align:left; left:1ex; right:1ex; top:0; bottom:0}
+h1{color:#294b1b; font-size:180%; margin-top:0; margin-left:0; padding-left:34px; background-image:url(check.png); background-position:1px 6px; background-repeat:no-repeat; font-weight:bold}
+#icon{position:absolute; left:0; top:4.5em; background-color:#8dff5c}
+#rightcol{position:absolute; top:2em; left:156px; right:0; bottom:0}
+#msg{padding:2ex; background-color:#fbfff9; border: 3px solid #294b1b; border-radius:1em}
+th{text-align:left; padding-right:1ex; vertical-align:top; white-space:nowrap}
+th,td{padding-top:0.2em}
+th,td,table,tbody{padding-left:0; margin-left:0}
+p{margin-top:0.5em; margin-bottom:0}
+#origin{font-size:80%; text-align:right; margin-top:1em}
+#origin > a{text-decoration:none; color:#222}
+#ccrow{display:none}
+</style>
+<script>
+function initDisplay(job) {
+	document.getElementById("filename").textContent = job.result.params.filename;
+	document.getElementById("filesize").textContent = job.result.filesize;
+	document.getElementById("address").textContent = job.result.params.recipientEmail;
+	
+	if (job.result.params.ccEmails) {
+		document.getElementById("ccrow").style.display = "table-row";
+		document.getElementById("ccaddress").textContent = job.result.params.ccEmails;
+	}
+	
+	var timeout = 60;
+	var countdown = document.getElementById("countdown");
+	var timer = setInterval(function() {
+		if (timeout === 0) {
+			clearInterval(timer);
+			close();
+		}
+		countdown.textContent = timeout;
+		timeout -= 5;
+	}, 5000);
+}
+</script>
+</head>
+<body>
+<input type="hidden" name="dontprint-state" value="upload-success">
+
+<div id="container">
+<div id="rightcol">
+<div id="msg">
+<h1>Document sent successfully.</h1>
+<table>
+<tr>
+<th>File name:</th>
+<td id="filename"></td>
+</tr>
+<tr>
+<th>File size:</th>
+<td id="filesize"></td>
+</tr>
+<tr>
+<th>Address:</th>
+<td id="address"></td>
+</tr>
+<tr id="ccrow">
+<th>Copy sent to:</th>
+<td id="ccaddress"></td>
+</tr>
+</table>
+<p>
+Dontprint has sent the document to the e-mail address given above. Select "Sync" on your e-reader to download the document. You may have to wait for a few minutes before the download is available.
+</p>
+<p>
+This tab will close automatically in about <span id="countdown">60</span> seconds. You can also close it manually.
+</p>
+</div>
+<div id="origin">
+<a href="https://github.com/robamler/dontprint/">(Dontprint)</a>
+</div>
+</div>
+<img id="icon" src="dontprint-speaking.png" alt="">
+</div>
+
+</body>
+</html>

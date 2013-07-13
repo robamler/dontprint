@@ -1,26 +1,38 @@
 Dontprint = (function() {
 	var databasePath = null;
-	var googleOauthService = null;
 	var dontprintThisPageImg = null;
 	var dontprintProgressImg = null;
 	var dontprintFromZoteroBtn = null;
 	var queuedUrls = [];
-	var prefs_ = null;
-	
 	var defaultCropParams = {
 		builtin:false, remember:true, coverpage:false, m1:0.52, m2:0.2, m3:0.2, m4:0.2
 	};
-
-	var init = function () {
+	
+	
+	// ==== PUBLICLY VISIBLE METHODS ================================
+	
+	function init() {
 		Components.utils.import("resource://gre/modules/FileUtils.jsm");
 		Components.utils.import("resource://gre/modules/Sqlite.jsm")
 		Components.utils.import("resource://gre/modules/Task.jsm");
+		try {
+			// Gecko >= 25
+			Components.utils.import("resource://gre/modules/Promise.jsm");
+		} catch (e) {
+			try {
+				// Gecko 21 to 24
+				Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+			} catch (e) {
+				// Gecko 17 to 20
+				Components.utils.import("resource://gre/modules/commonjs/promise/core.js");
+			}
+		}
 		
 		dontprintThisPageImg   = document.getElementById("dontprint-status-image");
 		dontprintFromZoteroBtn = document.getElementById("dontprint-tbbtn");
 		dontprintProgressImg   = document.getElementById("dontprint-progress-image");
 		
-		prefs_ = Components.classes["@mozilla.org/preferences-service;1"]
+		prefs = Components.classes["@mozilla.org/preferences-service;1"]
 						.getService(Components.interfaces.nsIPrefService)
 						.getBranch("extensions.dontprint.");
 		
@@ -36,23 +48,15 @@ Dontprint = (function() {
 				let exists = yield conn.tableExists("journals");
 				if (!exists) {
 					yield conn.execute("CREATE TABLE journals (" +
-						"longname  TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
-						"shortname TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
+						"journalname TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
 						"builtin INT," +
 						"remember INT," +
 						"coverpage INT," +
 						"m1 TEXT," +				// for some reason, using FLOAT here dosn't work
 						"m2 TEXT," +
 						"m3 TEXT," +
-						"m4 TEXT" +
-					")");
-				}
-				
-				exists = yield conn.tableExists("oauth");
-				if (!exists) {
-					yield conn.execute("CREATE TABLE oauth (" +
-						"service TEXT UNIQUE ON CONFLICT REPLACE," +
-						"data TEXT" +
+						"m4 TEXT," +
+						"CHECK(journalname <> '')" +
 					")");
 				}
 			} finally {
@@ -61,24 +65,6 @@ Dontprint = (function() {
 		});
 		
 		var that = this;
-		googleOauthService = new this.OauthService(
-			"google",										// internally used service name
-			"https://accounts.google.com/o/oauth2/auth",	// URL to authorize app
-			"87904320419-ln2m751m5ddpuh4801tjbv1c2k6b1q8d.apps.googleusercontent.com", // client ID
-			"BXBhZwni65Sl1V8jHhtSCMHh",						// client secret
-			"urn:ietf:wg:oauth:2.0:oob",					// redirect URI
-			"https://www.googleapis.com/auth/drive.file",	// scope
-			"https://accounts.google.com/o/oauth2/token",	// URL to exchange token
-			function(service, callback) {					// function to read state from data base
-				readOauthData.call(that, service, callback);
-			},
-			function(service, data) {						// function to write state to data base
-				writeOauthData.call(that, service, data);
-			},
-			function(service, url, callback) {				// function to open an authorization page
-				showAuthPage.call(that, service, url, callback);
-			}
-		);
 		
 		// Inject some own code into Zotero's updateStatus() function. This function
 		// is called to show or hide the "scrape this"-icon in the address bar.
@@ -89,62 +75,103 @@ Dontprint = (function() {
 			oldUpdateStatus.apply(Zotero_Browser, arguments);
 			updateDontprintIconVisibility();
 		};
-	};
+	}
 	
-	var prefs = function() {
-		return prefs_;
-	};
 	
-	var getK2pdfopt = function() {
-		var path = prefs().getCharPref("k2pdfoptpath");
-		var ret;
-		
-		if (path[0] === "%") {
-			// path is relative to profile directory.
-			// Always use "/" file separator when storing relative paths.
-			// Use FileUtils to convert to system file separator.
-			var ret = FileUtils.getFile("ProfD", path.substring(1).split("/"));
-		} else {
-			// path is absolute
-			ret = Components.classes["@mozilla.org/file/local;1"]
-						.createInstance(Components.interfaces.nsILocalFile);
-			ret.initWithPath(path);
-		}
-		return ret;
-	};
-	
-	var updateDontprintIconVisibility = function() {
-		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-		
-		var showDontprintIcon = false;
-		if (tab && tab.page.translators && tab.page.translators.length) {
-			var itemType = tab.page.translators[0].itemType;
-			if (itemType !== "multiple")		//TODO: implement itemType === "multiple"
-				showDontprintIcon = true;
-		}
-		
-		var alreadyProcessing = showDontprintIcon && queuedUrls.indexOf(tab.page.document.location.href) !== -1;
-		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
-		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
-	};
-	
-	/*
-	 * Gets a data object given a browser window object
+	/**
+	 * Dontprint the document represented by the current page. Use functionality
+	 * originally developed for Zotero to get the original PDF file and its meta
+	 * data. Use the specified translator, or the translator that fits best for the
+	 * current page if translator === undefined.
+	 * This function is called with translator===undefined when the user clicks the
+	 * dontprint icon in the address bar and with translator!==undefined when the
+	 * user right-clicks the dontprint icon in the address bar and picks a custom
+	 * translator.
 	 */
-	var _getTabObject = function(browser) {
-		if(!browser) return false;
-		if(!browser.zoteroBrowserData) {
-			browser.zoteroBrowserData = new Zotero_Browser.Tab(browser);
+	function dontprintThisPage(translator) {
+		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+		runJob({
+			jobType:	'page',
+			translator:	translator,
+			pageurl:	tab.page.document.location.href
+		});
+	}
+	
+	
+	/**
+	 * Called when the user clicks the dontprint button in the Zotero pane.
+	 */
+	function dontprintSelectionInZotero() {
+		var selectedItems = ZoteroPane.getSelectedItems();
+		
+		// delete duplicates (e.g., if user selects both an attachment and its parent)
+		var entryIds = selectedItems.map(function(i) {
+			return i.getSource() || i.id;
+		});
+		var uniqueEntryIds = entryIds.filter(function(elem, pos, self) {
+			return self.indexOf(elem) == pos;
+		})
+		
+		// generate list of all meta data
+		var jobs = uniqueEntryIds.map(function(id) {
+			var i = Zotero.Items.get(id);
+			var attachmentPaths = i.getAttachments(false).map(function(id) {
+				var a_item = Zotero.Items.get(id);
+				if (a_item.attachmentMIMEType === 'application/pdf') {
+					var file = a_item.getFile();
+					if (file) {
+						return file.path;
+					}
+				}
+				return undefined;
+			}).filter(function(elem) {
+				return elem !== undefined;
+			});
+
+			// Find field names in Zotero's resource/schema/system.sql (grep "INSERT INTO fields" in zotero source code to get a list of field names)
+			return {
+				jobType:			'zotero',
+				zoteroKey:			i.getField('key'),
+				title:				i.getField('title'),
+				journalLongname:	i.getField('publicationTitle'),
+				journalShortname:	i.getField('journalAbbreviation'),
+				originalFilePath:	attachmentPaths.length === 0 ? undefined : attachmentPaths[0],
+				tmpFiles:			[]
+			};
+		});
+		
+		// remove entries without attached PDF files
+		var noattach = jobs.filter(function(elem) {
+			return elem.originalFilePath === undefined;
+		});
+		if (noattach.length) {
+			alert("The following selected items cannot be sent to your e-reader because they do not have an attached PDF file:\n\n" +
+				noattach.map(function(elem) { return elem.title; }).join("\n"));
 		}
-		return browser.zoteroBrowserData;
-	};
+		
+		jobs = jobs.filter(function(elem) {
+			return elem.originalFilePath !== undefined;
+		});
+		if (jobs.length == 0) {
+			alert("No documents sent to your e-reader. Select an item with an attached PDF file and try again.");
+			return;
+		}
+		
+		jobs.forEach(runJob);
+	}
+	
+	
+	function showProgress() {
+		//TODO
+	}
+	
 	
 	/**
 	 * Called when the user right-clicks the dontprint-icon in the address bar.
 	 * Show a list of available translators to dontprint the document represented
 	 * by the current page.
 	 */
-	var onStatusPopupShowing = function(e) {
+	function onStatusPopupShowing(e) {
 		var popup = e.target;
 		while (popup.hasChildNodes())
 			popup.removeChild(popup.lastChild);
@@ -165,29 +192,50 @@ Dontprint = (function() {
 			}, false);
 			popup.appendChild(menuitem);
 		}
-	};
+	}
 	
-	/**
-	 * Dontprint the document represented by the current page. Use functionality
-	 * originally developed for Zotero to get the original PDF file and its meta
-	 * data. Use the specified translator, or the translator that fits best for the
-	 * current page if translator === undefined.
-	 * This function is called with translator===undefined when the user clicks the
-	 * dontprint icon in the address bar and with translator!==undefined when the
-	 * user right-clicks the dontprint icon in the address bar and picks a custom
-	 * translator.
-	 */
-	var dontprintThisPage = function(translator) {
-		// Perform translation
+	
+	// ==== LIFE CYCLE OF A DONTPRINT JOB ===========================
+	
+	function runJob(job) {
+		var cleanup = function() {
+			incrementQueueLength(-1, job.pageurl);
+			job.tmpFiles.forEach(deleteFile);
+		};
+		
+		Task.spawn(function() {
+			var newtab = null;
+			try {
+				// show progress indicator
+				incrementQueueLength(+1, job.pageurl);
+				
+				if (job.jobType === 'page')
+					yield grabOriginalFileForCurrentTab(job);
+				
+				yield cropMargins(job);
+				yield convertDocument(job);
+				newtab = yield authorizeSendmail(job);
+				let setProgress = yield connectToSendmailTab(job, newtab.tabBrowser);
+				yield sendEmail(job, newtab.tabBrowser, setProgress);
+			} catch (e) {
+				job.result = {
+					error: true,
+					errorString: e.toString()
+				};
+			} finally {
+				if (job.result.errorString !== "canceled") {
+					yield displayResult(job, newtab);
+				}
+			}
+		}).then(cleanup, cleanup);
+	}
+	
+	
+	function grabOriginalFileForCurrentTab(job) {
 		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
 		if (!tab || !tab.page.translators || !tab.page.translators.length) {
-			alert("error: no translators available");
-			return false;
+			throw "No translators available for this web site.";
 		}
-		
-		// show progress indicator
-		var pageurl = tab.page.document.location.href;
-		incrementQueueLength(+1, pageurl);
 		
 		var pdfFile = FileUtils.getFile("TmpD", ["dontprint-original.pdf"]);
 		pdfFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
@@ -195,261 +243,394 @@ Dontprint = (function() {
 		var translate = new Zotero.Translate.Dontprint();
 		translate.setDocument(tab.page.translate.document);
 		translate.setDestFile(pdfFile);
-		translate.setTranslator(translator || tab.page.translators[0]);
+		translate.setTranslator(job.translator || tab.page.translators[0]);
+		job.translator = undefined;		// avoid memory leak
 		translate.clearHandlers("done");
 		translate.clearHandlers("itemDone");
 		
-		// Call dontprintPdf(pdfData) as soon as both the "itemDone" handler was fired and
+		// Call runJob() as soon as both the "itemDone" handler was fired and
 		// the "attachDone" handler was fired, independently of which one happens first.
-		// But make sure to call dontprintPdf(pdfData) no more than once
-		var pdfData = null;
-		var attachDone = false;
-		var dontprintStarted = false;
+		// But make sure to call runJob() no more than once
+		var itemDoneDeferred = Promise.defer();
+		var attachDoneDeferred = Promise.defer();
+		
+		translate.setAttachDoneHandler(attachDoneDeferred.resolve);
 		
 		translate.setHandler("itemDone", function(obj, dbItem, item) {
 			// Apparently, this is called when the item meta data is ready but attachments may still be being downloaded
-			pdfData = {
-				key: checkUndefined(item.id, "noid"),
-				title: checkUndefined(item.title, "Untitled document"),
-				journalLongname : checkUndefined(item.publicationTitle),
-				journalShortname : checkUndefined(item.journalAbbreviation),
-				attachments: [pdfFile.path],
-				deleteFileWhenDone: true,
-				pageurl: pageurl
-			};
-			if (attachDone && !dontprintStarted) {
-				dontprintStarted = true;
-				Dontprint.dontprintPdf(pdfData);
-			}
-		});
-		
-		translate.setAttachDoneHandler(function() {
-			attachDone = true;
-			if (pdfData !== null && !dontprintStarted) {
-				dontprintStarted = true;
-				Dontprint.dontprintPdf(pdfData);
-			}
+			job.zoteroKey			= checkUndefined(item.id, "noid");
+			job.title				= checkUndefined(item.title, "Untitled document");
+			job.journalLongname		= checkUndefined(item.publicationTitle);
+			job.journalShortname	= checkUndefined(item.journalAbbreviation);
+			job.originalFilePath	= pdfFile.path;
+			job.tmpFiles			= [pdfFile.path];
+			itemDoneDeferred.resolve();
 		});
 		
 		//TODO: test what happens when user clicks "save to zotero" shortly after clicking "dontprint" (or vice versa)
 		translate.translate(null);
-	};
+		
+		yield itemDoneDeferred.promise;
+		yield attachDoneDeferred.promise;
+
+		// remove event handlers (avoid memory leaks)
+		translate.clearHandlers("done");
+		translate.clearHandlers("itemDone");
+		translate.setAttachDoneHandler(null);
+	}
+	
+	
+	function cropMargins(job) {
+		try {
+			var conn = yield Sqlite.openConnection({path: databasePath});
+			var sqlresult = yield conn.executeCached(
+				"SELECT * FROM journals WHERE journalname = ? OR journalname = ?",
+				[job.journalLongname, job.journalShortname]
+			);
+		} catch (e) {
+			// ignore errors
+		} finally {
+			yield conn.close();
+		}
+		
+		if (sqlresult.length === 0) {
+			job.crop = defaultCropParams;
+		} else {
+			job.crop = {};
+			["journalname", "builtin", "remember", "coverpage", "m1", "m2", "m3", "m4"].forEach(
+				function(key) {
+					job.crop[key] = sqlresult[0].getResultByName(key);
+				}
+			);
+		}
+		
+		if (sqlresult.length === 0 || !job.crop.remember) {
+			let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+				.getService(Components.interfaces.nsIWindowMediator)
+				.getMostRecentWindow("navigator:browser").gBrowser;
+			let newTabBrowser = gBrowser.getBrowserForTab(
+				gBrowser.loadOneTab("chrome://dontprint/content/pdfcrop/pdfcrop.html", {inBackground:false})
+			);
+			
+ 			let deferred = Promise.defer();
+			newTabBrowser.addEventListener("load", function () {
+				// Wrap callbacks in a setTimeout to make sure that execution after the
+				// next yield operator doesn't block the closing of the PDFCrop tab.
+				newTabBrowser.contentWindow.PDFCrop.init(
+					job,
+					function() {setTimeout(deferred.resolve, 0);},
+					function(reason) {setTimeout(function() {deferred.reject(reason);}, 0);}
+				);
+			}, true);
+			//TODO: this doesn't seem to call init if page has already been loaded by that time (can that happen?)
+			
+			yield deferred.promise;
+			
+			if (!job.crop.builtin) {
+				try {
+					var conn2 = yield Sqlite.openConnection({path: databasePath});
+					if (job.journalLongname !== undefined && job.journalLongname !== "") {
+						yield conn2.executeCached("INSERT INTO journals VALUES (?, 0, ?, ?, ?, ?, ?, ?)", [
+							job.journalLongname,
+							job.crop.remember ? 1 : 0,
+							job.crop.coverpage ? 1 : 0,
+							""+job.crop.m1,		// explicitly cast margins to strings
+							""+job.crop.m2,		// (don't know why this is necessary
+							""+job.crop.m3,		// but, whithout this, sqlite would
+							""+job.crop.m4		// only store the integer part)
+						]);
+					}
+					if (job.journalShortname !== undefined && job.journalShortname !== "") {
+						yield conn2.executeCached("INSERT INTO journals VALUES (?, 0, ?, ?, ?, ?, ?, ?)", [
+							job.journalShortname,
+							job.crop.remember ? 1 : 0,
+							job.crop.coverpage ? 1 : 0,
+							""+job.crop.m1,		// explicitly cast margins to strings
+							""+job.crop.m2,		// (don't know why this is necessary
+							""+job.crop.m3,		// but, whithout this, sqlite would
+							""+job.crop.m4		// only store the integer part)
+						]);
+					}
+				} catch (e) {
+					alert(e.toString());
+					// ignore errors
+				} finally {
+					yield conn2.close();
+				}
+			}
+		}
+	}
+	
+	
+	function convertDocument(job) {
+		// TODO: create preferences frontend to set:
+		// * extensions.dontprint.k2pdfoptpath
+		
+		let exec = getK2pdfopt();
+		if (!exec.exists()) {
+			throw (exec.path + " does not exist");
+		}
+		
+		let proc = Components.classes["@mozilla.org/process/util;1"]
+						.createInstance(Components.interfaces.nsIProcess);
+		proc.init(exec);
+		
+		let outFile = FileUtils.getFile("TmpD", ["dontprint-converted.pdf"]);
+		outFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+		job.convertedFilePath = outFile.path;
+		job.tmpFiles.push(outFile.path);
+		
+		let args = [
+			'-ui-', '-x', '-w', '557', '-h', '721',
+			'-ml', job.crop.m1,
+			'-mt', job.crop.m2,
+			'-mr', job.crop.m3,
+			'-mb', job.crop.m4,
+			'-p', job.crop.coverpage ? '2-' : '1-',
+			job.originalFilePath,
+			'-o', job.convertedFilePath
+		];
+		
+		let deferred = Promise.defer();
+		proc.runwAsync(args, args.length, {observe: deferred.resolve});
+		yield deferred.promise;
+	}
+	
+	
+	function authorizeSendmail(documentData, filePath) {
+		let url = buildURL(
+			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
+			{authorize: (new Date()).getTime()}  // circumvent cache
+		);
+		
+		// Open tab in background
+		let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+			.getService(Components.interfaces.nsIWindowMediator)
+			.getMostRecentWindow("navigator:browser").gBrowser;
+		let tab = gBrowser.loadOneTab(url, {inBackground:true});
+		let tabBrowser = gBrowser.getBrowserForTab(tab);
+		
+		// set onload-handler for new tab. This cannot be done in Google Apps Script because we need to communicate back to this code.
+		let deferred = Promise.defer();
+		let onloadFunction = authorizeSendmailOnloadHandler(tabBrowser.contentWindow, deferred.resolve);
+		let oncloseFunction = function() {
+			deferred.reject("canceled");
+		};
+		tabBrowser.addEventListener("load", onloadFunction, true);
+		tab.addEventListener("TabClose", oncloseFunction, true);
+		yield deferred.promise;
+		tabBrowser.removeEventListener("load", onloadFunction, true);
+		tab.removeEventListener("TabClose", oncloseFunction, true);
+		
+		// return tabBrowser to parent task (this is better than setting tabBrowser as
+		// a member field in task because it makes code that leaks memory easier to spot.)
+		throw new Task.Result({gBrowser:gBrowser, tab: tab, tabBrowser: tabBrowser});
+	}
+	
+	
+	function authorizeSendmailOnloadHandler(win, resolveFunction) {
+		var alreadyAskedForAuth = false;
+		
+		return function() {
+			if (win.location.href.match(/^https\:\/\/accounts\.google\.com\//) ||
+				win.document.title.match(/Authorization needed/) ||
+				win.document.getElementById("auth-required") !== null
+			) {
+				// The user either needs to authorize Dontprint or to authenticate himself. In any case, bring tab to front.
+				// win.alert() automatically brings corresponding tab to front
+				if (!alreadyAskedForAuth) {
+					alreadyAskedForAuth = true;
+					win.alert("Please sign in to your Google account and allow Dontprint to send e-mails from your Gmail address.");
+				}
+			} else if (win.document.title.match(/ \(Dontprint\)$/)) {
+				// the user is signed in and has authorized Dontprint to send e-mails
+				resolveFunction();
+			}
+		};
+	}
+	
+	
+	function connectToSendmailTab(job, tabBrowser) {
+		// Set Dontprint favicon
+		let favicon = tabBrowser.contentWindow.document.createElement('link');
+		favicon.type = 'image/x-icon';
+		favicon.rel = 'shortcut icon';
+		favicon.href = 'http://robamler.github.io/dontprint/webapp/favicon.png';
+		tabBrowser.contentWindow.document.getElementsByTagName('head')[0].appendChild(favicon);
+		
+		let progressBar = null;
+		let setProgress = function(value) {
+			if (!progressBar) {
+				if (
+					tabBrowser.contentWindow.frames.length === 1 &&
+					tabBrowser.contentWindow.frames[0].document.getElementsByName("dontprint-state").length === 1 &&
+					tabBrowser.contentWindow.frames[0].document.getElementsByName("dontprint-state")[0].value === "loaded"
+				) {
+					let divs = tabBrowser.contentWindow.frames[0].document.getElementsByTagName("div");
+					progressBar = divs[divs.length-1];
+				} else {
+					return;
+				}
+			}
+			progressBar.style.width = value*400 + "px";
+		};
+		return setProgress;
+	}
+	
+	
+	function sendEmail(job, tabBrowser, setProgress) {
+		// TODO: create preferences frontend to set:
+		// * extensions.dontprint.recipientEmailPrefix
+		// * extensions.dontprint.recipientEmailSuffix
+		// * extensions.dontprint.ccEmails
+		
+		var url = buildURL(
+			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
+			{
+				filename:		job.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
+				recipientEmail:	prefs.getCharPref("recipientEmailPrefix") + prefs.getCharPref("recipientEmailSuffix"),
+				ccEmails:		prefs.getCharPref("ccEmails"),
+				itemKey:		job.zoteroKey
+			}
+		);
+		
+		// Prepare post data
+		var file = Components.classes["@mozilla.org/file/local;1"]
+					.createInstance(Components.interfaces.nsILocalFile);
+		file.initWithPath(job.convertedFilePath);
+		if (!file.exists()) {
+			throw filepath + " does not exist";
+		}
+		var filesize = file.fileSize;
+		var stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
+					.createInstance(Components.interfaces.nsIFileInputStream);
+		stream.init(file, 0x04 | 0x08, 0644, 0x04);
+		var postData = Components.classes["@mozilla.org/network/mime-input-stream;1"].
+					createInstance(Components.interfaces.nsIMIMEInputStream);
+		postData.addHeader("Content-Type", "application/pdf");
+		postData.addContentLength = true;
+		postData.setData(stream);
+		
+		// Use XHR to send POST data because sending POST data directly to the new
+		// tab will freeze the interface and change the tab's title to "Connecting",
+		// which is wrong.
+		var req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
+							.createInstance(Components.interfaces.nsIXMLHttpRequest);
+		
+		let deferred = Promise.defer();
+		
+		req.upload.onprogress = function (e) {
+			setProgress(0.9*(e.loaded / e.total));
+		};
+		req.onload = function () {
+			setProgress(1);
+			job.result = JSON.parse(req.responseText);
+			deferred.resolve();
+		};
+		req.onerror = function (e) {
+			deferred.reject("Sendmail error: " + e.toString());
+		};
+		req.open('POST', url, true);
+		req.send(stream);
+		yield deferred.promise;
+	}
+	
+	
+	function displayResult(job, newtab) {
+		var url = "chrome://dontprint/content/sendmail/" + (job.result.error ? "error" : "success") + ".html";
+		deferred = Promise.defer();
+		let onloadFunction = function() {
+			newtab.tabBrowser.contentWindow.initDisplay(job);
+			deferred.resolve();
+		}
+		
+		if (newtab === null) {
+			// Open new tab
+			let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+				.getService(Components.interfaces.nsIWindowMediator)
+				.getMostRecentWindow("navigator:browser").gBrowser;
+			let tab = gBrowser.loadOneTab(url, {inBackground: !job.result.error});
+			let tabBrowser = gBrowser.getBrowserForTab(tab);
+			tabBrowser.addEventListener("load", onloadFunction, true);
+			newtab = {tabBrowser: tabBrowser};
+		} else {
+			// reuse existing tab
+			newtab.tabBrowser.addEventListener("load", onloadFunction, true);
+			newtab.tabBrowser.loadURIWithFlags(url, newtab.tabBrowser.webNavigation.LOAD_FLAGS_REPLACE_HISTORY);
+		}
+		yield deferred.promise;
+		newtab.tabBrowser.removeEventListener("load", onloadFunction, true);
+		
+		if (job.result.error && newtab.tab !== undefined) {
+			newtab.gBrowser.selectedTab = newtab.tab;
+		}
+	}
+	
+	
+	// ==== HELPER FUNCTIONS ========================================================
+	
+	function deleteFile(path) {
+		let f = Components.classes["@mozilla.org/file/local;1"]
+				.createInstance(Components.interfaces.nsILocalFile);
+		f.initWithPath(path);
+		if (f.exists()) {
+			f.remove(false);
+		}
+	}
+	
+	
+	function getK2pdfopt() {
+		var path = prefs.getCharPref("k2pdfoptpath");
+		var ret;
+		
+		if (path[0] === "%") {
+			// path is relative to profile directory.
+			// Always use "/" file separator when storing relative paths.
+			// Use FileUtils to convert to system file separator.
+			var ret = FileUtils.getFile("ProfD", path.substring(1).split("/"));
+		} else {
+			// path is absolute
+			ret = Components.classes["@mozilla.org/file/local;1"]
+						.createInstance(Components.interfaces.nsILocalFile);
+			ret.initWithPath(path);
+		}
+		return ret;
+	}
+	
+	
+	function updateDontprintIconVisibility() {
+		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+		
+		var showDontprintIcon = false;
+		if (tab && tab.page.translators && tab.page.translators.length) {
+			var itemType = tab.page.translators[0].itemType;
+			if (itemType !== "multiple")		//TODO: implement itemType === "multiple"
+				showDontprintIcon = true;
+		}
+		
+		var alreadyProcessing = showDontprintIcon && queuedUrls.indexOf(tab.page.document.location.href) !== -1;
+		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
+		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
+	}
+	
+	/*
+	 * Gets a data object given a browser window object
+	 */
+	function _getTabObject(browser) {
+		if(!browser) return false;
+		if(!browser.zoteroBrowserData) {
+			browser.zoteroBrowserData = new Zotero_Browser.Tab(browser);
+		}
+		return browser.zoteroBrowserData;
+	}
 	
 	/**
 	 * return value if value isn't undefined; otherwise, return defaultTo or empty string
 	 */
-	var checkUndefined = function(value, defaultTo) {
+	function checkUndefined(value, defaultTo) {
 		return value === undefined ? (defaultTo === undefined ? '' : defaultTo) : value;
-	};
-
-	var showAuthPage = function(service, url, callback) {
-		var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-			.getService(Components.interfaces.nsIWindowMediator)
-			.getMostRecentWindow("navigator:browser").gBrowser;
-		var newTabBrowser = gBrowser.getBrowserForTab(
-			gBrowser.loadOneTab(url, {inBackground:false})
-		);
-		
-		var that = this;
-		newTabBrowser.addEventListener("load", function () {
-			receiveAuthorizationCode.call(that, newTabBrowser.contentWindow, callback);
-		}, true);
-	};
-	
-	var readOauthData = function(service, callback) {
-		Task.spawn(function readFromDb() {
-			var ret = null;
-			try {
-				var conn = yield Sqlite.openConnection({path: databasePath});
-				var sqlresult = yield conn.executeCached("SELECT data FROM oauth WHERE service = ?", [service]);
-				ret = sqlresult.length === 0 ? null : sqlresult[0].getResultByName("data");
-			} finally {
-				yield conn.close();
-			}
-			throw new Task.Result(ret);
-		}).then(function (ret) {
-			callback(ret);
-		});
-	};
-
-	var writeOauthData = function(service, data) {
-		Task.spawn(function readFromDb() {
-			try {
-				var conn = yield Sqlite.openConnection({path: databasePath});
-				var sqlresult = yield conn.executeCached("INSERT INTO oauth VALUES (?, ?)", [service, data]);
-			} finally {
-				yield conn.close();
-			}
-		});
-	};
-	
-	var receiveAuthorizationCode = function(cwin, callback) {
-		var found = /^Success state=([^&]+)&code=(\S+)$/.exec(cwin.document.title);
-		if (found) {
-			cwin.close();
-			callback(found[2]);
-		}
-	};
-	
-	var doFileUpload = function(that, documentData, filepath, accessToken, onSuccess, onFail, onAuthFail) { return function() {
-	try {
-		if (this.responseText !== "" && JSON.parse(this.responseText).error !== undefined) {
-			alert("File Upload failed. The server returned the following error message:\n" + JSON.parse(this.responseText).error.message)
-			onAuthFail();
-			return;
-		}
-		
-		onSuccess();
-		var location = this.getResponseHeader("Location");
-		
-		var file = Components.classes["@mozilla.org/file/local;1"]
-					.createInstance(Components.interfaces.nsILocalFile);
-		file.initWithPath(filepath);
-		if (!file.exists()) {
-			alert("Error: " + filepath + " does not exist");
-		}
-		var filesize = file.fileSize;
-		
-		// Make a stream from a file.
-		var stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
-					.createInstance(Components.interfaces.nsIFileInputStream);
-		stream.init(file, 0x04 | 0x08, 0644, 0x04); // file is an nsIFile instance  
-		
-		// Send   
-		var req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
-							.createInstance(Components.interfaces.nsIXMLHttpRequest);
-		
-		req.onload = function () {
-			var fileId = JSON.parse(req.responseText).id;
-			var url = googleOauthService.buildURL(
-				"chrome://dontprint/content/sendmail.html",
-				{fileId: fileId}
-			);
-			var queueLengthDecremented = false;
-			
-			// Open tab in background
-			var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-				.getService(Components.interfaces.nsIWindowMediator)
-				.getMostRecentWindow("navigator:browser").gBrowser;
-			var tab = gBrowser.loadOneTab(url, {inBackground:true});
-			var newTabBrowser = gBrowser.getBrowserForTab(tab);
-			var win = newTabBrowser.contentWindow;
-			
-			// set onload-handler for new tab. This cannot be done in Google Apps Script because we need the rights to close the tab.
-			var onloadFunction = function () {
-				if (win.location.href.match(/^https\:\/\/accounts\.google\.com\//) || win.document.title.match(/Authorization needed/)) {
-					// The user either needs to authorize dontprint or authenticate himself. In either case, bring tab to front.
-					if (!queueLengthDecremented) {
-						incrementQueueLength(-1, documentData.pageurl);
-						queueLengthDecremented = true;
-					}
-					gBrowser.selectedTab = tab;
-				} else if (win.document.title.match(/ \(Dontprint plugin for Zotero\)$/)) {
-					if (!queueLengthDecremented) {
-						incrementQueueLength(-1, documentData.pageurl);
-						queueLengthDecremented = true;
-					}
-					
-					var favicon = win.document.createElement('link');
-					favicon.type = 'image/x-icon';
-					favicon.rel = 'shortcut icon';
-					favicon.href = 'http://robamler.github.io/dontprint/webapp/favicon.png';
-					win.document.getElementsByTagName('head')[0].appendChild(favicon);
-					
-					if (win.document.title.match(/^Success\: /)) {
-						newTabBrowser.removeEventListener("load", onloadFunction, true);
-						var timeout = 60;
-						var timer = setInterval(function() {
-							if (
-								win.frames.length === 1 &&
-								win.frames[0].document.getElementsByTagName("span").length === 1
-							) {
-								if (timeout === 0) {
-									clearInterval(timer);
-									win.close();
-								}
-								win.frames[0].document.getElementsByTagName("span")[0].textContent = timeout;
-								timeout -= 5;
-							}
-						}, 5000);
-					}
-					
-					if (!prefs().getBoolPref("copyInGoogleDrive")) {
-						// delete file on Google Drive for good (upload only places file in trash)
-						var delreq = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
-											.createInstance(Components.interfaces.nsIXMLHttpRequest);
-						delreq.open('DELETE', 'https://www.googleapis.com/drive/v2/files/' + encodeURIComponent(fileId));
-						delreq.setRequestHeader("Authorization", "OAuth " + accessToken);
-						delreq.send();
-						// Don't care about response. If delete fails then so be it.
-					}
-				}
-			};
-			newTabBrowser.addEventListener("load", onloadFunction, true);
-			
-			file.remove(false);
-		};
-		
-		req.open('PUT', location, true);
-		req.setRequestHeader('Content-Type', "application/pdf");
-		req.setRequestHeader("Authorization", "OAuth " + accessToken);
-// 		alert("sending");
-		req.send(stream);
-	} catch (e) {
-		alert("Error: " + e.toString());
 	}
-	};};
 	
-	var lengthInUtf8Bytes = function(str) {
-		// Matches only the 10.. bytes that are non-initial characters in a multi-byte sequence.
-		var m = encodeURIComponent(str).match(/%[89ABab]/g);
-		return str.length + (m ? m.length : 0);
-	};
-	
-	var uploadFileToGoogleDrive = function(documentData, filepath, accessToken, onSuccess, onFail, onAuthFail) { try {
-		// TODO: create preferences frontend to set:
-		// * extensions.dontprint.recipientEmailPrefix
-		// * extensions.dontprint.recipientEmailfix
-		// * extensions.dontprint.ccEmails
-		// * extensions.dontprint.copyInGoogleDrive
-		
-// 		alert("uploading");
-		var metadata = {
-			title: 					documentData.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
-			labels: {
-				trashed: 			!prefs().getBoolPref("copyInGoogleDrive")
-			},
-			description: JSON.stringify({
-				recipientEmail:		prefs().getCharPref("recipientEmailPrefix") + prefs().getCharPref("recipientEmailSuffix"),
-				ccEmails:			prefs().getCharPref("ccEmails"),
-				itemKey:			documentData.key
-			})
-		};
-		
-// 		alert("token: " + accessToken);
-		
-		var file = Components.classes["@mozilla.org/file/local;1"]
-					.createInstance(Components.interfaces.nsILocalFile);
-		file.initWithPath(filepath);
-		if (!file.exists()) {
-			alert("Error: " + filepath + " does not exist");
-		}
-		var filesize = file.fileSize;
-// 		alert("size: " + filesize);
-		
-		var req = new XMLHttpRequest();
-		req.onload = doFileUpload(this, documentData, filepath, accessToken, onSuccess, onFail, onAuthFail);
-		req.open("post", "https://www.googleapis.com/upload/drive/v2/files?uploadType=resumable", true);
-		req.setRequestHeader("Authorization", "OAuth " + accessToken);
-		req.setRequestHeader("Content-Length", lengthInUtf8Bytes(metadata));
-		req.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
-		req.setRequestHeader("X-Upload-Content-Type", "application/pdf");
-		req.setRequestHeader("X-Upload-Content-Length", filesize);
-		req.send(JSON.stringify(metadata));
-	} catch (e) {
-		alert("err: " + e.toString());
-	}
-	};
 	
 	var incrementQueueLength = (function() {
 		// local variables
@@ -457,7 +638,7 @@ Dontprint = (function() {
 		var timer = null;
 		var state = 0;
 		
-		// the actual function "incrementQueueLength()"
+		// the actual function "incrementQueueLength(inc, url)"
 		return function(inc, url) {
 			clearInterval(timer);
 			
@@ -493,389 +674,30 @@ Dontprint = (function() {
 		};
 	}());
 	
-	var startConversion = function(documentData, attachmentIndex, settings) {
-		// TODO: create preferences frontend to set:
-		// * extensions.dontprint.k2pdfoptpath
-		
-		try {
-			var exec = getK2pdfopt();
-			if (!exec.exists()) {
-				throw (exec.path + " does not exist");
-			}
-			
-			var proc = Components.classes["@mozilla.org/process/util;1"]
-							.createInstance(Components.interfaces.nsIProcess);
-			proc.init(exec);
-			
-			var outFile = FileUtils.getFile("TmpD", ["dontprint-converted.pdf"]);
-			outFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
-			var outputpath = outFile.path;
-			
-			var args = [
-				'-ui-', '-x', '-w', '557', '-h', '721',
-				'-ml', settings.m1,
-				'-mt', settings.m2,
-				'-mr', settings.m3,
-				'-mb', settings.m4,
-				'-p', settings.coverpage ? '2-' : '1-',
-				documentData.attachments[attachmentIndex],
-				'-o', outputpath
-			];
-			
-			var that = this;
-			proc.runwAsync(args, args.length, {
-				observe: function(subject, topic, data) {
-					authorizeSendmail.call(that, documentData, outputpath);
-					
-					if (documentData.deleteFileWhenDone) {
-						var origFile = Components.classes["@mozilla.org/file/local;1"]
-										.createInstance(Components.interfaces.nsILocalFile);
-						origFile.initWithPath(documentData.attachments[attachmentIndex]);
-						if (origFile.exists()) {
-							origFile.remove(false);
-						}
-					}
-				}
-			});
+	
+	function buildURL(main, params) {
+		if (main === null)
+			main = "";
+		var firstsep = (main === "" ? '' : (main.indexOf("?") === -1 ? '?' : '&'));
+		var i = 0;
+		for (j in params) {
+			main += (i++ === 0 ? firstsep : '&') + encodeURIComponent(j) + '=' + encodeURIComponent(params[j]);
 		}
-		catch (e) {
-			alert('Dontprint: faild to launch k2pdfopt: ' + e.toString());
-		}
-	};
+		return main;
+	}
 	
-	var authorizeSendmail = function(documentData, filePath) {
-// 		alert("authorizeSendmail 1");
-		var url = googleOauthService.buildURL(
-			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
-			{authorize: (new Date()).getTime()}  // circumvent cache
-		);
-		
-		// Open tab in background
-		var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-			.getService(Components.interfaces.nsIWindowMediator)
-			.getMostRecentWindow("navigator:browser").gBrowser;
-		var tab = gBrowser.loadOneTab(url, {inBackground:true});
-		var tabBrowser = gBrowser.getBrowserForTab(tab);
-		// 		alert("authorizeSendmail 2");
-		
-		// set onload-handler for new tab. This cannot be done in Google Apps Script because we need the rights to close the tab.
-		var onloadFunction = makeSendmailOnloadHandler(tab, tabBrowser, documentData, filePath);
-		tabBrowser.addEventListener("load", onloadFunction, true);
-// 		tabBrowser.addEventListener("load", onloadFunction, false);
-// 		alert("authorizeSendmail 3");
-	};
 	
-	var makeSendmailOnloadHandler = function(tab, tabBrowser, documentData, filePath) {
-		var queueLengthDecremented = false;
-		var win = tabBrowser.contentWindow;
-		
-		var file = Components.classes["@mozilla.org/file/local;1"]
-					.createInstance(Components.interfaces.nsILocalFile);
-		file.initWithPath(filePath);
-		if (!file.exists()) {
-			alert("Error: " + filePath + " does not exist");
-		}
-		
-		var clientState = "waiting";
-		
-// 		alert("makeSendmailOnloadHandler 2");
-// 		alert(!!win);
-		var handler = function(event) {
-			if (event.originalTarget.nodeName !== "#document") {
-				return;  // ignore calls due to favicon load
-			}
-			
-// 			alert(event.originalTarget.getElementsByName("dontprint-state").length);
-			if (clientState === "waiting" &&
-				(win.location.href.match(/^https\:\/\/accounts\.google\.com\//) ||
-				win.document.title.match(/Authorization needed/) ||
-				win.document.getElementById("auth-required") !== null)) {
-				// The user either needs to authorize Dontprint or to authenticate himself. In any case, bring tab to front.
-				//TODO: test if this detection works if user is not signed in
-				clientState = "authorizing";
-				if (!queueLengthDecremented) {
-					incrementQueueLength(-1, documentData.pageurl);
-					queueLengthDecremented = true;
-				}
-				gBrowser.selectedTab = tab;
-				alert("Please sign in to your Google account and allow Dontprint to send e-mails from your Gmail address.");
-			} else if (
-				win.frames.length === 1 &&
-				win.frames[0].document.getElementsByName("dontprint-state").length === 1
-			) {
-				// Set Dontprint favicon
-				var favicon = win.document.createElement('link');
-				favicon.type = 'image/x-icon';
-				favicon.rel = 'shortcut icon';
-				favicon.href = 'http://robamler.github.io/dontprint/webapp/favicon.png';
-				win.document.getElementsByTagName('head')[0].appendChild(favicon);
-				
-				let serverState = win.frames[0].document.getElementsByName("dontprint-state")[0].value;
-				
-				if (serverState === "waiting" && (clientState === "waiting" || clientState === "authorizing")) {
-					clientState = "uploading";
-					
-					//TODO: this interrupts page loading and animations on the page and
-					// changes the tab title to "Connecting", which is wrong.
-					// try if an XMLHttpRequest works here. (we already know 
-					// that the user is signed in). To do so, the web app should
-					// use ContentService.createTextOutput() to send back JSON;
-					// Two potential difficulties: Cookies that are required to
-					// authenticate and the redirect performed by Google Apps script.
-					sendDocumentByMail(tabBrowser, documentData, file);
-				} else if (serverState === "upload-success" && clientState === "uploading") {
-					clientState = "upload-success";
-					
-					if (!queueLengthDecremented) {
-						incrementQueueLength(-1, documentData.pageurl);
-						queueLengthDecremented = true;
-					}
-					
-					let timerSpan = win.frames[0].document.getElementsByTagName("span")[0];
-					let timeout = 60;
-					var countDownTimer = setInterval(function() {
-						timeout -= 5;
-						if (timeout < 0) {
-							clearInterval(countDownTimer);
-							win.close();
-						}
-						timerSpan.textContent = timeout;
-					}, 5000);
-					
-					win.addEventListener("unload", function() {
-						clearInterval(countDownTimer);
-					}, false);
-					
-					file.remove(false);
-				} else if (serverState === "error" && clientState !== "error") {
-					clientState = "error";
-					if (!queueLengthDecremented) {
-						incrementQueueLength(-1, documentData.pageurl);
-						queueLengthDecremented = true;
-					}
-					file.remove(false);
-				}
-			}
-		};
-		
-		// This is an extremely ugly hack to work around a deficiency in Firefox
-		// where "load" events are fired for iframes before the DOM of the
-		// iframe content is available.
-		// TODO: fix this;
-		// FIXME: when clicking the dontprint button several times, this sometimes fails
-		return function(event) {
-			setTimeout(function() {
-				handler(event);
-			}, 0);
-		};
-	};
-	
-	var sendDocumentByMail = function(tabBrowser, documentData, file) {
-		// TODO: create preferences frontend to set:
-		// * extensions.dontprint.recipientEmailPrefix
-		// * extensions.dontprint.recipientEmailSuffix
-		// * extensions.dontprint.ccEmails
-		
-		var url = googleOauthService.buildURL(
-			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
-			{
-				filename:		documentData.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
-				recipientEmail:	prefs().getCharPref("recipientEmailPrefix") + prefs().getCharPref("recipientEmailSuffix"),
-				ccEmails:		prefs().getCharPref("ccEmails"),
-				itemKey:		documentData.key
-			}
-		);
-		
-		// Prepare post data
-		var stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
-					.createInstance(Components.interfaces.nsIFileInputStream);
-		stream.init(file, 0x04 | 0x08, 0644, 0x04);
-		var postData = Components.classes["@mozilla.org/network/mime-input-stream;1"].
-					createInstance(Components.interfaces.nsIMIMEInputStream);
-		postData.addHeader("Content-Type", "application/pdf");
-		postData.addContentLength = true;
-		postData.setData(stream);
-		
-		// Use XHR to send POST data because sending POST data directly to the new
-		// tab will freeze the interface and change the tab's title to "Connecting",
-		// which is wrong.
-		var req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
-							.createInstance(Components.interfaces.nsIXMLHttpRequest);
-		
-		req.onload = function () {
-			alert(req.responseText);
-			file.remove(false);
-		};
-		req.onerror = function (e) {
-			alert("error");
-			alert(e.toString());
-		};
-		req.open('POST', url, true);
-		alert("sending");
-		req.send(stream);
-		// this actually works. TODO: get progress information (either from req or from stream)
-
-
-		// Send post data to existing tabBrowser
-//		tabBrowser.loadURIWithFlags(url, tabBrowser.webNavigation.LOAD_FLAGS_REPLACE_HISTORY, null, null, postData);
-	};
-	
-	var pdfcropSuccessCallback = function(documentData, attachmentIndex, settings) {
-		if (!settings.builtin) {
-			Task.spawn(function storeInDb() {
-				try {
-					var conn = yield Sqlite.openConnection({path: databasePath});
-					yield conn.executeCached("INSERT INTO journals VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)", [
-						documentData.journalLongname,
-						documentData.journalShortname,
-						settings.remember ? 1 : 0,
-						settings.coverpage ? 1 : 0,
-						""+settings.m1,		// explicitly cast margins to strings
-						""+settings.m2,		// (don't know why this is necessary
-						""+settings.m3,		// but, whithout this, sqlite would
-						""+settings.m4		// only store the integer part)
-					]);
-				} finally {
-					yield conn.close();
-				}
-			});
-		}
-		
-		startConversion(documentData, attachmentIndex, settings);
-	};
-	
-	var pdfcropFailCallback = function(documentData, attachmentIndex) {
-		incrementQueueLength(-1, documentData.pageurl);
-		if (documentData.deleteFileWhenDone) {
-			var origFile = Components.classes["@mozilla.org/file/local;1"]
-							.createInstance(Components.interfaces.nsILocalFile);
-			origFile.initWithPath(documentData.attachments[attachmentIndex]);
-			if (origFile.exists()) {
-				origFile.remove(false);
-			}
-		}
-	};
-	
-	/**
-	 * Called when the user cilcks the dontprint button in the Zotero pane.
-	 */
-	var dontprintSelectionInZotero = function() {
-		var selectedItems = ZoteroPane.getSelectedItems();
-		
-		// delete duplicates (e.g., if user selects both an attachment and its parent)
-		var entryIds = selectedItems.map(function(i) {
-			return i.getSource() || i.id;
-		});
-		var uniqueEntryIds = entryIds.filter(function(elem, pos, self) {
-			return self.indexOf(elem) == pos;
-		})
-		
-		// generate list of all meta data
-		var docData = uniqueEntryIds.map(function(id) {
-			var i = Zotero.Items.get(id);
-			var attachmentPaths = i.getAttachments(false).map(function(id) {
-				var a_item = Zotero.Items.get(id);
-				if (a_item.attachmentMIMEType === 'application/pdf') {
-					var file = a_item.getFile();
-					if (file) {
-						return file.path;
-					}
-				}
-				return undefined;
-			}).filter(function(elem) {
-				return elem !== undefined;
-			});
-
-			// Find field names in Zotero's resource/schema/system.sql (grep "INSERT INTO fields" in zotero source code to get a list of field names)
-			return {
-				'key': i.getField('key'),
-				'title': i.getField('title'),
-				'journalLongname' : i.getField('publicationTitle'),
-				'journalShortname' : i.getField('journalAbbreviation'),
-				'attachments': attachmentPaths
-			};
-		});
-		
-		// remove entries without attached PDF files
-		var noattach = docData.filter(function(elem) {
-			return elem.attachments.length == 0;
-		});
-		if (noattach.length) {
-			alert("The following selected items cannot be sent to your e-reader because they do not have an attached PDF file:\n\n" +
-				noattach.map(function(elem) { return elem.title; }).join("\n"));
-		}
-		
-		docData = docData.filter(function(elem) {
-			return elem.attachments.length != 0;
-		});
-		if (docData.length == 0) {
-			alert("No documents sent to your e-reader. Select an item with an attached PDF file and try again.");
-			return;
-		}
-		
-		var that = this;
-		docData.forEach(function(i) {
-			incrementQueueLength(+1);
-			dontprintPdf.call(that, i);
-		});
-	};
-	
-	var dontprintPdf = function(pdfData) {
-		Task.spawn(function storeInDb() {
-			try {
-				var conn = yield Sqlite.openConnection({path: databasePath});
-				var sqlparams = [pdfData.journalLongname, pdfData.journalShortname];
-				var sqlresult = yield conn.executeCached("SELECT * FROM journals WHERE (longname = ? AND longname != '') OR (shortname = ? AND shortname != '')", sqlparams);
-			} finally {
-				yield conn.close();
-			}
-			throw new Task.Result(sqlresult);
-		}).then(function (sqlresult) {
-			var cropParams;
-			if (sqlresult.length === 0) {
-				cropParams = defaultCropParams;
-			} else {
-				cropParams = {};
-				["longname", "shortname", "builtin", "remember", "coverpage", "m1", "m2", "m3", "m4"].forEach(
-					function(key) {
-						cropParams[key] = sqlresult[0].getResultByName(key);
-					}
-				);
-			}
-			
-			if (sqlresult.length !== 0 && cropParams.remember) {
-				startConversion(pdfData, 0, cropParams);
-			} else {
-				var gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-					.getService(Components.interfaces.nsIWindowMediator)
-					.getMostRecentWindow("navigator:browser").gBrowser;
-				var newTabBrowser = gBrowser.getBrowserForTab(
-					gBrowser.loadOneTab("chrome://dontprint/content/pdfcrop/pdfcrop.html", {inBackground:false})
-				);
-				
-				newTabBrowser.addEventListener("load", function () {
-					newTabBrowser.contentWindow.PDFCrop.init(pdfData, 0, cropParams, pdfcropSuccessCallback, pdfcropFailCallback);
-				}, true);
-				//TODO: this doesn't seem to call init if page has already been loaded by that time
-				//TODO: don't forget to remove event listener (avoid memory leak)
-			}
-		});
-	};
-	
-	var showProgress = function() {
-		//TODO
-	};
+	// ==== RETURN PUBLICLY VISIBLE METHODS =========================
 	
 	return {
 		init: init,
 		dontprintSelectionInZotero: dontprintSelectionInZotero,
 		onStatusPopupShowing: onStatusPopupShowing,
 		dontprintThisPage: dontprintThisPage,
-		dontprintPdf: dontprintPdf,
-		showProgress: showProgress,
-		prefs: prefs
+		showProgress: showProgress
 	};
 }());
+
 
 // Initialize the utility
 window.addEventListener('load', function(e) { Dontprint.init(); }, false);
