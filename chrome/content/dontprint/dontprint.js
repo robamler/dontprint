@@ -313,7 +313,10 @@ Dontprint = (function() {
 			);
 			
  			let deferred = Promise.defer();
-			newTabBrowser.addEventListener("load", function () {
+			let onloadfunction = function () {
+				// remove event listener because otherwise refreshing pdfCrop will reload a rejected job
+				newTabBrowser.removeEventListener("load", onloadfunction, true);
+				
 				// Wrap callbacks in a setTimeout to make sure that execution after the
 				// next yield operator doesn't block the closing of the PDFCrop tab.
 				newTabBrowser.contentWindow.PDFCrop.init(
@@ -321,9 +324,8 @@ Dontprint = (function() {
 					function() {setTimeout(deferred.resolve, 0);},
 					function(reason) {setTimeout(function() {deferred.reject(reason);}, 0);}
 				);
-			}, true);
-			//TODO: this doesn't seem to call init if page has already been loaded by that time (can that happen?)
-			
+			};
+			newTabBrowser.addEventListener("load", onloadfunction, true);
 			yield deferred.promise;
 			
 			if (!job.crop.builtin) {
