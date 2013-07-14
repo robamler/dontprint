@@ -1,0 +1,26 @@
+body{font-family: sans-serif; font-size:18px}
+#container{margin:0 auto; max-width:800px; min-height:100%; padding:0; position:absolute; text-align:left; left:1ex; right:1ex; top:0; bottom:0}
+h1{color:#1b1d4b; font-size:180%; margin-top:0; margin-left:0; padding-left:0px; font-weight:bold}
+#icon{position:absolute; left:0; top:4.5em; background-color:#5c64ff}
+#rightcol{position:absolute; top:2em; left:156px; right:0; bottom:0}
+#msg{padding:2ex; background-color:#f9f9ff; border: 3px solid #1b1d4b; border-radius:1em; min-height:130px}
+#origin{font-size:80%; text-align:right; margin-top:1em}
+#origin > a{text-decoration:none; color:#222}
+.job{background-color:#ffffff; padding:.4em; box-shadow:0px 0px 6px -2px #1b1d4b; margin-top:1.5em;color:#1b1d4b}
+.jtitle{font-weight:bold;white-space:nowrap; overflow:hidden;text-overflow:ellipsis;margin-bottom:.4em}
+.tasks{width:100%; border-collapse:collapse}
+td{ width:20%;margin:0;padding:0;border-left:3px solid #f0f0fa;border-right:3px solid #f0f0fa}
+.task{margin:0px; text-align:center; padding:2px;position:relative}
+.current{background-color:#fff; color:#4b1b1f; font-weight:bold}
+.done{background-color:#dae9d4; color:#294b1b; font-weight:normal}
+.prog-wrapper{width:100%;height:8px; background-color:#dae9d4;margin:0 auto;visibility:hidden}
+.prog-wrapper.active{visibility:visible}
+.bar{background-color:#dae9d4;position:absolute;top:0;bottom:0;left:0;width:0;display:none}
+.current > .bar {display:block}
+.tlabel{position:relative}
+.complete > .tasks, .complete > .del{display:none}
+.success{background-color:#dae9d4; color:#294b1b; padding:2px; padding-left:26px; background-image:url(check.png); background-position:5px center; background-repeat:no-repeat;}
+.error{background-color:#f0e1e2; color:#4b1b1f; padding:2px; padding-left:26px; background-image:url(error.png); background-position:6px center; background-repeat:no-repeat;}
+.canceled{background-color:#f0e1e2; color:#4b1b1f; padding:2px; padding-left:30px; background-image:url(del2.png); background-position:6px center; background-repeat:no-repeat;}
+.del{float:right; margin-left:2ex; width:16px; min-height:16px; height:1em; background-image:url(del1.png); background-repeat:no-repeat; background-position:right center}
+.del:hover, .del:active{background-image:url(del2.png)}

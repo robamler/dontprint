@@ -13,16 +13,17 @@ h1{color:#4b1b1b; font-size:180%; margin-top:0; margin-left:0; padding-left:34px
 #rightcol{position:absolute; top:2em; left:156px; right:0; bottom:0}
 #msg{padding:2ex; background-color:#fff9f9; border:3px solid #4b1b1b; border-radius:1em }
 th{text-align:left; padding-right:1ex; vertical-align:top; white-space:nowrap}
+td{font-style:italic}
 th,td{padding-top:0.2em}
 th,td,table,tbody{padding-left:0; margin-left:0}
 p{margin-top:0.5em; margin-bottom:0}
 #origin{font-size:80%; text-align:right; margin-top:1em}
 #origin > a{text-decoration:none; color:#222}
-.errmsg{font-style:italic}
 </style>
 <script>
 function initDisplay(job) {
 	document.getElementById("errmsg").textContent = job.result.errorString;
+	document.getElementById("operation").textContent = job.result.errorOperation;
 }
 </script>
 </head>
@@ -34,11 +35,15 @@ function initDisplay(job) {
 <table>
 <tr>
 <th>Error message:</th>
-<td class="errmsg" id="errmsg"></td>
+<td id="errmsg"></td>
+</tr>
+<tr>
+<th>Operation:</th>
+<td id="operation"></td>
 </tr>
 </table>
 <p>
-Dontprint plugin for Zotero was unable to send an e-mail with your document because an error occured. Try restarting Firefox and check if the error persists.
+Dontprint was unable to send the document to your e-reader because an error occured. Try restarting Firefox and check if the error persists.
 </p>
 <p>
 If you experience this error repeatedly please <a href="https://github.com/robamler/dontprint/issues/new">file a bug report</a> so that the error can be fixed. In your report, please copy the above error message and describe in detail what you were doing before the error occured.
@@ -48,7 +53,7 @@ If you experience this error repeatedly please <a href="https://github.com/robam
 <a href="https://github.com/robamler/dontprint/">(Dontprint)</a>
 </div>
 </div>
-<img id="icon" src="dontprint-speaking.png" alt="">
+<img id="icon" src="../dontprint-speaking.png" alt="">
 </div>
 
 </body>

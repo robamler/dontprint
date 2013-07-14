@@ -15,6 +15,7 @@
 			class="zotero-tb-button"
 			tooltiptext="&dontprint.tbbtnlabel;"
 			oncommand="Dontprint.dontprintSelectionInZotero()"
+			onclick="if(event.button === 2) Dontprint.showProgress();"
 			insertbefore="zotero-tb-advanced-search" />
 		<toolbarseparator insertbefore="zotero-tb-advanced-search" />
 	</hbox>
@@ -29,7 +30,7 @@
 			src="chrome://dontprint/skin/dontprint-btn/idle.png"
 			tooltiptext="&dontprint.statusimglabel;"
 			context="dontprint-status-image-context"
-			onclick="if(event.button === 0) Dontprint.dontprintThisPage()"
+			onclick="if(event.button === 0) Dontprint.dontprintThisPage();"
 			position="1" hidden="true" />
 			
 		<!-- Progress indicator in urlbar is shown if the currently displayd page is currently being processed -->

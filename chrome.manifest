@@ -1,5 +1,6 @@
-content	dontprint				chrome/content/dontprint/
-locale	dontprint	en-US		chrome/locale/en-US/dontprint/
-skin	dontprint	default		chrome/skin/default/dontprint/
+content		dontprint				chrome/content/dontprint/
+locale		dontprint	en-US		chrome/locale/en-US/dontprint/
+skin		dontprint	default		chrome/skin/default/dontprint/
+resource	EXTENSION				modules/
 
 overlay	chrome://zotero/content/zoteroPane.xul	chrome://dontprint/content/overlay.xul

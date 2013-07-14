@@ -4,6 +4,10 @@ Dontprint = (function() {
 	var dontprintProgressImg = null;
 	var dontprintFromZoteroBtn = null;
 	var queuedUrls = [];
+	var nextProgressId = 0;
+	var nextJobId = 0;
+	var runningJobs = {};
+	var progressTabs = {};
 	var defaultCropParams = {
 		builtin:false, remember:true, coverpage:false, m1:0.52, m2:0.2, m3:0.2, m4:0.2
 	};
@@ -15,6 +19,7 @@ Dontprint = (function() {
 		Components.utils.import("resource://gre/modules/FileUtils.jsm");
 		Components.utils.import("resource://gre/modules/Sqlite.jsm")
 		Components.utils.import("resource://gre/modules/Task.jsm");
+		Components.utils.import("resource://EXTENSION/subprocess.jsm");
 		try {
 			// Gecko >= 25
 			Components.utils.import("resource://gre/modules/Promise.jsm");
@@ -91,6 +96,7 @@ Dontprint = (function() {
 	function dontprintThisPage(translator) {
 		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
 		runJob({
+			title:		'Unknown title',
 			jobType:	'page',
 			translator:	translator,
 			pageurl:	tab.page.document.location.href
@@ -161,8 +167,39 @@ Dontprint = (function() {
 	}
 	
 	
+	function abortJob(jobid) {
+		let job = runningJobs[jobid];
+		try {
+			if (job !== undefined) {
+				updateJobState(job, "canceled");
+				if (job.abortCurrentTask !== undefined) {
+					job.abortCurrentTask();
+				}
+			}
+		} catch (e) {
+			// ignore errors (e.g. if job was already canceled)
+		} finally {
+			try {
+				job.cleanup();
+			} catch (e) {
+				//ignore
+			}
+		}
+	}
+	
+	
 	function showProgress() {
-		//TODO
+		let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+			.getService(Components.interfaces.nsIWindowMediator)
+			.getMostRecentWindow("navigator:browser").gBrowser;
+		let newTabBrowser = gBrowser.getBrowserForTab(
+			gBrowser.loadOneTab("chrome://dontprint/content/progress/progress.html", {inBackground:false})
+		);
+		
+		newTabBrowser.addEventListener("load", function () {
+			newTabBrowser.contentWindow.init(runningJobs, nextProgressId, Dontprint);
+			progressTabs[nextProgressId++] = newTabBrowser;
+		}, true);
 	}
 	
 	
@@ -181,7 +218,7 @@ Dontprint = (function() {
 		for (var i=0, n=translators.length; i<n; i++) {
 			let translator = translators[i];
 			
-			var menuitem = document.createElement("menuitem");
+			let menuitem = document.createElement("menuitem");
 			menuitem.setAttribute("label", "Dontprint document using " + translator.label + (i===0 ? " (recommended)" : ""));
 			menuitem.setAttribute("image", (translator.itemType === "multiple"
 				? "chrome://zotero/skin/treesource-collection.png"
@@ -192,23 +229,39 @@ Dontprint = (function() {
 			}, false);
 			popup.appendChild(menuitem);
 		}
+		
+		let menuitem = document.createElement("menuitem");
+		menuitem.setAttribute("label", "Show progress of currently running Donptrint jobs");
+		menuitem.addEventListener("command", showProgress, false);
+		popup.appendChild(document.createElement("menuseparator"));
+		popup.appendChild(menuitem);
 	}
 	
 	
 	// ==== LIFE CYCLE OF A DONTPRINT JOB ===========================
 	
 	function runJob(job) {
-		var cleanup = function() {
-			incrementQueueLength(-1, job.pageurl);
-			job.tmpFiles.forEach(deleteFile);
+		job.cleanup = function() {
+			if (!job.cleaned) {
+				job.cleaned = true;
+				delete runningJobs[job.id];
+				incrementQueueLength(-1, job.pageurl);
+				job.tmpFiles.forEach(deleteFile);
+			}
 		};
+		
+		// show progress indicator
+		incrementQueueLength(+1, job.pageurl);
+		job.id = nextJobId++;
+		job.downloadProgress = 0;
+		job.convertProgress = 0;
+		job.uploadProgress = 0;
+		runningJobs[job.id] = job;
+		updateJobState(job, "queued");
 		
 		Task.spawn(function() {
 			var newtab = null;
 			try {
-				// show progress indicator
-				incrementQueueLength(+1, job.pageurl);
-				
 				if (job.jobType === 'page')
 					yield grabOriginalFileForCurrentTab(job);
 				
@@ -223,15 +276,30 @@ Dontprint = (function() {
 					errorString: e.toString()
 				};
 			} finally {
-				if (job.result.errorString !== "canceled") {
+				if (job.result.errorString === "canceled" || job.state === "canceled") {
+					try {
+						updateJobState(job, "canceled");
+					} catch (e) {
+						// job.state is already "canceled". That's OK.
+					}
+					if (newtab !== null) {
+						try {
+							newtab.tabBrowser.contentWindow.close()
+						} catch (e) {
+							// ignore if tab's already been closed
+						}
+					}
+				} else {
 					yield displayResult(job, newtab);
 				}
 			}
-		}).then(cleanup, cleanup);
+		}).then(job.cleanup, job.cleanup);
 	}
 	
 	
 	function grabOriginalFileForCurrentTab(job) {
+		updateJobState(job, "downloading");
+		
 		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
 		if (!tab || !tab.page.translators || !tab.page.translators.length) {
 			throw "No translators available for this web site.";
@@ -244,7 +312,7 @@ Dontprint = (function() {
 		translate.setDocument(tab.page.translate.document);
 		translate.setDestFile(pdfFile);
 		translate.setTranslator(job.translator || tab.page.translators[0]);
-		job.translator = undefined;		// avoid memory leak
+		delete job.translator;		// avoid memory leak
 		translate.clearHandlers("done");
 		translate.clearHandlers("itemDone");
 		
@@ -267,12 +335,37 @@ Dontprint = (function() {
 			itemDoneDeferred.resolve();
 		});
 		
+		var lastProgress = 0;
+		translate.setProgressHandler(function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
+			if (aMaxTotalProgress!=0 && aCurTotalProgress>lastProgress) {	// no typo, we really want to use != instead of !==
+				lastProgress = aCurTotalProgress;
+				job.downloadProgress = aCurTotalProgress/aMaxTotalProgress;
+				updateJobState(job);
+			}
+		});
+		
+		translate.setErrorHandler(function(e) {
+			try {
+				itemDoneDeferred.reject(e);
+			} catch (e) {
+				// has already been resolved; that's OK.
+			}
+			attachDoneDeferred.reject(e)
+		});
+		
 		//TODO: test what happens when user clicks "save to zotero" shortly after clicking "dontprint" (or vice versa)
 		translate.translate(null);
 		
+		job.abortCurrentTask = function() {
+			translate.abort();
+		};
 		yield itemDoneDeferred.promise;
 		yield attachDoneDeferred.promise;
-
+		delete job.abortCurrentTask;
+		
+		job.downloadProgress = 1;
+		updateJobState(job);
+		
 		// remove event handlers (avoid memory leaks)
 		translate.clearHandlers("done");
 		translate.clearHandlers("itemDone");
@@ -281,6 +374,8 @@ Dontprint = (function() {
 	
 	
 	function cropMargins(job) {
+		updateJobState(job, "cropping");
+		
 		try {
 			var conn = yield Sqlite.openConnection({path: databasePath});
 			var sqlresult = yield conn.executeCached(
@@ -326,7 +421,14 @@ Dontprint = (function() {
 				);
 			};
 			newTabBrowser.addEventListener("load", onloadfunction, true);
+			
+			job.abortCurrentTask = function() {
+				// Setting job.abortCurrentTask = newTabBrowser.contentWindow.close
+				// won't work. With this function wrapper, it works.
+				newTabBrowser.contentWindow.close();
+			};
 			yield deferred.promise;
+			delete job.abortCurrentTask;
 			
 			if (!job.crop.builtin) {
 				try {
@@ -368,38 +470,67 @@ Dontprint = (function() {
 		// TODO: create preferences frontend to set:
 		// * extensions.dontprint.k2pdfoptpath
 		
+		updateJobState(job, "converting");
+		
 		let exec = getK2pdfopt();
-		if (!exec.exists()) {
-			throw (exec.path + " does not exist");
-		}
-		
-		let proc = Components.classes["@mozilla.org/process/util;1"]
-						.createInstance(Components.interfaces.nsIProcess);
-		proc.init(exec);
-		
 		let outFile = FileUtils.getFile("TmpD", ["dontprint-converted.pdf"]);
 		outFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 		job.convertedFilePath = outFile.path;
 		job.tmpFiles.push(outFile.path);
 		
 		let args = [
-			'-ui-', '-x', '-w', '557', '-h', '721',
-			'-ml', job.crop.m1,
-			'-mt', job.crop.m2,
-			'-mr', job.crop.m3,
-			'-mb', job.crop.m4,
+			'-ui-', '-x', '-a-', '-w', '557', '-h', '721',
+			'-ml', '' + job.crop.m1,
+			'-mt', '' + job.crop.m2,
+			'-mr', '' + job.crop.m3,
+			'-mb', '' + job.crop.m4,
 			'-p', job.crop.coverpage ? '2-' : '1-',
 			job.originalFilePath,
 			'-o', job.convertedFilePath
 		];
 		
+		var k2pdfoptError = "";
+		var currentLine = "";
 		let deferred = Promise.defer();
-		proc.runwAsync(args, args.length, {observe: deferred.resolve});
+		
+		let p = subprocess.call({
+			command: exec,
+			arguments: args,
+			stdout: function(data) {
+				let lines = data.split(/[\n\r]+/);
+				lines[0] = currentLine + lines[0];
+				currentLine = lines.pop();
+				lines.forEach(function(line) {
+					let m = line.match(/^SOURCE PAGE \d+ \((\d+) of (\d+)\)/);
+					if (m !== null && m[2]!=0) { // no typo: we want to use != instead of !== in second condition
+						job.convertProgress = m[1]/m[2];
+						updateJobState(job);
+					}
+				});
+			},
+			stderr: function(data) {
+				k2pdfoptError += data;
+			},
+			done: function(result) {
+				if (result.exitCode) {
+					deferred.reject("k2pdfopt failed with error message: " + k2pdfoptError);
+				}
+				job.convertProgress = 1;
+				updateJobState(job);
+				deferred.resolve();
+			},
+			mergeStderr: false
+		});
+		
+		job.abortCurrentTask = p.kill;
 		yield deferred.promise;
+		delete job.abortCurrentTask;
 	}
 	
 	
-	function authorizeSendmail(documentData, filePath) {
+	function authorizeSendmail(job) {
+		updateJobState(job, "authorizing");
+		
 		let url = buildURL(
 			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
 			{authorize: (new Date()).getTime()}  // circumvent cache
@@ -423,6 +554,13 @@ Dontprint = (function() {
 		yield deferred.promise;
 		tabBrowser.removeEventListener("load", onloadFunction, true);
 		tab.removeEventListener("TabClose", oncloseFunction, true);
+		
+		var jobid = job.id; // use dummy variable so that onUploadClose doesn't need to keep a reference to job
+		job.onUploadClose = function() {
+			tab.removeEventListener("TabClose", job.onUploadClose, true);
+			abortJob(jobid);
+		};
+		tab.addEventListener("TabClose", job.onUploadClose, true);
 		
 		// return tabBrowser to parent task (this is better than setting tabBrowser as
 		// a member field in task because it makes code that leaks memory easier to spot.)
@@ -462,6 +600,9 @@ Dontprint = (function() {
 		
 		let progressBar = null;
 		let setProgress = function(value) {
+			job.uploadProgress = value;
+			updateJobState(job);
+			
 			if (!progressBar) {
 				if (
 					tabBrowser.contentWindow.frames.length === 1 &&
@@ -475,7 +616,13 @@ Dontprint = (function() {
 				}
 			}
 			progressBar.style.width = value*400 + "px";
+			if (value > 0.95) {
+				updateJobState(job, "sending");
+				tabBrowser.contentWindow.frames[0].document.getElementsByTagName("span")[0].textContent = "sending e-mail";
+				progressBar.parentNode.style.display = "none";
+			}
 		};
+		
 		return setProgress;
 	}
 	
@@ -485,6 +632,8 @@ Dontprint = (function() {
 		// * extensions.dontprint.recipientEmailPrefix
 		// * extensions.dontprint.recipientEmailSuffix
 		// * extensions.dontprint.ccEmails
+		
+		updateJobState(job, "uploading");
 		
 		var url = buildURL(
 			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
@@ -522,24 +671,40 @@ Dontprint = (function() {
 		let deferred = Promise.defer();
 		
 		req.upload.onprogress = function (e) {
-			setProgress(0.9*(e.loaded / e.total));
+			setProgress(e.loaded / e.total);
 		};
-		req.onload = function () {
+		req.onload = function() {
 			setProgress(1);
-			job.result = JSON.parse(req.responseText);
-			deferred.resolve();
+			try {
+				job.result = JSON.parse(req.responseText);
+				deferred.resolve();
+			} catch (e) {
+				deferred.reject(e);
+			}
 		};
-		req.onerror = function (e) {
+		req.onerror = function(e) {
 			deferred.reject("Sendmail error: " + e.toString());
+		};
+		req.onabort = function() {
+			deferred.reject("Sendmail error: operation canceled.");
 		};
 		req.open('POST', url, true);
 		req.send(stream);
+
+		job.abortCurrentTask = function() {
+			// Setting job.abortCurrentTask = req.abort won't work.
+			// With this function wrapper, it works.
+			req.abort();
+		};
 		yield deferred.promise;
+		delete job.abortCurrentTask;
 	}
 	
 	
 	function displayResult(job, newtab) {
-		var url = "chrome://dontprint/content/sendmail/" + (job.result.error ? "error" : "success") + ".html";
+		job.result.errorOperation = job.state;
+		updateJobState(job, job.result.error ? "error" : "success");
+		var url = "chrome://dontprint/content/sendmail/" + job.state + ".html";
 		deferred = Promise.defer();
 		let onloadFunction = function() {
 			newtab.tabBrowser.contentWindow.initDisplay(job);
@@ -554,12 +719,24 @@ Dontprint = (function() {
 			let tab = gBrowser.loadOneTab(url, {inBackground: !job.result.error});
 			let tabBrowser = gBrowser.getBrowserForTab(tab);
 			tabBrowser.addEventListener("load", onloadFunction, true);
-			newtab = {tabBrowser: tabBrowser};
+			newtab = {gBrowser:gBrowser, tab: tab, tabBrowser: tabBrowser};
 		} else {
 			// reuse existing tab
+			newtab.tab.removeEventListener("TabClose", job.onUploadClose, true);
 			newtab.tabBrowser.addEventListener("load", onloadFunction, true);
 			newtab.tabBrowser.loadURIWithFlags(url, newtab.tabBrowser.webNavigation.LOAD_FLAGS_REPLACE_HISTORY);
 		}
+		
+		newtab.tab.addEventListener("TabClose", function() {
+			updateJobState(job, "closed");
+		}, true);
+		if (job.state === "error") {
+			job.raiseErrorTab = function() {
+				newtab.gBrowser.selectedTab = newtab.tab;
+			};
+			updateJobState(job);
+		}
+		
 		yield deferred.promise;
 		newtab.tabBrowser.removeEventListener("load", onloadFunction, true);
 		
@@ -583,20 +760,16 @@ Dontprint = (function() {
 	
 	function getK2pdfopt() {
 		var path = prefs.getCharPref("k2pdfoptpath");
-		var ret;
 		
 		if (path[0] === "%") {
 			// path is relative to profile directory.
 			// Always use "/" file separator when storing relative paths.
 			// Use FileUtils to convert to system file separator.
-			var ret = FileUtils.getFile("ProfD", path.substring(1).split("/"));
+			return FileUtils.getFile("ProfD", path.substring(1).split("/"));
 		} else {
 			// path is absolute
-			ret = Components.classes["@mozilla.org/file/local;1"]
-						.createInstance(Components.interfaces.nsILocalFile);
-			ret.initWithPath(path);
+			return path;
 		}
-		return ret;
 	}
 	
 	
@@ -689,6 +862,30 @@ Dontprint = (function() {
 	}
 	
 	
+	function updateJobState(job, state) {
+		if (job.state === "canceled") {
+			// interrupt the job if it was already canceled by the user
+			throw "canceled";
+		}
+		
+		if (state !== undefined) {
+			job.state = state;
+		}
+		
+		setTimeout(function() {
+			for (let i in progressTabs) {
+				try {
+					progressTabs[i].contentWindow.updateJob(job);
+				} catch (e) {
+					// apparently, progressTab has been closed;
+					// TODO: may I change progressTabs in this loop?
+					delete progressTabs[i];
+				}
+			}
+		}, 0);
+	}
+	
+	
 	// ==== RETURN PUBLICLY VISIBLE METHODS =========================
 	
 	return {
@@ -696,7 +893,8 @@ Dontprint = (function() {
 		dontprintSelectionInZotero: dontprintSelectionInZotero,
 		onStatusPopupShowing: onStatusPopupShowing,
 		dontprintThisPage: dontprintThisPage,
-		showProgress: showProgress
+		showProgress: showProgress,
+		abortJob: abortJob
 	};
 }());
 
