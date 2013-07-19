@@ -43,7 +43,7 @@ Dontprint = (function() {
 		
 		// Initialize database in file "dontprint/db.sqlite" in the profile directory
 		// FileUtils.getFile() creates the directory (but not the file) if necessary
-		let dbfile = FileUtils.getFile("ProfD", ["dontprint", "db.sqlite"]);
+		let dbfile = FileUtils.getFile("ProfD", ["dontprint", "db2.sqlite"]);
 		databasePath = dbfile.path
 		
 		Task.spawn(function initDatabase() {

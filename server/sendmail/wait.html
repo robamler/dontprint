@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8 />
+<title>Sending Document to e-reader... (Dontprint)</title>
+<style type="text/css">
+#msg{position:absolute; top:0; bottom:28%; margin:auto; height:180px; text-align:center; left:0; right:0; color:#708866; font-family:sans-serif; font-size:30px}
+#logo{margin-bottom:40px; opacity:0.6}
+#progress-bar-wrapper{width:404px;height:14px;border:2px solid #5b854a;margin:.6em auto 0 auto; position:relative; background-color:#f4fcf0}
+#progress-bar{position:absolute; top:2px; bottom:2px; left:2px; width:0px; background-color:#85a279}
+</style>
+</head>
+<body>
+
+<div id="msg">
+<div><img src="http://robamler.github.io/dontprint/wait-dontprint.svg" id="logo" width="100" height="128"></div>
+<div><span>uploading document</span> &mdash; please wait...</div>
+<div id="progress-bar-wrapper"><div id="progress-bar"></div></div>
+</div>
+
+<input type="hidden" name="dontprint-state" value="loaded">
+</body>
+</html>

@@ -1,79 +1,84 @@
-/*
-Dontprint -- Web browser plugin to send scientific articles to your e-book reader in an optimized layout.
-Copyright (C) 2013  Robert Bamler	
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License, version 3 (AGPLv3),
-as published by the Free Software Foundation.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-A copy of the GNU Affero General Public License version 3 is available at
-http://www.gnu.org/licenses/agpl-3.0
-*/
-
-function doPost(e) {
-  return doGet(e);
+/**
+ * The client makes a dummy GET request before uploading a file with a separate POST
+ * request in order to make sure that the user is authorized.
+ */
+function doGet(e) {
+  var t = HtmlService.createTemplateFromFile('wait.html');
+  return t.evaluate().setTitle("Sending Document to e-reader... (Dontprint)");
 }
 
-function doGet(e) {
-  try {
-    var SENTSTRING = "Dontprint plugin for Zotero: sent";
-    var fileId = e.parameter.fileId;
-    var file = DocsList.getFileById(fileId);
-    var filename = file.getName();
 
-    var description = file.getDescription();
-    if (description === SENTSTRING) {
-      var t = HtmlService.createTemplateFromFile('warning.html');
-      t.filename = filename;
-      return t.evaluate().setTitle("Outdated tab. (Dontprint plugin for Zotero)");
+function doPost(e) {
+  var i;
+  var ret = [];
+  for (i in e.postData) {
+    ret.push(i);
+  }
+  
+  var fileBytes = e.postData.getBytes();
+  var attach = {fileName: e.parameter.filename, content:fileBytes, mimeType:'application/pdf'};
+  
+  var emailOptions = {
+    attachments: [attach]
+  };
+  
+  
+  try {
+    var filename = e.parameter.filename;
+    var itemKey = e.parameter.itemKey;		
+    var recipientEmail = e.parameter.recipientEmail;
+	var ccEmails = e.parameter.ccEmails;
+    if (ccEmails === "") {
+      ccEmails = undefined;
     }
     
-    var metadata = JSON.parse(description);
-    if (metadata.recipientEmail === undefined)
-      throw "No recipient email specified. Dontprint plugin for Zotero does not know to which email address to send the document.";
-
-    var pdf = file.getAs('application/pdf').getBytes();
-    var attach = {fileName: filename, content:pdf, mimeType:'application/pdf'};
-    
+    var fileBytes = e.postData.getBytes();
+        
     var emailOptions = {
-      attachments: [attach],
-      cc: metadata.ccEmails
+      attachments: [{fileName: filename, content:fileBytes, mimeType:'application/pdf'}],
+      cc: ccEmails
     };
     
-    MailApp.sendEmail(
-      metadata.recipientEmail,
-      'Dontprint plugin for Zotero: item ' + metadata.itemKey,
-      'see attachment',
-      emailOptions
-    );
-    
-    file.setDescription(SENTSTRING);
-    
     // Get convenient unit for file size and display result with at most one decimal but at least two significant digits
-    filesize = file.getSize();
+    var filesize = fileBytes.length
     sizeunits = ["bytes", "KiB", "MiB"];
     for (var i=0; i<sizeunits.length-1 && filesize>=999.5; i++) {
       filesize /= 1024;
     }
     filesize = filesize.toFixed(filesize >= 9.5 ? 0 : 1) + " " + sizeunits[i];
     
-    var t = HtmlService.createTemplateFromFile('success.html');
-    t.fileId = fileId;
-    t.filename = filename;
-    t.metadata = metadata;
-    t.cc = emailOptions.cc;
-    t.driveurl = file.getUrl();
-    t.filesize = filesize;
-    return t.evaluate().setTitle("Success: Document sent to your e-reader. (Dontprint plugin for Zotero)");
+    var messageBody = '';
+    if (ccEmails !== undefined) {
+      messageBody = 'File Name: ' + filename + '\n' +
+      'File Size: ' + filesize + '\n' +
+      'E-reader address: ' + recipientEmail + '\n' +
+      'Copy sent to: ' + ccEmails + '\n\n' +
+      'The document that is attached to this e-mail has been sent to your\n' +
+      'e-book reader. Select "Sync" on your e-book reader to download the\n' +
+      'document. You may have to wait for a few minutes before the\n' +
+      'download is available.\n\n' +
+      '-- \n' +
+      'Dontprint\n' +
+      'https://github.com/robamler/dontprint';
+    }
+    
+    MailApp.sendEmail(
+      recipientEmail,
+      'Dontprint sent this document to your e-reader (' + itemKey + ")",
+      messageBody,
+      emailOptions
+    );
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      error: false,
+      params: e.parameter,
+      filesize: filesize,
+    }));
   }
-  catch (e) {
-    var t = HtmlService.createTemplateFromFile('error.html');
-    t.errstring = e.toString();
-    return t.evaluate().setTitle("Error sending document. (Dontprint plugin for Zotero)");
+  catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      error: true,
+      errorString: err.toString()
+    }));
   }
 }
