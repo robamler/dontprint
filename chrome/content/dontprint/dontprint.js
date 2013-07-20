@@ -33,9 +33,7 @@ Dontprint = (function() {
 			}
 		}
 		
-		dontprintThisPageImg   = document.getElementById("dontprint-status-image");
 		dontprintFromZoteroBtn = document.getElementById("dontprint-tbbtn");
-		dontprintProgressImg   = document.getElementById("dontprint-progress-image");
 		
 		prefs = Components.classes["@mozilla.org/preferences-service;1"]
 						.getService(Components.interfaces.nsIPrefService)
@@ -821,13 +819,28 @@ Dontprint = (function() {
 		var showDontprintIcon = false;
 		if (tab && tab.page.translators && tab.page.translators.length) {
 			var itemType = tab.page.translators[0].itemType;
-			if (itemType !== "multiple")		//TODO: implement itemType === "multiple"
+			if (itemType !== "multiple") {		//TODO: implement itemType === "multiple"
 				showDontprintIcon = true;
+			}
 		}
 		
 		var alreadyProcessing = showDontprintIcon && queuedUrls.indexOf(tab.page.document.location.href) !== -1;
-		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
-		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
+		
+		try {
+			dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
+			dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
+		} catch (e) {
+			// reset dontprintThisPageImg and dontprintProgressImg
+			// because tabs without urlbar apparently invalidate them
+			dontprintThisPageImg   = document.getElementById("dontprint-status-image");
+			dontprintProgressImg   = document.getElementById("dontprint-progress-image");
+			try {
+				dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
+				dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
+			} catch (e) {
+				// ignore
+			}
+		}
 	}
 	
 	/*
@@ -875,12 +888,16 @@ Dontprint = (function() {
 			
 			if (queuelength === 0) {
 				dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/idle.png')";
-				dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/idle.png";
+				if (dontprintProgressImg) {
+					dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/idle.png";
+				}
 			} else {
 				var len = Math.min(10, queuelength);
 				var timerfunc = function() {
 					dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png')";
-					dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png";
+					if (dontprintProgressImg) {
+						dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png";
+					}
 					state = (state+1)%2;
 				};
 				timerfunc();

@@ -33,7 +33,7 @@
 			onclick="if(event.button === 0) Dontprint.dontprintThisPage();"
 			position="1" hidden="true" />
 			
-		<!-- Progress indicator in urlbar is shown if the currently displayd page is currently being processed -->
+		<!-- Progress indicator in urlbar is shown if the currently displayed page is currently being processed -->
 		<image
 			id="dontprint-progress-image"
 			src="chrome://dontprint/skin/dontprint-btn/idle.png"
