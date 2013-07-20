@@ -1,29 +1,44 @@
 /**
  * The client makes a dummy GET request before uploading a file with a separate POST
- * request in order to make sure that the user is authorized.
+ * request. The dummy GET request serves two purposes
+ * 1) If the user is not yet signed in with Google or has not yet authorized Dontprint
+ *    to send e-mails, Google will automatically redirect the request thru an
+ *    authorization flow. This authorization flow does not work with POST requests.
+ * 2) Dontprint returns an HTML page in response to the GET request which contains
+ *    some random code in a hidden input field. Subsequent calls to doPost() will
+ *    fail unless the same code is given in a URL parameter to the POST request.
+ *    This procedure makes sure that this sendmail script is not abused by third party
+ *    web sites to send spam e-mails from the active user's Gmail account without
+ *    their knowledge. Due to the way Google encapsulates HTML responses, the input
+ *    field with the random code is only accessible by priviliged JavaScript code,
+ *    meaning that usual web sites cannot access it but Dontprint can.
  */
 function doGet(e) {
+  var date = Math.floor((new Date()).getTime());
+  var rnd = Math.floor(100000000 * Math.random());
+  var authtoken = "x" + date + "x" + rnd;
+  CacheService.getPrivateCache().put(authtoken, "1", 1800);  // 30 minutes
+  
   var t = HtmlService.createTemplateFromFile('wait.html');
+  t.authtoken = authtoken;
   return t.evaluate().setTitle("Sending Document to e-reader... (Dontprint)");
 }
 
 
 function doPost(e) {
-  var i;
-  var ret = [];
-  for (i in e.postData) {
-    ret.push(i);
-  }
-  
-  var fileBytes = e.postData.getBytes();
-  var attach = {fileName: e.parameter.filename, content:fileBytes, mimeType:'application/pdf'};
-  
-  var emailOptions = {
-    attachments: [attach]
-  };
-  
-  
   try {
+    var authtoken = e.parameter.authtoken;
+    if (authtoken === undefined) {
+      throw 'You are using an outdated version of Dontprint. Update to the latest version of the "testing" branch.';
+    }
+    var authtime = authtoken.split("x")[1];
+    var timediff = (new Date()).getTime() - authtime;
+    var cache = CacheService.getPrivateCache();
+    if (cache.get(authtoken) !== "1" || timediff < -10000 || timediff > 1800000) {
+      throw "Dontprint authorization failed. Auth token is " + authtoken + ". Timediff is " + timediff + ".";
+    }
+    cache.remove(authtoken);
+
     var filename = e.parameter.filename;
     var itemKey = e.parameter.itemKey;		
     var recipientEmail = e.parameter.recipientEmail;
