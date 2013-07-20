@@ -141,6 +141,9 @@ Dontprint = (function() {
 				title:				i.getField('title'),
 				journalLongname:	i.getField('publicationTitle'),
 				journalShortname:	i.getField('journalAbbreviation'),
+				url:				i.getField('url'),
+				doi:				i.getField('DOI'),
+				articleDate:		i.getField('date'),
 				originalFilePath:	attachmentPaths.length === 0 ? undefined : attachmentPaths[0],
 				tmpFiles:			[]
 			};
@@ -266,6 +269,9 @@ Dontprint = (function() {
 					yield grabOriginalFileForCurrentTab(job);
 				
 				yield cropMargins(job);
+				if (job.crop.sendsettings) {
+					yield reportJournalSettings(job);
+				}
 				yield convertDocument(job);
 				newtab = yield authorizeSendmail(job);
 				let setProgress = yield connectToSendmailTab(job, newtab.tabBrowser);
@@ -330,6 +336,9 @@ Dontprint = (function() {
 			job.title				= checkUndefined(item.title, "Untitled document");
 			job.journalLongname		= checkUndefined(item.publicationTitle);
 			job.journalShortname	= checkUndefined(item.journalAbbreviation);
+			job.url					= checkUndefined(item.url);
+			job.doi					= checkUndefined(item.DOI);
+			job.articleDate			= checkUndefined(item.date);
 			job.originalFilePath	= pdfFile.path;
 			job.tmpFiles			= [pdfFile.path];
 			itemDoneDeferred.resolve();
@@ -463,6 +472,31 @@ Dontprint = (function() {
 				}
 			}
 		}
+	}
+	
+	
+	function reportJournalSettings(job) {
+		var url = buildURL(
+			'https://docs.google.com/forms/d/114w-8-iYwTCmjG1k-OWdDt9vVSgNgemCiqrC8Gw12F8/formResponse?draftResponse=[]%0D%0A&pageHistory=0',
+			{
+				'entry.2080957957':	job.journalLongname,
+				'entry.291268577':	job.journalShortname,
+				'entry.884095030':	job.crop.m1,
+				'entry.402209096':	job.crop.m2,
+				'entry.1801117375':	job.crop.m3,
+				'entry.1812198277':	job.crop.m4,
+				'entry.472442755':	job.title,
+				'entry.2057824171':	job.articleDate,
+				'entry.157164016':	job.url,
+				'entry.1368660624':	job.doi,
+				'entry.2047395667':	job.crop.coverpage
+			}
+		);
+		var req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
+							.createInstance(Components.interfaces.nsIXMLHttpRequest);
+		req.open("GET", url, true);
+		req.send();
+		// don't set onload handler because we don't really care about the response
 	}
 	
 	
