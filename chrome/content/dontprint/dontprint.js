@@ -3,6 +3,7 @@ Dontprint = (function() {
 	var dontprintThisPageImg = null;
 	var dontprintProgressImg = null;
 	var dontprintFromZoteroBtn = null;
+	var zoteroInstalled = false;
 	var queuedUrls = [];
 	var nextProgressId = 0;
 	var nextJobId = 0;
@@ -20,6 +21,7 @@ Dontprint = (function() {
 		Components.utils.import("resource://gre/modules/Sqlite.jsm")
 		Components.utils.import("resource://gre/modules/Task.jsm");
 		Components.utils.import("resource://EXTENSION/subprocess.jsm");
+		Components.utils.import("resource://gre/modules/AddonManager.jsm");
 		try {
 			// Gecko >= 25
 			Components.utils.import("resource://gre/modules/Promise.jsm");
@@ -32,8 +34,6 @@ Dontprint = (function() {
 				Components.utils.import("resource://gre/modules/commonjs/promise/core.js");
 			}
 		}
-		
-		dontprintFromZoteroBtn = document.getElementById("dontprint-tbbtn");
 		
 		prefs = Components.classes["@mozilla.org/preferences-service;1"]
 						.getService(Components.interfaces.nsIPrefService)
@@ -67,17 +67,82 @@ Dontprint = (function() {
 			}
 		});
 		
-		var that = this;
+		// Detect whether Zotero is installed and finish inialization based on that
+		AddonManager.getAddonByID("zotero@chnm.gmu.edu", function(addon) {
+			if (addon && addon.isActive) {
+				initWithZotero();
+			} else {
+				initWithoutZotero();
+			}
+		});
+	}
+	
+	
+	function initWithZotero() {
+		// Register this extension as an extension to Zotero
+		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+						.getService(Components.interfaces.mozIJSSubScriptLoader);
+		// Load Zotero's main extension logic (this is from Zotero's
+		// documentation on how to write a Zotero extension).
+		loader.loadSubScript("chrome://zotero/content/include.js");
+		// Load some code that was adapted from Zotero's source code and may
+		// only be loaded *after* loading Zotero's main extension logic.
+		loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/translate-dontprint.js");
+		
+		// Programmatically insert a "Dontprint" button into the Zotero pane
+		dontprintFromZoteroBtn = document.createElement("toolbarbutton");
+		dontprintFromZoteroBtn.setAttribute("id", "dontprint-tbbtn");
+		dontprintFromZoteroBtn.setAttribute("class", "zotero-tb-button");
+		dontprintFromZoteroBtn.setAttribute("tooltiptext", "Dontprint selected item(s) (send to e-reader); right-click for progress information");
+		dontprintFromZoteroBtn.addEventListener("click", function(event) {
+			if (event.button === 2) {
+				Dontprint.showProgress();
+			}
+		}, true);
+		dontprintFromZoteroBtn.addEventListener("command", dontprintSelectionInZotero, true);
+		
+		let toolbar = document.getElementById("zotero-items-toolbar");
+		let searchBtn = document.getElementById("zotero-tb-advanced-search");
+		toolbar.insertBefore(dontprintFromZoteroBtn, searchBtn);
+		toolbar.insertBefore(document.createElement("toolbarseparator"), searchBtn);
 		
 		// Inject some own code into Zotero's updateStatus() function. This function
 		// is called to show or hide the "scrape this"-icon in the address bar.
 		// We first call the original Zotero implemntation and then add our own icon.
 		var oldUpdateStatus = Zotero_Browser.updateStatus;
-		
 		Zotero_Browser.updateStatus = function() {
 			oldUpdateStatus.apply(Zotero_Browser, arguments);
 			updateDontprintIconVisibility();
 		};
+		
+		zoteroInstalled = true;
+		
+		updateDontprintIconVisibility();
+	}
+	
+	
+	function initWithoutZotero() {
+		// Register URI alias "resource://zotero/...". The Zotero xpcom module expects this.
+		Components.utils.import("resource://gre/modules/Services.jsm");
+		var resProt = Services.io.getProtocolHandler("resource")
+						.QueryInterface(Components.interfaces.nsIResProtocolHandler);
+		var aliasURI = Components.classes["@mozilla.org/network/io-service;1"]
+						.getService(Components.interfaces.nsIIOService)
+						.newURI("chrome://dontprint/content/zotero-resource/", null, null);
+		resProt.setSubstitution("zotero", aliasURI);
+		
+		// Initialize the included Zotero xpcom module
+		Zotero = Components.classes["@robamler.github.com/minimal-zotero;1"]
+			.getService(Components.interfaces.nsISupports).wrappedJSObject;
+		
+		// Load some code that was adapted from Zotero's code and that can
+		// only be loaded *after* the the Zotero xpcom module was initialized.
+		loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/browser.js");
+		loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/translate-dontprint.js");
+		
+		// Register a listener to changes in the visibility of the "Dontprint this page" icon
+		Zotero_Browser.updateStatusCallback = updateDontprintIconVisibility;
+		updateDontprintIconVisibility();
 	}
 	
 	
@@ -221,9 +286,6 @@ Dontprint = (function() {
 			
 			let menuitem = document.createElement("menuitem");
 			menuitem.setAttribute("label", "Dontprint document using " + translator.label + (i===0 ? " (recommended)" : ""));
-			menuitem.setAttribute("image", (translator.itemType === "multiple"
-				? "chrome://zotero/skin/treesource-collection.png"
-				: Zotero.ItemTypes.getImageSrc(translator.itemType)));
 			menuitem.setAttribute("class", "menuitem-iconic");
 			menuitem.addEventListener("command", function(e) {
  				dontprintThisPage(translator);
@@ -920,14 +982,18 @@ Dontprint = (function() {
 			queuelength = Math.max(0, queuelength+inc);
 			
 			if (queuelength === 0) {
-				dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/idle.png')";
+				if (zoteroInstalled) {
+					dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/idle.png')";
+				}
 				if (dontprintProgressImg) {
 					dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/idle.png";
 				}
 			} else {
 				var len = Math.min(10, queuelength);
 				var timerfunc = function() {
-					dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png')";
+					if (zoteroInstalled) {
+						dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png')";
+					}
 					if (dontprintProgressImg) {
 						dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png";
 					}

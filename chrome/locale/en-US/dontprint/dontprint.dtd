@@ -1,4 +1,3 @@
-<!ENTITY dontprint.tbbtnlabel						"Dontprint selected item(s) (send to e-reader); right-click for progress information">
 <!ENTITY dontprint.statusimglabel					"Dontprint document (send to e-reader)">
 <!ENTITY dontprint.progressimglabel					"Dontprint is processing this document (click icon for detailed progress information).">
 <!ENTITY dontprint.preferences.title				"Dontprint plugin for Zotero - Settings">
@@ -17,6 +16,3 @@
 <!ENTITY dontprint.preferences.behaviour			"Behaviour settigns">
 <!ENTITY dontprint.preferences.sendEmailTo			"Send converted document by e-mail to:">
 <!ENTITY dontprint.preferences.placeInFolder		"Save converted document in directory:">
-<!--<!ENTITY dontprint.preferences.				"">
-<!ENTITY dontprint.preferences.				"">
-<!ENTITY dontprint.preferences.				"">-->

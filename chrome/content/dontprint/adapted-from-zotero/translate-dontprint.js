@@ -17,7 +17,7 @@ Zotero.Translate.Dontprint.prototype.constructor = Zotero.Translate.Dontprint;
 Zotero.Translate.Dontprint.prototype._prepareTranslation = function() {
 	var that = this;
 	this._itemSaver = new Zotero.Translate.ItemSaver(this._libraryID,
-		Zotero.Translate.ItemSaver[(this._saveAttachments ? "ATTACHMENT_MODE_DOWNLOAD" : "ATTACHMENT_MODE_IGNORE")], 1,
+		Zotero.Translate.ItemSaver["ATTACHMENT_MODE_DOWNLOAD"], 1,
 		this.document, this._cookieSandbox, this.location);
 	this._itemSaver.saveItems = function() {
 		that.dontprintSaveItems.apply(that, arguments);

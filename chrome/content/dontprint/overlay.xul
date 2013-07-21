@@ -10,16 +10,6 @@
 			src="chrome://dontprint/locale/dontprint.properties"/>
 	</stringbundleset>
 	
-	<hbox id="zotero-items-toolbar">
-		<toolbarbutton id="dontprint-tbbtn"
-			class="zotero-tb-button"
-			tooltiptext="&dontprint.tbbtnlabel;"
-			oncommand="Dontprint.dontprintSelectionInZotero()"
-			onclick="if(event.button === 2) Dontprint.showProgress();"
-			insertbefore="zotero-tb-advanced-search" />
-		<toolbarseparator insertbefore="zotero-tb-advanced-search" />
-	</hbox>
-	
 	<!-- "Dontprint this page" icon in urlbar -->
 	<hbox id="urlbar-icons">
 		<popupset>
@@ -43,7 +33,5 @@
 			position="1" hidden="true" />
 	</hbox>
 	
-	<!-- Include the main extension logic -->
-	<script src="chrome://zotero/content/include.js"/>
 	<script src="chrome://dontprint/content/include.js"/>
 </overlay>

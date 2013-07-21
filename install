@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# This script installs the development ("testing") version of Dontprint
+# on a linux machine. This script assumes that your Firefox profile is
+# called "default". Run this script with normal privileges (i.e., *not*
+# as root)
+
+echo 'Dontprint: Installing Dontprint into the "default" profile of Firefox...'
+
+# cd to the top level directory of the Dontprint source code
+cd "`dirname "${BASH_SOURCE[0]}"`"
+
+echo 'Dontprint: Switching to branch "testing"...'
+git checkout testing
+
+echo 'Dontprint: Fetching dependencies. This may take some time...'
+git submodule init
+git submodule update
+
+cd zotero
+git submodule init
+git submodule update
+cd ..
+
+echo 'Dontprint: Registering the addon in the "default" profile of Firefox...'
+mkdir `echo ~/.mozilla/firefox/*.default`/extensions 2>/dev/null
+pwd > `echo ~/.mozilla/firefox/*.default/extensions`/dontprint@robamler.github.com
+
+echo
+echo 'Dontprint: Installation completed. Restart Firefox now, type'
+echo '"about:config" in the address bar, and set the required preferences'
+echo 'as described in the file "README.md".'

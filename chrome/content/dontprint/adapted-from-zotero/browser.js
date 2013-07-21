@@ -1,0 +1,1 @@
+../../../../zotero/chrome/content/zotero/browser.js

@@ -4,13 +4,13 @@ Dontprint
 What's This?
 -------------------------------
 
-Dontprint is going to be a plugin for Firefox. It is currently in development.
+Dontprint is going to be an add-on for Firefox. It is currently in development.
 
 Dontprint will make it easy to send scientific articles in an optimized layout to your e-book reader, e.g., the amazon Kindle.
-Open the website of any major publisher, log in, navigate to a page that describes a specific article and a Dontprint icon (![Dontprint icon](http://robamler.github.com/dontprint/webapp/favicon.png)) will appear in the address bar.
+Open the website of any major publisher, log in, navigate to a page that represents a specific article and a Dontprint icon (![Dontprint icon](http://robamler.github.com/dontprint/webapp/favicon.png)) will appear in the address bar.
 With a single click on that icon, Dontprint downloads the PDF file of the article, reformats it to optimize for the e-book reader's screen size, and sends it to the device.
 
-Dontprint will also integrate with the [Zotero](http://www.zotero.org/) literature database.
+Dontprint will also integrate with the [Zotero](http://www.zotero.org/) literature database, if Zotero is installed.
 Select an item in Zotero that has an attached PDF file and, with a single click, it's reformatted and on your e-book reader.
 
 Here's a more verbose list of planned features:
@@ -35,14 +35,11 @@ Dontprint won't get access to any of your existing e-mails or even your e-mail a
 Since both the client and the server part of Dontprint are open source, you can be sure that Dontprint doesn't abuse your trust to send out e-mails you didn't request.
 2. On your country's Amazon website, go to "Manage Your Kindle" and make sure that your Gmail address is white-listed to send documents to your Kindle.
 3. Download K2pdfopt from http://www.willus.com/k2pdfopt.
-4. Install the Zotero plugin for Firefox from http://zotero.org.
-   (Dontprint currently requires Zotero to be installed but this dependency will be removed soon.)
-5. Open a terminal, `cd` to the directory where you want to clone the Dontprint repository, and type
+4. Open a terminal, `cd` to the directory where you want to clone the Dontprint repository, and type
 
  ```bash
  you@yourmachine:~$ git clone -b testing git://github.com/robamler/dontprint.git
- you@yourmachine:~$ cd dontprint
- you@yourmachine:~/dontprint$ pwd > `echo ~/.mozilla/firefox/*.default/extensions`/dontprint@robamler.github.com
+ you@yourmachine:~$ dontprint/install
  ```
 6. Restart Firefox. It will greet you with a warning about a new extension. Select the checkbox to accept the installation and restart again.
 7. Type `about:config` in the location bar and create the following string preferences by right-clicking --> New --> String:
@@ -53,13 +50,13 @@ Since both the client and the server part of Dontprint are open source, you can 
  | extensions.dontprint.recipientEmailPrefix   | the part of your Kindle e-mail address before the "@" sign |
  | extensions.dontprint.recipientEmailSuffix   | usually, `@free.kindle.com` (including the @ sign) |
  
- If you want files to be sent also over the 3G network when no WiFi is available, set the e-mail suffix to `@kindle.com`.
+ If you want files to be sent over the 3G network when no WiFi is available, set the e-mail suffix to `@kindle.com`.
  Be warned, however, that Amazon might charge for this service.
-8. Open the website of your favorite publisher and make sure you have access to their articles. When you load a page that shows information about a specific article, a Dontprint icon (![Dontprint icon](http://robamler.github.com/dontprint/webapp/favicon.png)) will most likely appear in the address bar. Click it!
- Alternatively, you can open Zotero, select an item that has an attached PDF document, and click the Dontprint button in the Zotero pane (![Dontprint icon](http://robamler.github.com/dontprint/webapp/favicon.png)).
+8. Open the website of your favorite publisher or preprint server and make sure you have access to their articles. When you load a page that shows information about a specific article, a Dontprint icon (![Dontprint icon](http://robamler.github.com/dontprint/webapp/favicon.png)) will most likely appear in the address bar. Click it!
+ If you use [Zotero](http://www.zotero.org/), you can also dontprint attached PDF documents directly from the Zotero pane.
  
 **The following should happen:**
-Dontprint will download the PDF file of the article (or use the one attached to the Zotero entry).
+Dontprint will download the PDF file of the article.
 Then, a new tab should pop up where you can set the margins to crop headers and footers (Dontprint remembers margins for each journal, so you will usually skip this step).
 When you confirm with the green button, the document will be optimized by k2pdfopt (this may take some time).
 Dontprint will then send the optimized version of the article to your Kindle and display a confirmation.

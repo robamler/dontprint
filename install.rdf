@@ -4,25 +4,15 @@
 	
 	<Description about="urn:mozilla:install-manifest">
 		<em:id>dontprint@robamler.github.com</em:id>
-		<em:name>Dontprint plugin for Zotero</em:name>
-		<em:version>0.1</em:version>
-		<em:description>Send PDFs from Zotero to your Amazon Kindle. Automatically rearrange text flow to optimize for the Kindle's form factor.</em:description>
+		<em:name>Dontprint (paperless printer)</em:name>
+		<em:version>0.2</em:version>
+		<em:description>Send scientific articles from journal websites to your Amazon Kindle with a single click.</em:description>
 		<em:creator>Robert Bamler</em:creator>
+		<em:homepageURL>https://github.com/robamler/dontprint</em:homepageURL>
 		<em:updateURL></em:updateURL> <!-- TODO -->
 		<em:type>2</em:type> <!-- type=extension -->
 		<em:optionsURL>chrome://dontprint/content/options.xul</em:optionsURL>
 		
-		<!-- Requires Zotero -->
-		<em:requires>
-			<Description>
-				<em:id>zotero@chnm.gmu.edu</em:id>
-				<em:name>Zotero</em:name>
-				<em:homepageURL>http://www.zotero.org</em:homepageURL>
-				<em:minVersion>2.1</em:minVersion>
-				<em:maxVersion>3.0.*</em:maxVersion>
-			</Description>
-		</em:requires>
-    
 		<!-- Requires Firefox (Zotero Standalone not yet supported) -->
 		<em:targetApplication>
 			<Description>
