@@ -58,7 +58,7 @@ Zotero.Translate.Dontprint.prototype.dontprintSaveItems = function(items, callba
 		}
 		callback(true, newItems);
 	} catch(e) {
-		if (this.errorHandler !== undefined) {
+		if (this.errorHandler) {
 			this.errorHandler(e);
 		}
 		try {

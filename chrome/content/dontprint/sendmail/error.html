@@ -21,9 +21,16 @@ p{margin-top:0.5em; margin-bottom:0}
 #origin > a{text-decoration:none; color:#222}
 </style>
 <script>
+function truncateStr(str, hardlimit, softlimit) {
+	if (str.length > hardlimit) {
+		str = str.substr(0, softlimit-3) + "...";
+	}
+	return str;
+}
+
 function initDisplay(job) {
-	document.getElementById("errmsg").textContent = job.result.errorString;
-	document.getElementById("operation").textContent = job.result.errorOperation;
+	document.getElementById("errmsg").textContent = truncateStr(job.result.errorString, 300, 250);
+	document.getElementById("operation").textContent = truncateStr(job.result.errorOperation, 200, 150);
 }
 </script>
 </head>

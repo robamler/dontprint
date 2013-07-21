@@ -325,8 +325,12 @@ Dontprint = (function() {
 		// But make sure to call runJob() no more than once
 		var itemDoneDeferred = Promise.defer();
 		var attachDoneDeferred = Promise.defer();
+		var timeoutDeferred = Promise.defer();
 		
-		translate.setAttachDoneHandler(attachDoneDeferred.resolve);
+		translate.setAttachDoneHandler(function() {
+			attachDoneDeferred.resolve();
+			timeoutDeferred.resolve();
+		});
 		
 		translate.setHandler("itemDone", function(obj, dbItem, item) {
 			// Apparently, this is called when the item meta data is ready but attachments may still be being downloaded
@@ -340,6 +344,15 @@ Dontprint = (function() {
 			job.originalFilePath	= pdfFile.path;
 			job.tmpFiles			= [pdfFile.path];
 			itemDoneDeferred.resolve();
+			timeoutDeferred.resolve();
+		});
+		
+		translate.setHandler("error", function(obj, error) {
+			// Note: So far, I haven't been able to observe this handler in action.
+			// But it should be the correct error handler according to Zotero's documentation.
+			let errstr = "Unable to download article. Maybe it is behind a captcha or you need to sign in with the publisher's web site. Original error message: " + error.toString();
+			itemDoneDeferred.reject(errstr);
+			attachDoneDeferred.reject(errstr);
 		});
 		
 		var lastProgress = 0;
@@ -366,17 +379,31 @@ Dontprint = (function() {
 		job.abortCurrentTask = function() {
 			translate.abort();
 		};
-		yield itemDoneDeferred.promise;
-		yield attachDoneDeferred.promise;
-		delete job.abortCurrentTask;
+		
+		setTimeout(function() {
+			timeoutDeferred.reject("Timeout when trying to download the article. Are you connected to the internet?");
+		}, 180000); // 3 minutes
+		
+		try {
+			yield timeoutDeferred.promise;
+			yield itemDoneDeferred.promise;
+			yield attachDoneDeferred.promise;
+		} finally {
+			// remove event handlers (avoid memory leaks)
+			delete job.abortCurrentTask;
+			translate.clearHandlers("done");
+			translate.clearHandlers("error");
+			translate.setErrorHandler(null);
+			translate.clearHandlers("itemDone");
+			translate.setAttachDoneHandler(null);
+		}
 		
 		job.downloadProgress = 1;
 		updateJobState(job);
 		
-		// remove event handlers (avoid memory leaks)
-		translate.clearHandlers("done");
-		translate.clearHandlers("itemDone");
-		translate.setAttachDoneHandler(null);
+		if (!pdfFile.exists() || pdfFile.fileSize === 0) {
+			throw "Unable to download article. Maybe it is behind a captcha or you need to sign in with the publisher's web site.";
+		}
 	}
 	
 	
@@ -541,11 +568,17 @@ Dontprint = (function() {
 				});
 			},
 			stderr: function(data) {
-				k2pdfoptError += data;
+				if (k2pdfoptError.length < 500) {
+					k2pdfoptError += data;
+				}
 			},
 			done: function(result) {
 				if (result.exitCode) {
-					deferred.reject("k2pdfopt failed with error message: " + k2pdfoptError);
+					if (job.jobType === 'page') {
+						deferred.reject("Conversion failed. This may mean that Dontprint was unable to download the article. Maybe it is behind a captcha or you need to sign in with the publisher's web site. Original error message: " + k2pdfoptError);
+					} else {
+						deferred.reject("Conversion failed with error message: " + k2pdfoptError);
+					}
 				}
 				job.convertProgress = 1;
 				updateJobState(job);
