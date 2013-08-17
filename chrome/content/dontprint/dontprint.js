@@ -64,6 +64,10 @@ Dontprint = (function() {
 			}
 		});
 		
+		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+						.getService(Components.interfaces.mozIJSSubScriptLoader);
+		loader.loadSubScript("chrome://dontprint/content/post-translation.js", {Dontprint: this});
+		
 		// Detect whether Zotero is installed and finish inialization based on that
 		AddonManager.getAddonByID("zotero@chnm.gmu.edu", function(addon) {
 			if (addon && addon.isActive) {
@@ -201,7 +205,7 @@ Dontprint = (function() {
 				title:				i.getField('title'),
 				journalLongname:	i.getField('publicationTitle'),
 				journalShortname:	i.getField('journalAbbreviation'),
-				url:				i.getField('url'),
+				pageurl:			i.getField('url'),
 				doi:				i.getField('DOI'),
 				articleDate:		i.getField('date'),
 				originalFilePath:	attachmentPaths.length === 0 ? undefined : attachmentPaths[0],
@@ -305,13 +309,13 @@ Dontprint = (function() {
 			if (!job.cleaned) {
 				job.cleaned = true;
 				delete runningJobs[job.id];
-				incrementQueueLength(-1, job.pageurl);
+				incrementQueueLength(-1, job.jobType==='page' ? job.pageurl : undefined);
 				job.tmpFiles.forEach(deleteFile);
 			}
 		};
 		
 		// show progress indicator
-		incrementQueueLength(+1, job.pageurl);
+		incrementQueueLength(+1, job.jobType==='page' ? job.pageurl : undefined);
 		job.id = nextJobId++;
 		job.downloadProgress = 0;
 		job.convertProgress = 0;
@@ -372,6 +376,7 @@ Dontprint = (function() {
 		pdfFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 		
 		var translate = new Zotero.Translate.Dontprint();
+		job.document = tab.page.translate.document;
 		translate.setDocument(tab.page.translate.document);
 		translate.setDestFile(pdfFile);
 		translate.setTranslator(job.translator || tab.page.translators[0]);
@@ -397,7 +402,6 @@ Dontprint = (function() {
 			job.title				= checkUndefined(item.title, "Untitled document");
 			job.journalLongname		= checkUndefined(item.publicationTitle);
 			job.journalShortname	= checkUndefined(item.journalAbbreviation);
-			job.url					= checkUndefined(item.url);
 			job.doi					= checkUndefined(item.DOI);
 			job.articleDate			= checkUndefined(item.date);
 			job.originalFilePath	= pdfFile.path;
@@ -469,6 +473,8 @@ Dontprint = (function() {
 	function cropMargins(job) {
 		updateJobState(job, "cropping");
 		
+		yield Dontprint.postTranslate(job);
+		
 		try {
 			var conn = yield Sqlite.openConnection({path: databasePath});
 			var sqlresult = yield conn.executeCached(
@@ -484,7 +490,7 @@ Dontprint = (function() {
 		if (sqlresult.length === 0) {
 			job.crop = {
 				builtin:false, remember:true, coverpage:false,
-				m1:0.52, m2:0.2, m3:0.2, m4:0.2
+				m1:0.2, m2:0.2, m3:0.2, m4:0.2
 			};
 		} else {
 			job.crop = {};
@@ -494,6 +500,12 @@ Dontprint = (function() {
 				}
 			);
 		}
+		
+		if (job.adjustCropDefaults) {
+			job.adjustCropDefaults();
+			delete job.adjustCropDefaults;
+		}
+		delete job.document;
 		
 		if (sqlresult.length === 0 || !job.crop.remember) {
 			let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
@@ -522,11 +534,15 @@ Dontprint = (function() {
 				// Setting job.abortCurrentTask = newTabBrowser.contentWindow.close
 				// won't work. With this function wrapper, it works.
 				newTabBrowser.contentWindow.close();
+				deferred.reject();
 			};
-			yield deferred.promise;
-			delete job.abortCurrentTask;
+			try {
+				yield deferred.promise;
+			} finally {
+				delete job.abortCurrentTask;
+			}
 			
-			if (!job.crop.builtin) {
+			if (!job.crop.builtin) {//FIXME: why don't allow to overwrit builtin?
 				try {
 					var conn2 = yield Sqlite.openConnection({path: databasePath});
 					if (job.journalLongname !== undefined && job.journalLongname !== "") {
@@ -574,7 +590,7 @@ Dontprint = (function() {
 				'entry.1812198277':	job.crop.m4,
 				'entry.472442755':	job.title,
 				'entry.2057824171':	job.articleDate,
-				'entry.157164016':	job.url,
+				'entry.157164016':	job.pageurl,
 				'entry.1368660624':	job.doi,
 				'entry.2047395667':	job.crop.coverpage
 			}

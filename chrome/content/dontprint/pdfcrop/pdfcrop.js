@@ -245,11 +245,15 @@ PDFCrop = (function() {
 
 		// set presets
 		builtinJournal = job.crop.builtin;
-		if (job.crop.builtin) $('#remember-display').hide();
+		if (job.crop.builtin) $('#remember-display').hide();//FIXME: remove
 		else $('#savetemplate').prop("checked", job.crop.remember);
 		$("#coverpage").prop("checked", job.crop.coverpage);
 		for (var i=1; i<=4; i++) {
 			inmargins[i-1] = parseFloat(job.crop['m'+i]);
+		}
+		if (job.prohibitSaveJournalSettings) {
+			$("#remember-display,#sendsettings-display").hide();
+			$("#savetemplate,#sendsettings").prop("checked", false);
 		}
 
 		// Set up event handlers
