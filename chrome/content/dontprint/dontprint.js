@@ -9,9 +9,6 @@ Dontprint = (function() {
 	var nextJobId = 0;
 	var runningJobs = {};
 	var progressTabs = {};
-	var defaultCropParams = {
-		builtin:false, remember:true, coverpage:false, m1:0.52, m2:0.2, m3:0.2, m4:0.2
-	};
 	
 	
 	// ==== PUBLICLY VISIBLE METHODS ================================
@@ -485,7 +482,10 @@ Dontprint = (function() {
 		}
 		
 		if (sqlresult.length === 0) {
-			job.crop = defaultCropParams;
+			job.crop = {
+				builtin:false, remember:true, coverpage:false,
+				m1:0.52, m2:0.2, m3:0.2, m4:0.2
+			};
 		} else {
 			job.crop = {};
 			["journalname", "builtin", "remember", "coverpage", "m1", "m2", "m3", "m4"].forEach(
