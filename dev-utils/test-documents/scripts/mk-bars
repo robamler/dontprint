@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#usage: mk-bars width height filename.png
+
+svgfile=`mktemp --suffix=.svg`
+
+echo "<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='$1' height='$2' version='1.1'>" > $svgfile
+
+for x in `seq 0 2 $1`; do
+	echo "<rect width='1' height='$2' style='fill:#000000' x='$x' y='0' />" >> $svgfile
+done
+
+echo "</svg>" >> $svgfile
+
+convert $svgfile -monochrome $3
+
+rm $svgfile
