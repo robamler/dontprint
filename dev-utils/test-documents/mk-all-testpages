@@ -19,7 +19,7 @@ echo 'Creating test documents for all known e-reader models in directory "output
 ../scripts/mk-welcome 1109 1157 1780 1841 fire-hd-8p9inch
 ../scripts/mk-welcome 520  580  710  770  other
 
-ln -s generation4.pdf generation1.pdf 2>/dev/null
-ln -s generation4.pdf generation2.pdf 2>/dev/null
-ln -s generation4.pdf touch.pdf 2>/dev/null
-ln -s generation4.pdf keyboard.pdf 2>/dev/null
+cp generation4.pdf generation1.pdf
+cp generation4.pdf generation2.pdf
+cp generation4.pdf touch.pdf
+cp generation4.pdf keyboard.pdf
