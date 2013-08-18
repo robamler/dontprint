@@ -24,36 +24,24 @@ Here's a more verbose list of planned features:
 Installation
 -------------------------------
 
-This is just some small gadged I'm writing in my spare time. On Linux, the core functionality mostly works but it's missing some front-end for configurations and I might still change the implementation in a way that is not backward compatible. I'll publish Dontprint on addons.mozilla.org as soon as it's more stable. If you're adventurous, here's how to install the development version of Dontprint on a Linux machine.
+This is just some small gadged I'm writing in my spare time. The core functionality mostly works but it's missing some front-end for configurations and I might still change the implementation in a way that is not backward compatible. I'll publish Dontprint on addons.mozilla.org as soon as it's more stable. If you're adventurous, here's how to install the development version of Dontprint.
 
-1. Create a Google account on http://gmail.com if you don't already have one.
-Dontprint sends emails to your Kindle from your Gmail address.
-This eliminates server costs so that Dontprint can stay free of charge.
-Dontprint uses OAuth for authorization so you never have to give any passwords to Dontprint.
-Also, the only permission Dontprint will ask for is to send Emails from your Gmail account.
-Dontprint won't get access to any of your existing e-mails or even your e-mail address.
-Since both the client and the server part of Dontprint are open source, you can be sure that Dontprint doesn't abuse your trust to send out e-mails you didn't request.
-2. On your country's Amazon website, go to "Manage Your Kindle" and make sure that your Gmail address is white-listed to send documents to your Kindle.
-3. Download K2pdfopt from http://www.willus.com/k2pdfopt.
-4. Open a terminal, `cd` to the directory where you want to clone the Dontprint repository, and type
+1. Open a terminal, `cd` to the directory where you want to clone the Dontprint repository, and type
 
  ```bash
  you@yourmachine:~$ git clone -b testing git://github.com/robamler/dontprint.git
  you@yourmachine:~$ dontprint/install
  ```
 6. Restart Firefox. It will greet you with a warning about a new extension. Select the checkbox to accept the installation and restart again.
-7. Type `about:config` in the location bar and create the following string preferences by right-clicking --> New --> String:
+7. Dontprint will automatically open a new tab with a welcome page. Follow the instructions on that page to finish the installation.
 
- | Preference Name                             | Value                        |
- | ------------------------------------------- | ---------------------------- |
- | extensions.dontprint.k2pdfoptpath           | /path/to/k2pdfopt/executable |
- | extensions.dontprint.recipientEmailPrefix   | the part of your Kindle e-mail address before the "@" sign |
- | extensions.dontprint.recipientEmailSuffix   | usually, `@free.kindle.com` (including the @ sign) |
- 
- If you want files to be sent over the 3G network when no WiFi is available, set the e-mail suffix to `@kindle.com`.
- Be warned, however, that Amazon might charge for this service.
-8. Open the website of your favorite publisher or preprint server and make sure you have access to their articles. When you load a page that shows information about a specific article, a Dontprint icon (![Dontprint icon](http://robamler.github.com/dontprint/webapp/favicon.png)) will most likely appear in the address bar. Click it!
- If you use [Zotero](http://www.zotero.org/), you can also dontprint attached PDF documents directly from the Zotero pane.
+
+Usage
+-------------------------------
+
+Open the website of your favorite publisher or preprint server and make sure you have access to their articles. When you load a page that shows information about a specific article, a Dontprint icon (![Dontprint icon](http://robamler.github.com/dontprint/webapp/favicon.png)) will most likely appear in the address bar. Click it!
+
+If you use [Zotero](http://www.zotero.org/), you can also dontprint attached PDF documents directly from the Zotero pane.
  
 **The following should happen:**
 Dontprint will download the PDF file of the article.
@@ -64,7 +52,8 @@ The first time you run Dontprint, you have to authorize it to send Emails from y
 Dontprint will remember both the crop settings (for each journal) and the authorization.
 So the next time you dontprint an article from the same journal it should be done with a single click on the Dontprint button.
 
-You can see the current progress of all Dontprint jobs by right-clicking on the ![Dontprint icon](http://robamler.github.com/dontprint/webapp/favicon.png) icon.
+You can see the current progress of all Dontprint jobs by right-clicking on the ![Dontprint icon](http://robamler.github.com/dontprint/webapp/favicon.png) icon or by choosing "Tools --> Dontprint --> Show currently running Dontprint jobs" from the Firefox menu.
+
 If you experience any problems, please [contact me](http://www.thp.uni-koeln.de/~rbamler/) or [create an issue](https://github.com/robamler/dontprint/issues/new).
 
 

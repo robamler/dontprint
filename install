@@ -27,6 +27,4 @@ mkdir `echo ~/.mozilla/firefox/*.default`/extensions 2>/dev/null
 pwd > `echo ~/.mozilla/firefox/*.default/extensions`/dontprint@robamler.github.com
 
 echo
-echo 'Dontprint: Installation completed. Restart Firefox now, type'
-echo '"about:config" in the address bar, and set the required preferences'
-echo 'as described in the file "README.md".'
+echo 'Dontprint: Installation completed. Restart Firefox now.'
