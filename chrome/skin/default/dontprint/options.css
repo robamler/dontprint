@@ -1,9 +1,5 @@
-row, hbox {
-	-moz-box-align: center;
-}
-row label:first-child {
-	text-align: right;
-}
-description {
-	width: 70ex;
-}
+row, hbox { -moz-box-align: center; }
+label.text-link { border:none; margin:0 }
+prefwindow { width:60em; }
+#otherEmailRow { margin-bottom:1ex; }
+prefpane > .content-box {overflow: -moz-hidden-unscrollable;} /* workaround a bug in firefox */

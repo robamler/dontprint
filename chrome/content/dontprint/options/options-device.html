@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8 />
+<link rel="stylesheet" type="text/css" href="../model-picker.css">
+<style type="text/css">
+body{font:message-box}
+
+.choice{margin:1em 0em 1em 1em}
+.hint{margin:0.1em 0 1em 0; color:#333; font-size:90%}
+#platform{font-style:italic}
+.next{text-align:center}
+#k2pdfopt-nodownload-hint, #step2, #step3, #congrats, #select-platform, #download-progress, #warning-charges, #kindle-email-help{display:none}
+#download-progress{float:right; margin-top:1em; font-size:150%;}
+.screenshot{display:block;margin:0.4em 0 1em 1em; box-shadow:1px 2px 10px 2px #ACB2AA;}
+li{padding:0.3em 0}
+#test-email{display:block;margin:0.5em 0 1em 0}
+#email-prefix{text-align:right;width:12em}
+#email-other-container{margin-top:0.4ex; display:none}
+#email-other{width:25em}
+#k2pdfopt-file-selector{margin:0.5em 0}
+#test-email-waiting, #test-email-done{display:none}
+#test-email-address{font-style:italic}
+#model-select-container{white-space:nowrap; overflow-x:scroll; border:1px solid #ccc; margin:1ex 0 0.4ex 0;}
+th{font-weight:bold; text-align:left}
+table{border-collapse:collapse}
+th,td{padding:0 0.5em 0.2ex 0}
+#image-copyright{opacity:0.5; font-size:70%; text-align:right; margin-bottom:2ex}
+a{text-decoration:underline;color:#000088}
+</style>
+
+<script src="../jquery-1.9.1.min.js"></script>
+<script src="../model-picker.js"></script>
+<script>
+$(function() {
+
+var Dontprint = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+				.getService(Components.interfaces.nsIWindowMediator)
+				.getMostRecentWindow("navigator:browser").Dontprint;
+
+var modelSettings = {};
+var initialKindleModel = Dontprint.getPrefs().getCharPref("kindleModel");
+if (initialKindleModel) {
+	modelSettings[initialKindleModel] = {
+		w:		Dontprint.getPrefs().getIntPref("screenWidth"),
+		h:		Dontprint.getPrefs().getIntPref("screenHeight"),
+		ppi:	Dontprint.getPrefs().getIntPref("screenPpi")
+	};
+}
+
+
+function beforeModelSelectListener(modelName) {
+	if (modelName) {
+		screenSettingsChange();  // remember user settings of old model
+	}
+	return true;
+}
+
+
+function modelSelectListener(modelName) {
+	var model = ModelPicker.models[modelName];
+	var res = $('#model-result');
+	if (model) {
+		$('#model-result-text').text(model.label);
+		if (modelName==="other") {
+			$('#recomendations,#sendScreenSettignsContainer').hide();
+		} else {
+			$('#recommendedWidth').text(model.w);
+			$('#recommendedHeight').text(model.h);
+			$('#recommendedPpi').text(model.ppi);
+			$('#recomendations,#sendScreenSettignsContainer').show();
+		}
+		var userSettings = modelSettings[modelName] ? modelSettings[modelName] : model;
+		$('#widthinput').val(userSettings.w);
+		$('#heightinput').val(userSettings.h);
+		$('#ppiinput').val(userSettings.ppi);
+		
+		Dontprint.getPrefs().setCharPref("kindleModel", modelName);
+		screenSettingsChange();  // write new screen size settings to preferences
+		
+ 		res.slideDown(400, function() {changeHeightListener(0);});
+		var left = model.node.offset().left;
+		scrollModelsTo(left, left+model.node.outerWidth());
+	} else {
+		changeHeightListener(-res.outerHeight() - parseFloat(res.css('margin-top')));
+		res.slideUp();
+	}
+}
+
+
+function filterChangeListener() {
+	var left = -1;
+	var right = 0;
+	var count = 0;
+	var otherAllowed = ModelPicker.models[ModelPicker.questions['START'].filter[1]].enabled;
+	for (mod in ModelPicker.models) {
+		if (ModelPicker.models[mod].enabled) {
+			count++;
+		}
+		if ((otherAllowed || mod!=="other") && ModelPicker.models[mod].enabled) {
+			var l = ModelPicker.models[mod].node.offset().left;
+			var r = l + ModelPicker.models[mod].node.outerWidth();
+			if (left===-1 || l<left) {
+				left = l;
+			}
+			if (r>right) {
+				right = r;
+			}
+		}
+	}
+	if (count>1) {
+		// if count===1, scrollModelsTo will be called from beforeModelSelectListener()
+		scrollModelsTo(left, right);
+	}
+}
+
+
+function scrollModelsTo(left, right) {
+	var width = $('#model-select-container').innerWidth();
+	var scrollPos = $('#model-select-container').scrollLeft();
+	if (left<0 && right<width-30) {
+		$('#model-select-container').animate({
+			scrollLeft: scrollPos - Math.min(width-right-30, 30-left)
+		}, 1000);
+	} else if (left>30 && right>width) {
+		$('#model-select-container').animate({
+			scrollLeft: scrollPos + Math.min(left-30, right-width+30)
+		}, 1000);
+	}
+}
+
+
+function changeHeightListener(heightChange) {
+	if (ModelPicker.initialized) {
+		var oldheight = parseInt(parent.document.getElementById("deviceIframe").style.height);
+		var newheight = $('#heightMeasurer').offset().top + heightChange;
+		if (newheight > oldheight) {
+			parent.document.getElementById("deviceIframe").style.height = newheight + "px";
+			parent.sizeToContent();
+		}
+	}
+}
+
+
+ModelPicker.init({
+	selection: Dontprint.getPrefs().getCharPref("kindleModel"),
+	beforeModelSelectListener: beforeModelSelectListener,
+	modelSelectListener: modelSelectListener,
+	filterChangeListener: filterChangeListener,
+	changeHeightListener: changeHeightListener
+});
+changeHeightListener(0);
+
+
+function screenSettingsChange() {
+	if (!modelSettings[ModelPicker.selection]) {
+		var m = ModelPicker.models[mod];
+		modelSettings[ModelPicker.selection] = { w:m.w, h:m.h, ppi:m.ppi };
+	}
+	function saveChange(el, short, preference) {
+		if (el.get(0).validity.valid) {
+			Dontprint.getPrefs().setIntPref(preference, el.val());
+			modelSettings[ModelPicker.selection][short] = el.val();
+		}
+	}
+	
+	saveChange($('#widthinput'), 'w', 'screenWidth');
+	saveChange($('#heightinput'), 'h', 'screenHeight');
+	saveChange($('#ppiinput'), 'ppi', 'screenPpi');
+}
+
+$('#widthinput,#heightinput,#ppiinput').change(screenSettingsChange);
+
+window.screenSettingsChange = screenSettingsChange; // export function
+
+
+$('#sendTestEmailButton').click(function() {
+	var response = confirm(
+		"Dontprint can send a document to your Kindle that will assist you in finding the correct document size for your Kindle model. Would you like to send this document now?"
+	);
+	if (response) {
+		this.disabled = true;
+		this.value = "Sending document...";
+		var that = this;
+		Dontprint.sendTestEmail(function() {
+			that.value = "Document sent.";
+		});
+	}
+});
+
+
+$('#sendScreenSettingsDetails').click(function() {
+	alert(
+		"If you check this box, Dontprint will send the following data to its developer:" +
+		"\n - Kindle model: " + ModelPicker.models[ModelPicker.selection].label +
+		"\n - width: " + $('#widthinput').val() +
+		"\n - height: " + $('#heightinput').val() + 
+		"\n - pixels per inch: " + $('#ppiinput').val() +
+		"\n\nDontprint will NOT send any personal data (such as e-mail addresses)."
+	);
+});
+
+});
+</script>
+</head>
+<body>
+
+<div id="questions-container"></div>
+<div id="model-select-container"></div>
+<div id="image-copyright">images courtesy of Wikipedia users Frmorrison, Atirador, NotFromUtrecht, ShakataGaNai and さぱしあ (cc-by-sa)</div>
+
+<div id="model-result">
+	<div id="model-result-header">You selected: <span id="model-result-text"></span></div>
+	<div> </div>
+	<table>
+		<tr id="recomendations">
+			<th>Recommended settings:</th>
+			<td><span id="recommendedWidth"></span> x <span id="recommendedHeight"></span> pixels at <span id="recommendedPpi"></span> pixels per inch</td>
+		</tr>
+		<tr>
+			<th>Your settings:</th>
+			<td><input type="number" required pattern="\d+" id="widthinput"> x <input type="number" required pattern="\d+" id="heightinput"> pixels at <input type="number" required id="ppiinput"> pixels per inch</td>
+		</tr>
+	</table>
+	<input type="submit" id="sendTestEmailButton" value="Help me find out the correct document size...">
+	<div id="sendScreenSettignsContainer"><input type="checkbox" id="sendScreenSettigns"><label for="sendScreenSettigns">Send the above settings anonymously to the developer of Dontprint to help improve future versions (<a id="sendScreenSettingsDetails" href="#">details</a>).</label></div>
+</div>
+
+<div id="heightMeasurer"></div>
+
+</body>
+</html>

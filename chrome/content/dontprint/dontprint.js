@@ -409,7 +409,7 @@ Dontprint = (function() {
 	
 	function configureDontprint() {
 		window.openDialog(
-			'chrome://dontprint/content/options.xul',
+			'chrome://dontprint/content/options/options.xul',
 			'dontprint-prefs',
 			'chrome,titlebar,toolbar,dialog=yes'
 		).focus();  // focus the window if it was already open
@@ -639,7 +639,7 @@ Dontprint = (function() {
 		let nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
 					.createInstance(Components.interfaces.nsIURL);
 		nsIURL.spec = "http://robamler.github.com/dontprint/test-documents/" + prefs.getCharPref("kindleModel") + ".pdf";
-		alert(nsIURL.spec);
+		
 		try {
 			wbp.saveURI(nsIURL, null, null, null, null, destFile);
 		} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
