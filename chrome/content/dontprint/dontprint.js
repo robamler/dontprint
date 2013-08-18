@@ -3,6 +3,7 @@ Dontprint = (function() {
 	var databasePath = null;
 	var dontprintThisPageImg = null;
 	var dontprintProgressImg = null;
+	var dontprintThisPageMenuItem = null;
 	var dontprintFromZoteroBtn = null;
 	var zoteroInstalled = false;
 	var queuedUrls = [];
@@ -69,16 +70,18 @@ Dontprint = (function() {
 						.getService(Components.interfaces.mozIJSSubScriptLoader);
 		loader.loadSubScript("chrome://dontprint/content/post-translation.js", {Dontprint: this});
 		
-		let platformid = prefs.getIntPref("k2pdfoptPlatform");
-		if (platformid === -1  ||  prefs.getCharPref("recipientEmailPrefix") === "") {
+		let platform = prefs.getCharPref("k2pdfoptPlatform");
+		if (platform==="unknown" || !getRecipientEmail() || !prefs.getCharPref("kindleModel")) {
 			setTimeout(function() {
 				gBrowser.loadOneTab("chrome://dontprint/content/welcome/dontprint-welcome.html", {inBackground:false});
 			}, 3000);	//TODO: this is ugly
 			//TODO: detect if tab is already open (because of session restore)
-		} else if (platformid >= 0 && prefs.getCharPref("k2pdfoptPath") === "") {
+		} else if (platform.substr(0,7)!=="unknown" && prefs.getCharPref("k2pdfoptPath") === "") {
 			// Platform has been detected but download of k2pdfopt was interrupted. Resume download silently.
 			downloadK2pdfopt();
 		}
+		
+		dontprintThisPageMenuItem = document.getElementById("dontprint-this-page-menu-item");
 		
 		// Detect whether Zotero is installed and finish inialization based on that
 		AddonManager.getAddonByID("zotero@chnm.gmu.edu", function(addon) {
@@ -179,6 +182,24 @@ Dontprint = (function() {
 		});
 	}
 	
+	
+	function reportScreenSettings() {
+		prefs.setCharPref("MESSAGE", "a");
+		var url = buildURL(
+			'https://docs.google.com/forms/d/1YCclhAjI9iDOf9tQybcJuW4QYM8Ayr1K6HB8894GfrI/formResponse?draftResponse=[]%0D%0A&pageHistory=0',
+			{
+				'entry.1501323902':	prefs.getCharPref("kindleModel"),
+				'entry.1922726083':	prefs.getIntPref("screenWidth"),
+				'entry.651002044':	prefs.getIntPref("screenHeight"),
+				'entry.2016260998':	prefs.getIntPref("screenPpi")
+			}
+		);
+		var req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
+							.createInstance(Components.interfaces.nsIXMLHttpRequest);
+		req.open("GET", url, true);
+		req.send();
+		// don't set onload handler because we don't really care about the response
+	}
 	
 	/**
 	 * Called when the user clicks the dontprint button in the Zotero pane.
@@ -319,8 +340,8 @@ Dontprint = (function() {
 	 * has not yet been successfull.
 	 */
 	function downloadK2pdfopt(onProgress, onSuccess) {
-		let platformid = prefs.getIntPref("k2pdfoptPlatform");
-		let leafFilename = platformid < 2 ? "k2pdfopt.exe" : "k2pdfopt";
+		let platform = prefs.getCharPref("k2pdfoptPlatform");
+		let leafFilename = platform.substr(0,4)==="win_" ? "k2pdfopt.exe" : "k2pdfopt";
 		let destFile = FileUtils.getFile("ProfD", ["dontprint", leafFilename]);
 		// create *executable* file (if on unix)
 		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0775); // octal value --> don't remove leading zero!
@@ -365,7 +386,7 @@ Dontprint = (function() {
 		
 		let nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
 					.createInstance(Components.interfaces.nsIURL);
-		nsIURL.spec = "http://localhost:8000/k2pdfopt/platform" + platformid + "/" + leafFilename; //TODO
+		nsIURL.spec = "http://robamler.github.com/dontprint/k2pdfopt/" + platform + "/" + leafFilename;
 		try {
 			wbp.saveURI(nsIURL, null, null, null, null, destFile);
 		} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
@@ -383,6 +404,26 @@ Dontprint = (function() {
 			tmpFiles:	[],
 			callback:	callback
 		});
+	}
+	
+	
+	function configureDontprint() {
+		window.openDialog(
+			'chrome://dontprint/content/options.xul',
+			'dontprint-prefs',
+			'chrome,titlebar,toolbar,dialog=yes'
+		).focus();  // focus the window if it was already open
+	}
+	
+	
+	function getRecipientEmail() {
+		let suffix = prefs.getCharPref("recipientEmailSuffix");
+		if (suffix === "other") {
+			return prefs.getCharPref("recipientEmailOther");
+		} else {
+			let prefix = prefs.getCharPref("recipientEmailPrefix");
+			return prefix ? prefix+suffix : "";
+		}
 	}
 	
 	
@@ -413,7 +454,7 @@ Dontprint = (function() {
 				if (job.jobType === 'page') {
 					yield grabOriginalFileForCurrentTab(job);
 				} else if (job.jobType === 'test') {
-					yield getTestPage(job);
+					yield getTestDocument(job);
 				}
 				
 				if (job.jobType !== 'test') {
@@ -563,7 +604,7 @@ Dontprint = (function() {
 	}
 	
 	
-	function getTestPage(job) {
+	function getTestDocument(job) {
 		updateJobState(job, "downloading");
 		
 		let destFile = FileUtils.getFile("TmpD", ["dontprint-test.pdf"]);
@@ -579,17 +620,26 @@ Dontprint = (function() {
 			.createInstance(nsIWBP);
 		wbp.persistFlags = nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
 		
+		let lastProgress = 0;
 		wbp.progressListener = {
 			onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
 				if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
 					deferred.resolve();
+				}
+			},
+			onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
+				if (aMaxTotalProgress!=0 && aCurTotalProgress>lastProgress) {	// no typo, we really want to use != instead of !==
+					lastProgress = aCurTotalProgress;
+					job.downloadProgress = aCurTotalProgress/aMaxTotalProgress;
+					updateJobState(job);
 				}
 			}
 		};
 		
 		let nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
 					.createInstance(Components.interfaces.nsIURL);
-		nsIURL.spec = "chrome://dontprint/content/welcome/testpage.pdf";
+		nsIURL.spec = "http://robamler.github.com/dontprint/test-documents/" + prefs.getCharPref("kindleModel") + ".pdf";
+		alert(nsIURL.spec);
 		try {
 			wbp.saveURI(nsIURL, null, null, null, null, destFile);
 		} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
@@ -747,10 +797,13 @@ Dontprint = (function() {
 		job.convertedFilePath = outFile.path;
 		job.tmpFiles.push(outFile.path);
 		
-		let args = [
+		let args = prefs.getCharPref("k2pdfoptAdditionalParams").split(/\s+/).filter(function(el) {
+			return el !== "";
+		}).concat([
 			'-ui-', '-x', '-a-', '-om', '0',
 			'-w',  '' + prefs.getIntPref("screenWidth"),
 			'-h',  '' + prefs.getIntPref("screenHeight"),
+			'-odpi', '' + prefs.getIntPref("screenPpi"),
 			'-ml', '' + job.crop.m1,
 			'-mt', '' + job.crop.m2,
 			'-mr', '' + job.crop.m3,
@@ -758,7 +811,7 @@ Dontprint = (function() {
 			'-p', job.crop.coverpage ? '2-' : '1-',
 			job.originalFilePath,
 			'-o', job.convertedFilePath
-		];
+		]);
 		
 		var k2pdfoptError = "";
 		var currentLine = "";
@@ -912,19 +965,14 @@ Dontprint = (function() {
 	
 	
 	function sendEmail(job, tabBrowser, setProgress) {
-		// TODO: create preferences frontend to set:
-		// * extensions.dontprint.recipientEmailPrefix
-		// * extensions.dontprint.recipientEmailSuffix
-		// * extensions.dontprint.ccEmails
-		
 		updateJobState(job, "uploading");
 		
 		var url = buildURL(
 			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
 			{
 				filename:		job.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
-				recipientEmail:	prefs.getCharPref("recipientEmailPrefix") + prefs.getCharPref("recipientEmailSuffix"),
-				ccEmails:		prefs.getCharPref("ccEmails"),
+				recipientEmail:	getRecipientEmail(),
+				ccEmails:		prefs.getBoolPref("ccEmailsEnabled") ? prefs.getCharPref("ccEmails") : "",
 				itemKey:		job.zoteroKey,
 				authtoken:		job.authtoken
 			}
@@ -1071,6 +1119,8 @@ Dontprint = (function() {
 		
 		var alreadyProcessing = showDontprintIcon && queuedUrls.indexOf(tab.page.document.location.href) !== -1;
 		
+		dontprintThisPageMenuItem.disabled = !(showDontprintIcon && !alreadyProcessing);
+		
 		try {
 			dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
 			dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
@@ -1194,11 +1244,35 @@ Dontprint = (function() {
 	}
 	
 	
+	/**
+	 * Returns -1 if v2 is newer than v1, +1 if v1 is newer than v2
+	 * and 0 if they are equal.
+	 */
+	function compareVersionStrings(v1, v2) {
+		let a1 = v1.split(".");
+		let a2 = v2.split(".");
+		for (let i=0; i<Math.min(a1.length, a2.length); i++) {
+			if (a1[i] < a2[i])
+				return -1;
+			if (a1[i] > a2[i])
+				return 1;
+		}
+		if (a1.length < a2.length)
+			return -1;
+		if (a1.length > a2.length)
+			return 1;
+		return 0;
+	}
+	
+	
 	function detectK2pdfoptVersion(k2pdfoptPath, onSuccess, onOutdated, onNotFound, onError) {
 		clearTimeout(k2pdfoptTestTimeout);
 		let currentLine = "";
 		let lineNumber = 0;
 		let found = false;
+		if (!k2pdfoptPath) {
+			k2pdfoptPath = prefs.getCharPref("k2pdfoptPath");
+		}
 		
 		try {
 			let p = subprocess.call({
@@ -1213,9 +1287,7 @@ Dontprint = (function() {
 							let m = lines[i].match(/^\s*k2pdfopt\s+v(\d+(\.\d+)*)\s/);
 							if (m) {
 								found = true;
-								let v = m[1].split(".");
-								// require at least version 1.51
-								if (v[0]>1 || (v.length>=2 && v[0]==="1" && v[1]>=51)) {
+								if (compareVersionStrings(m[1], "1.51") >= 0) {
 									onSuccess(m[1]);
 								} else {
 									onOutdated(m[1]);
@@ -1258,7 +1330,13 @@ Dontprint = (function() {
 		abortJob: abortJob,
 		downloadK2pdfopt: downloadK2pdfopt,
 		detectK2pdfoptVersion: detectK2pdfoptVersion,
-		sendTestEmail: sendTestEmail
+		sendTestEmail: sendTestEmail,
+		configureDontprint: configureDontprint,
+		getRecipientEmail: getRecipientEmail,
+		compareVersionStrings: compareVersionStrings,
+		getPrefs: function() {return prefs;},
+		deleteFile: deleteFile,
+		reportScreenSettings: reportScreenSettings
 	};
 }());
 

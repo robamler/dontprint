@@ -1,0 +1,21 @@
+.model{width:9em; display:inline-block; border-radius:20px; background-color:#ffffff; box-shadow:0px 0px 6px -2px black; margin:10px; padding:10px; text-align:center; cursor:pointer}
+.model:hover{background-color:#ffd; box-shadow:0px 0px 6px -1px black; }
+.model > img {margin-bottom:5px;}
+.model > div {white-space:nowrap;}
+.model.selected{background-color:#e1f5dc; color:#071504; font-weight:bold; box-shadow:0px 0px 6px -1px black inset; border:2px solid #071504; margin:8px}
+.model.disabled{filter:url(filter.svg#blurfilter); cursor:auto}
+.model.disabled:hover{background-color:#ffffff; box-shadow:0px 0px 6px -2px black; }
+#model-select-container{margin:-6px}
+
+.filtername{font-weight:bold; white-space:nowrap; display:inline-block; min-width:5.5em}
+.filteroptions{position:relative; display:inline-block}
+.filteroptions > label, .filteroptions > input[type="radio"]{font-weight:normal; cursor:pointer}
+.filteroptions > input[type="radio"], .filteroptions > select{margin-left:1em;}
+.selectheader{font-weight:bold}
+#questions-container{border:1px solid #ccc;}
+.filter{padding:.5ex; opacity:0.6; display:none}
+.filter.current{background-color:#ffd; opacity:1;}
+#model-result{padding:.5ex; background-color:#e1f5dc; display:none; margin-top:2ex}
+#model-result-header{font-weight:bold; margin-bottom:.5ex}
+#widthinput,#heightinput,#ppiinput{width:3em; text-align:center}
+.filteroptions>label {font-weight:normal}

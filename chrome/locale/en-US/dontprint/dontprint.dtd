@@ -1,4 +1,7 @@
 <!ENTITY dontprint.statusimglabel					"Dontprint document (send to e-reader)">
+<!ENTITY dontprint.thisPageMenuItemLabel			"Send document on this page to e-reader">
+<!ENTITY dontprint.showProgressMenuItemLabel		"Show currently running Dontprint jobs...">
+<!ENTITY dontprint.configureMenuItemLabel			"Configure Dontprint...">
 <!ENTITY dontprint.progressimglabel					"Dontprint is processing this document (click icon for detailed progress information).">
 <!ENTITY dontprint.preferences.title				"Dontprint plugin for Zotero - Settings">
 <!ENTITY dontprint.preferences.general				"General settings">
@@ -8,7 +11,7 @@
 <!ENTITY dontprint.preferences.recipientEmail		"E-mail address of my Kindle:">
 <!ENTITY dontprint.preferences.copyInGoogleDrive	"When sending a document by e-mail, keep a copy of the document in my Google Drive account.">
 <!ENTITY dontprint.preferences.ccEmails				"When sending a document by e-mail, send a copy to the following e-mail address (optional):">
-<!ENTITY dontprint.preferences.device.class			"E-reader brand:">
+<!ENTITY dontprint.preferences.device.class			"E-reader model:">
 <!ENTITY dontprint.preferences.device.kindle		"Amazon Kindle (557x721 pixels)">
 <!ENTITY dontprint.preferences.device.other			"other">
 <!ENTITY dontprint.preferences.screensize			"Screen size:">
