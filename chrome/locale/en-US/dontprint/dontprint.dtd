@@ -4,7 +4,7 @@
 <!ENTITY dontprint.preferences.general				"General settings">
 <!ENTITY dontprint.preferences.device				"Device settings">
 <!ENTITY dontprint.preferences.advanced				"Advanced settings">
-<!ENTITY dontprint.preferences.k2pdfoptpath			"Path to k2pdfopt executable:">
+<!ENTITY dontprint.preferences.k2pdfoptPath			"Path to k2pdfopt executable:">
 <!ENTITY dontprint.preferences.recipientEmail		"E-mail address of my Kindle:">
 <!ENTITY dontprint.preferences.copyInGoogleDrive	"When sending a document by e-mail, keep a copy of the document in my Google Drive account.">
 <!ENTITY dontprint.preferences.ccEmails				"When sending a document by e-mail, send a copy to the following e-mail address (optional):">

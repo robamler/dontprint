@@ -75,7 +75,8 @@ Dontprint = (function() {
 				gBrowser.loadOneTab("chrome://dontprint/content/welcome/dontprint-welcome.html", {inBackground:false});
 			}, 3000);	//TODO: this is ugly
 			//TODO: detect if tab is already open (because of session restore)
-		} else if (platformid >= 0 && prefs.getCharPref("k2pdfoptpath") === "") {
+		} else if (platformid >= 0 && prefs.getCharPref("k2pdfoptPath") === "") {
+			// Platform has been detected but download of k2pdfopt was interrupted. Resume download silently.
 			downloadK2pdfopt();
 		}
 		
@@ -323,7 +324,7 @@ Dontprint = (function() {
 		let destFile = FileUtils.getFile("ProfD", ["dontprint", leafFilename]);
 		// create *executable* file (if on unix)
 		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0775); // octal value --> don't remove leading zero!
-		let k2pdfoptpath = destFile.path;
+		let k2pdfoptPath = destFile.path;
 		
 		const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
 		let wbp = Components
@@ -335,9 +336,9 @@ Dontprint = (function() {
 			onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
 				if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
 					detectK2pdfoptVersion(
-						k2pdfoptpath,
+						k2pdfoptPath,
 						function onDownloadSuccess() {
-							prefs.setCharPref("k2pdfoptpath", k2pdfoptpath);
+							prefs.setCharPref("k2pdfoptPath", k2pdfoptPath);
 							if (onSuccess) {
 								onSuccess();
 							}
@@ -736,7 +737,7 @@ Dontprint = (function() {
 	
 	function convertDocument(job) {
 		// TODO: create preferences frontend to set:
-		// * extensions.dontprint.k2pdfoptpath
+		// * extensions.dontprint.k2pdfoptPath
 		
 		updateJobState(job, "converting");
 		
@@ -747,7 +748,9 @@ Dontprint = (function() {
 		job.tmpFiles.push(outFile.path);
 		
 		let args = [
-			'-ui-', '-x', '-a-', '-w', '557', '-h', '721',
+			'-ui-', '-x', '-a-', '-om', '0',
+			'-w',  '' + prefs.getIntPref("screenWidth"),
+			'-h',  '' + prefs.getIntPref("screenHeight"),
 			'-ml', '' + job.crop.m1,
 			'-mt', '' + job.crop.m2,
 			'-mr', '' + job.crop.m3,
@@ -1040,8 +1043,8 @@ Dontprint = (function() {
 	}
 	
 	
-	function getK2pdfopt() {
-		var path = prefs.getCharPref("k2pdfoptpath");
+	function getK2pdfopt() {	//TODO: remove this function and just use prefs.getCharPref("k2pdfoptPath")
+		var path = prefs.getCharPref("k2pdfoptPath");
 		
 		if (path[0] === "%") {
 			// path is relative to profile directory.
@@ -1191,7 +1194,7 @@ Dontprint = (function() {
 	}
 	
 	
-	function detectK2pdfoptVersion(k2pdfoptpath, onSuccess, onOutdated, onNotFound, onError) {
+	function detectK2pdfoptVersion(k2pdfoptPath, onSuccess, onOutdated, onNotFound, onError) {
 		clearTimeout(k2pdfoptTestTimeout);
 		let currentLine = "";
 		let lineNumber = 0;
@@ -1199,7 +1202,7 @@ Dontprint = (function() {
 		
 		try {
 			let p = subprocess.call({
-				command: k2pdfoptpath,
+				command: k2pdfoptPath,
 				arguments: ['-ui-', '-x', '-a-', '-?'],
 				stdout: function(data) {
 					if (lineNumber < 5 || !found) {

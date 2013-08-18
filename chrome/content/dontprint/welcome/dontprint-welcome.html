@@ -47,7 +47,7 @@ var prefs = Components.classes["@mozilla.org/preferences-service;1"]
 
 var progressArc = document.getElementById("progress-arc");
 var validK2pdfopt = false;
-var k2pdfoptpath;
+var k2pdfoptPath;
 var platforms = ["32bit Windows", "64bit Windows", "32bit Mac OS X", "64bit Mac OS X", "32bit Linux", "64bit Linux"];
 
 var architecture = window.navigator.oscpu.match(/\b(win64|wow64|x86_64)\b/i) ? "64bit" : "32bit";
@@ -78,10 +78,10 @@ $("#platform-selector").val(platformid);
 // check if we already have k2pdfopt (and skip step 1 in that case)
 $("#k2pdfopt-file-selector").val("");
 $("#dontprint-version").text("");
-k2pdfoptpath = prefs.getCharPref("k2pdfoptpath");
-if (k2pdfoptpath) {
+k2pdfoptPath = prefs.getCharPref("k2pdfoptPath");
+if (k2pdfoptPath) {
 	Dontprint.detectK2pdfoptVersion(
-		k2pdfoptpath,
+		k2pdfoptPath,
 		function() {
 			$("#step1").hide();
 			$("#step2").show();
@@ -141,12 +141,12 @@ $("#k2pdfopt-file-selector").change(function() {
 		$("#dontprint-version").text("Please select an executable file.");
 		return;
 	}
-	k2pdfoptpath = this.files[0].mozFullPath;
+	k2pdfoptPath = this.files[0].mozFullPath;
 	
 	$("#dontprint-version").text("Detecting k2pdfopt version...");
 	
 	Dontprint.detectK2pdfoptVersion(
-		k2pdfoptpath,
+		k2pdfoptPath,
 		function onSuccess(versionString) {
 			validK2pdfopt = true;
 			$("#dontprint-version").text('Detected k2pdfopt version ' + versionString + '. Click "accept" to continue.');
@@ -189,7 +189,7 @@ $("#acceptstep1").click(function() {
 		);
 	} else {
 		$("#step1header").text("Step 1 of 2: Download k2pdfopt (done)");
-		prefs.setCharPref("k2pdfoptpath", k2pdfoptpath);
+		prefs.setCharPref("k2pdfoptPath", k2pdfoptPath);
 		prefs.setIntPref("k2pdfoptPlatform", -2);
 	}
 	
@@ -276,7 +276,7 @@ function testEmailCallback(newtab) {
 function saveStep2Prefs() {
 	var prefix = $("#email-prefix").val();
 	if (prefix==="" || prefix.match(/[@ "']/)) {
-		$("#email-prefix").addClass("error");
+		$("#email-prefix").addClass("error").focus();
 		alert("Please enter a valid Kindle e-mail address in the text box.");
 		return false;
 	}
