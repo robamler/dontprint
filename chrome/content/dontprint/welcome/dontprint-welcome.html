@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8 />
+<link rel="shortcut icon" href="http://robamler.github.io/dontprint/webapp/favicon.png">
+<title>Get started with Dontprint</title>
+<style type="text/css">
+html{overflow:-moz-scrollbars-vertical}
+body{font-family: sans-serif; font-size:18px}
+#container{margin:0 auto; max-width:900px; min-height:100%; padding:0; position:absolute; text-align:left; left:1ex; right:1ex; top:0; bottom:0}
+h1{color:#294b1b; font-size:180%; margin-top:0; margin-left:0; font-weight:bold}
+h2{color:#294b1b; font-size:150%; margin:1em 0 0.5em 0; font-weight:bold}
+.done{color:#798374}
+#icon{position:absolute; left:0; top:4.5em; background-color:#8dff5c}
+#rightcol{position:absolute; top:2em; left:156px; right:0; bottom:0}
+#msg{padding:2ex; background-color:#fbfff9; border: 3px solid #294b1b; border-radius:1em}
+p{margin-top:0.5em; margin-bottom:0}
+#origin{font-size:80%; text-align:right; margin-top:1em}
+#origin > a{text-decoration:none; color:#222}
+.choice{margin:1em 0em 1em 1em}
+.hint{margin:0.1em 0 1em 0; color:#333; font-size:90%}
+#platform{font-style:italic}
+label{font-weight:bold}
+.next{text-align:center}
+#k2pdfopt-nodownload-hint, #step2, #select-platform, #download-progress, #warning-charges, #kindle-email-help{display:none}
+#download-progress{float:right; margin-top:1em; font-size:150%;}
+.screenshot{display:block;margin:0.4em 0 1em 1em; box-shadow:1px 2px 10px 2px #ACB2AA;}
+li{padding:0.3em 0}
+#test-email{display:block;margin:0.5em 0 1em 0}
+#email-prefix{text-align:right}
+#k2pdfopt-file-selector{margin:0.5em 0}
+#test-email-waiting, #test-email-done{display:none}
+#test-email-address{font-style:italic}
+.error{background-color:#ffddcc; border-color:#ff0000}
+</style>
+
+<script src="../jquery-1.9.1.min.js"></script>
+<script>
+$(function() {
+var Dontprint = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+				.getService(Components.interfaces.nsIWindowMediator)
+				.getMostRecentWindow("navigator:browser").Dontprint;
+
+var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+				.getService(Components.interfaces.nsIPrefService)
+				.getBranch("extensions.dontprint.");
+
+var progressArc = document.getElementById("progress-arc");
+var validK2pdfopt = false;
+var k2pdfoptpath;
+var platforms = ["32bit Windows", "64bit Windows", "32bit Mac OS X", "64bit Mac OS X", "32bit Linux", "64bit Linux"];
+
+var architecture = window.navigator.oscpu.match(/\b(win64|wow64|x86_64)\b/i) ? "64bit" : "32bit";
+var osvariant = "Windows";
+var m = window.navigator.oscpu.match(/(PPC|Intel) Mac OS X (\d+)\.(\d+)/i);
+if (m) {
+	osvariant = "Mac OS X";
+	// Assume 64bit processor if Mac OS X version is >= 10.6
+	if (m[1] === "Intel" && 10000*m[2]+m[3] >= 100006) {
+		architecture = "64bit";
+	}
+} else if (window.navigator.oscpu.match(/linux/i)) {
+	osvariant = "Linux";
+}
+
+var platformstring = architecture + " " + osvariant;
+var platformid = platforms.indexOf(platformstring);
+$("#platform").text(platformstring);
+var selectorhtml = "";
+for (var i=0; i<platforms.length; i++) {
+	selectorhtml += "<option value='" + i + "'>" + platforms[i] +
+	(i===platformid ? " (detected)" : "") + "</option>";
+}
+$("#platform-selector").html(selectorhtml);
+$("#platform-selector").val(platformid);
+
+
+// check if we already have k2pdfopt (and skip step 1 in that case)
+$("#k2pdfopt-file-selector").val("");
+$("#dontprint-version").text("");
+k2pdfoptpath = prefs.getCharPref("k2pdfoptpath");
+if (k2pdfoptpath) {
+	Dontprint.detectK2pdfoptVersion(
+		k2pdfoptpath,
+		function() {
+			$("#step1").hide();
+			$("#step2").show();
+			$("#step1header").addClass("done");
+			$("#step1header").text("Step 1 of 2: Download k2pdfopt (done)");
+		},
+		function() { },
+		function() { },
+		function() { }
+	);
+} else if (prefs.getIntPref("k2pdfoptPlatform") >= 0) {
+	// user has already decided to download k2pdfopt
+	$("#step1").hide();
+	$("#step2").show();
+	$("#step1header").addClass("done");
+	$("#step1header").text("Step 1 of 2: Downloading k2pdfopt...");
+	$("#download-progress").fadeIn();
+	
+	Dontprint.downloadK2pdfopt(
+		updateProgressBar,
+		function downloadSuccess() {
+			$("#download-progress").fadeOut();
+			$("#step1header").text("Step 1 of 2: Download finished.");
+		}
+	);
+}
+
+
+// prefill e-mail address if already set (e.g. thru sync)
+$("#email-prefix").val(prefs.getCharPref("recipientEmailPrefix"));
+$("#email-suffix").val(prefs.getCharPref("recipientEmailSuffix"));
+
+
+
+$("#download-k2pdfopt-true").click(function() {
+	$("#k2pdfopt-download-hint").slideDown();
+	$("#k2pdfopt-nodownload-hint").slideUp();
+});
+
+$("#download-k2pdfopt-false").click(function() {
+	$("#k2pdfopt-download-hint").slideUp();
+	$("#k2pdfopt-nodownload-hint").slideDown();
+});
+$("#download-k2pdfopt-true").click();
+
+
+$("#change-platform-link").click(function() {
+	$("#autodetect-platform").hide();
+	$("#select-platform").show();
+});
+
+
+$("#k2pdfopt-file-selector").change(function() {
+	validK2pdfopt = false;
+	
+	if (this.files.length === 0) {
+		$("#dontprint-version").text("Please select an executable file.");
+		return;
+	}
+	k2pdfoptpath = this.files[0].mozFullPath;
+	
+	$("#dontprint-version").text("Detecting k2pdfopt version...");
+	
+	Dontprint.detectK2pdfoptVersion(
+		k2pdfoptpath,
+		function onSuccess(versionString) {
+			validK2pdfopt = true;
+			$("#dontprint-version").text('Detected k2pdfopt version ' + versionString + '. Click "accept" to continue.');
+		},
+		function onOutdated(versionString) {
+			$("#dontprint-version").text('Detected k2pdfopt version ' + versionString + '. This version is too old to work with Dontprint. Please download a more recent version or allow Dontprint to download k2pdfopt automatically.');
+		},
+		function onNotFound() {
+			$("#dontprint-version").text("Error: Dontprint was unable to detect k2pdfopt. Make sure that you selected the correct file and that you have execution rights for the file.");
+		},
+		function onError(errstr) {
+			$("#dontprint-version").text("Error: " + errstr);
+		}
+	);
+});
+
+
+$("#acceptstep1").click(function() {
+	var download = $("#download-k2pdfopt-true").prop("checked");
+	if (!download && !validK2pdfopt) {
+		alert("Dontprint was unable to find a compatible version of k2pdfopt at the location you specified. Please make sure that you have a working version of k2pdfopt and that the specified location is correct. Alternatively, select the option to let Dontprint download k2pdfopt automatically.");
+		return false;
+	}
+	
+	$("#step1").slideUp();
+	$("#step2").slideDown();
+	$("#step1header").addClass("done");
+	
+	if (download) {
+		prefs.setIntPref("k2pdfoptPlatform", $("#platform-selector").val());
+		$("#step1header").text("Step 1 of 2: Downloading k2pdfopt...");
+		$("#download-progress").fadeIn();
+		
+		Dontprint.downloadK2pdfopt(
+			updateProgressBar,
+			function downloadSuccess() {
+				$("#download-progress").fadeOut();
+				$("#step1header").text("Step 1 of 2: Download finished.");
+			}
+		);
+	} else {
+		$("#step1header").text("Step 1 of 2: Download k2pdfopt (done)");
+		prefs.setCharPref("k2pdfoptpath", k2pdfoptpath);
+		prefs.setIntPref("k2pdfoptPlatform", -2);
+	}
+	
+	return false;
+});
+
+$("#email-suffix").change(function() {
+	$("#test-email").removeAttr("disabled");
+	var v = $(this).val();
+	if (v === "@free.kindle.com") {
+		$("#warning-charges").slideUp();
+	} else {
+		$("#warning-suffix").text(v);
+		$("#warning-charges").slideDown();
+	}
+});
+
+$("#email-prefix").on("input", function() {
+	$("#test-email").removeAttr("disabled");
+});
+
+
+$("#kindle-email-question").click(function() {
+	$("#kindle-email-help").slideDown();
+	$(this).parent().fadeOut();
+});
+
+function updateProgressBar(progress) {
+	var angle = 2*Math.PI*progress;
+	var newx = 15 + 14*Math.sin(angle);
+	var newy = 15 - 14*Math.cos(angle);
+	
+	// If progress>50%, set an additional point at 50% to avoid
+	// ambiguities at progress==0% and at progress==100%.
+	progressArc.setAttribute("d", 
+		(progress > 0.5 ? "M 15,15 15,1 A 14,14 0 1 1 15,29 " : "M 15,15 15,1 ") +
+		"A 14,14 0 0 1 " + newx + "," + newy + " z"
+	);
+}
+
+$("#acceptstep2").click(function() {
+	if (!saveStep2Prefs()) {
+		return false;
+	}
+	
+	//TODO
+	
+	return false;
+});
+
+$("#test-email").click(function() {
+	if (!saveStep2Prefs()) {
+		return false;
+	}
+	Dontprint.sendTestEmail(testEmailCallback);
+	$("#test-email").attr("disabled", "disabled");
+	$("#test-email-address").text(
+		prefs.getCharPref("recipientEmailPrefix") + prefs.getCharPref("recipientEmailSuffix")
+	);
+	$("#test-email-done").slideUp();
+	$("#test-email-waiting").slideDown();
+});
+
+
+function testEmailCallback(newtab) {
+	try {
+		$("#test-email-showresult").show();
+		newtab.tab.addEventListener("TabClose", function() {
+			$("#test-email-showresult").fadeOut();
+		}, true);
+		$("#test-email-showresult").off("click");
+		$("#test-email-showresult").click(function() {
+			newtab.gBrowser.selectedTab = newtab.tab;
+		});
+	} catch (e) {
+		$("#test-email-showresult").hide();
+	}
+	
+	$("#test-email-waiting").slideUp();
+	$("#test-email-done").slideDown();
+}
+
+
+function saveStep2Prefs() {
+	var prefix = $("#email-prefix").val();
+	if (prefix==="" || prefix.match(/[@ "']/)) {
+		$("#email-prefix").addClass("error");
+		alert("Please enter a valid Kindle e-mail address in the text box.");
+		return false;
+	}
+	
+	prefs.setCharPref("recipientEmailPrefix", $("#email-prefix").val());
+	prefs.setCharPref("recipientEmailSuffix", $("#email-suffix").val());
+	$("#email-prefix").removeClass("error");
+	return true;
+}
+
+
+});
+</script>
+</head>
+<body>
+
+<div id="container">
+<div id="rightcol">
+<div id="msg">
+<h1>Get started with Dontprint</h1>
+<p><i>You're almost ready to use Dontprint.</i> Follow these two simple steps to get started.</p>
+
+
+
+<svg id="download-progress" xmlns="http://www.w3.org/2000/svg" version="1.1" width="30" height="30">
+  <circle cx="15" cy="15" r="14" stroke-width="0" fill="#8b9287" fill-opacity="0.4"/>
+  <path id="progress-arc" d="M 15,15 15,1 A 14,14 0 0 1 15,1 z" stroke-width="0" fill="#467f2e" ffill-opacity="0.4"/>
+</svg>
+<h2 id="step1header">Step 1 of 2: Download k2pdfopt
+</h2>
+<div id="step1" class="step-description">
+Dontprint automatically rearranges the layout of articles so that you can read them comfortably on your Kindle. This is done with a program called <i>k2pdfopt</i> developed by William Menninger.
+
+<table class="choice">
+<tr>
+	<td><input type="radio" name="download-k2pdfopt" value="1" id="download-k2pdfopt-true"></td>
+	<td><label for="download-k2pdfopt-true">Let Dontprint automatically download k2pdfopt (recommended).</label></td>
+</tr>
+<tr>
+	<td></td>
+	<td><div class="hint" id="k2pdfopt-download-hint">
+		<div id="autodetect-platform">Dontprint detected your operating system as <span id="platform"></span>. (<a href="#" id="change-platform-link">change operating system</a>)</div>
+		<div id="select-platform">
+			Select your operating system:
+			<select id="platform-selector"></select>
+		</div>
+	</div></td>
+</tr>
+<tr>
+	<td><input type="radio" name="download-k2pdfopt" value="0" id="download-k2pdfopt-false"></td>
+	<td><label for="download-k2pdfopt-false">I want to downloaded k2pdfopt myself.</label></td>
+</tr>
+<tr>
+	<td></td>
+	<td><div class="hint" id="k2pdfopt-nodownload-hint">
+		<div>Please select the downloaded executable. (You can download k2pdfopt from <a href="http://www.willus.com/k2pdfopt/" target="_blank">willus.com</a>.)</div>
+		<div><input type="file" id="k2pdfopt-file-selector"></div>
+		<div id="dontprint-version"></div>
+	</div></td>
+</tr>
+</table>
+
+<div class="next">
+<input type="submit" value="Accept and go to last step" id="acceptstep1">
+</div>
+</div>
+
+<div id="step2">
+<h2>Step 2 of 2: Set up e-mail addresses</h2>
+
+<img class="screenshot" src="amazon-screenshot.png" align="right">
+<div class="hint">
+Dontprint sends articles by e-mail directly to your Kindle. To use Dontprint, you need an e-mail address that ends in "@gmail.com" (<a href="TODO" target="_blank">why?</a>). You don't even have to use your Gmail address yourself&mdash;Dontprint just uses it behind the scenes to send e-mails. Dontprint takes your privacy serious and requires only very limited access to your Gmail account (<a href="TODO" target="_blank">more details</a>).
+</div>
+
+<ul>
+<li>If you don't already have a Gmail account, <a href="https://accounts.google.com/SignUp?service=mail&amp;continue=http%3A%2F%2Fmail.google.com%2Fmail%2F&amp;ltmpl=googlemail" target="_blank">create one for free</a>.</li>
+<li>
+Go to "<a href="https://www.amazon.com/gp/digital/fiona/manage#pdocSettings" target="_blank">Manage Your Kindle</a>" on amazon.com. Make sure that your Gmail address is listed in the section "<i>Approved Personal Document E-mail List</i>" (see above image). If it's not in the list, click "<i>Add a new approved e-mail address</i>". If you don't know what your Gmail-address is, <a href="#TODO" id="find-out-gmail">find it out here</a>.</li>
+<li>Tell Dontprint your Kindle's e-mail address<span> (<a href="#" id="kindle-email-question">what's that?</a>)</span>:
+<div id="kindle-email-help" class="hint">
+Dontprint transfers documents wirelessly to your Kindle by sending them to your Kindle's e-mail address. You find the e-mail address that is tied to your Kindle in the section "<i>Send-to-Kindle E-Mail Settings</i>" on the "<a href="https://www.amazon.com/gp/digital/fiona/manage#pdocSettings" target="_blank">Manage Your Kindle</a>" page (see image below).
+<img src="amazon-screenshot2.png" class="screenshot">
+</div>
+<div><input type="text" id="email-prefix"><select id="email-suffix">
+<option value="@free.kindle.com" selected>@free.kindle.com&nbsp;&nbsp;&nbsp;(Wi-Fi only, no charges)</a>
+<option value="@kindle.com">@kindle.com&nbsp;&nbsp;&nbsp;(Wi-Fi or 3G, charges apply)</a>
+<option value="@kindle.cn">@kindle.cn&nbsp;&nbsp;&nbsp;(China; Wi-Fi or 3G, charges apply)</a>
+</select>
+</div>
+<div class="hint" id="warning-charges"><b>Warning:</b> You chose the e-mail suffix "<span id="warning-suffix"></span>". Articles will be delivered over the cellphone (3G) network if supported by your Kindle and if Wi-Fi is not available. <b>Amazon might charge for this.</b> To avoid charges, select the suffix "@free.kindle.com".</div></li>
+<li>To test your settings, we recommend to send a small document to your Kindle.
+<input type="submit" id="test-email" value="Send a small test document to my Kindle now.">
+<div id="test-email-waiting" class="hint">Dontprint is sending a small test document to <span id="test-email-address"></span>. Please wait...</div>
+<div id="test-email-done" class="hint">Done sending test document. <a href="#" id="test-email-showresult">Show details.</a></div>
+</li>
+</ul>
+
+<div class="next">
+<input type="submit" value="Accept and finish" id="acceptstep2">
+</div>
+
+</div>
+
+
+
+</div>
+<div id="origin">
+<a href="https://github.com/robamler/dontprint/">(Dontprint plugin for Firefox)</a>
+</div>
+</div>
+<img id="icon" src="../dontprint-speaking.png" alt="">
+</div>
+
+</body>
+</html>

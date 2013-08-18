@@ -1,4 +1,5 @@
 Dontprint = (function() {
+	var k2pdfoptTestTimeout;
 	var databasePath = null;
 	var dontprintThisPageImg = null;
 	var dontprintProgressImg = null;
@@ -67,6 +68,16 @@ Dontprint = (function() {
 		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
 						.getService(Components.interfaces.mozIJSSubScriptLoader);
 		loader.loadSubScript("chrome://dontprint/content/post-translation.js", {Dontprint: this});
+		
+		let platformid = prefs.getIntPref("k2pdfoptPlatform");
+		if (platformid === -1  ||  prefs.getCharPref("recipientEmailPrefix") === "") {
+			setTimeout(function() {
+				gBrowser.loadOneTab("chrome://dontprint/content/welcome/dontprint-welcome.html", {inBackground:false});
+			}, 3000);	//TODO: this is ugly
+			//TODO: detect if tab is already open (because of session restore)
+		} else if (platformid >= 0 && prefs.getCharPref("k2pdfoptpath") === "") {
+			downloadK2pdfopt();
+		}
 		
 		// Detect whether Zotero is installed and finish inialization based on that
 		AddonManager.getAddonByID("zotero@chnm.gmu.edu", function(addon) {
@@ -302,6 +313,78 @@ Dontprint = (function() {
 	}
 	
 	
+	/**
+	 * Called either from the welcome page or on startup if the download
+	 * has not yet been successfull.
+	 */
+	function downloadK2pdfopt(onProgress, onSuccess) {
+		let platformid = prefs.getIntPref("k2pdfoptPlatform");
+		let leafFilename = platformid < 2 ? "k2pdfopt.exe" : "k2pdfopt";
+		let destFile = FileUtils.getFile("ProfD", ["dontprint", leafFilename]);
+		// create *executable* file (if on unix)
+		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0775); // octal value --> don't remove leading zero!
+		let k2pdfoptpath = destFile.path;
+		
+		const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
+		let wbp = Components
+			.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
+			.createInstance(nsIWBP);
+		wbp.persistFlags = nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
+		
+		let progressListener = {
+			onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
+				if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
+					detectK2pdfoptVersion(
+						k2pdfoptpath,
+						function onDownloadSuccess() {
+							prefs.setCharPref("k2pdfoptpath", k2pdfoptpath);
+							if (onSuccess) {
+								onSuccess();
+							}
+						},
+						function onOutdated() { }, //TODO error handling
+						function onNotFound() { }, //TODO liston on connection restore
+						function onError(errstr) { } //TODO error handling
+					);
+				}
+			}
+		};
+		
+		if (onProgress) {
+			let lastProgress = 0;
+			progressListener.onProgressChange = function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
+				if (aMaxTotalProgress!=0 && aCurTotalProgress>lastProgress) {	// no typo, we really want to use != instead of !==
+					lastProgress = aCurTotalProgress;
+					onProgress(aCurTotalProgress/aMaxTotalProgress);
+				}
+			};
+		}
+		
+		wbp.progressListener = progressListener;
+		
+		let nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
+					.createInstance(Components.interfaces.nsIURL);
+		nsIURL.spec = "http://localhost:8000/k2pdfopt/platform" + platformid + "/" + leafFilename; //TODO
+		try {
+			wbp.saveURI(nsIURL, null, null, null, null, destFile);
+		} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
+			// https://bugzilla.mozilla.org/show_bug.cgi?id=794602
+			//TODO: Always use when we no longer support Firefox < 18
+			wbp.saveURI(nsIURL, null, null, null, null, destFile, null);
+		}
+	}
+	
+	
+	function sendTestEmail(callback) {
+		runJob({
+			title:		'Dontprint test document',
+			jobType:	'test',
+			tmpFiles:	[],
+			callback:	callback
+		});
+	}
+	
+	
 	// ==== LIFE CYCLE OF A DONTPRINT JOB ===========================
 	
 	function runJob(job) {
@@ -326,14 +409,20 @@ Dontprint = (function() {
 		Task.spawn(function() {
 			var newtab = null;
 			try {
-				if (job.jobType === 'page')
+				if (job.jobType === 'page') {
 					yield grabOriginalFileForCurrentTab(job);
-				
-				yield cropMargins(job);
-				if (job.crop.sendsettings) {
-					yield reportJournalSettings(job);
+				} else if (job.jobType === 'test') {
+					yield getTestPage(job);
 				}
-				yield convertDocument(job);
+				
+				if (job.jobType !== 'test') {
+					yield cropMargins(job);
+					if (job.crop.sendsettings) {
+						yield reportJournalSettings(job);
+					}
+					yield convertDocument(job);
+				}
+				
 				newtab = yield authorizeSendmail(job);
 				let setProgress = yield connectToSendmailTab(job, newtab.tabBrowser);
 				yield sendEmail(job, newtab.tabBrowser, setProgress);
@@ -358,6 +447,9 @@ Dontprint = (function() {
 					}
 				} else {
 					yield displayResult(job, newtab);
+				}
+				if (job.jobType === 'test') {
+					job.callback(newtab);
 				}
 			}
 		}).then(job.cleanup, job.cleanup);
@@ -467,6 +559,45 @@ Dontprint = (function() {
 		if (!pdfFile.exists() || pdfFile.fileSize === 0) {
 			throw "Unable to download article. Maybe it is behind a captcha or you need to sign in with the publisher's web site.";
 		}
+	}
+	
+	
+	function getTestPage(job) {
+		updateJobState(job, "downloading");
+		
+		let destFile = FileUtils.getFile("TmpD", ["dontprint-test.pdf"]);
+		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+		job.convertedFilePath = destFile.path;
+		job.tmpFiles.push(destFile.path);
+		
+		let deferred = Promise.defer();
+		
+		const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
+		let wbp = Components
+			.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
+			.createInstance(nsIWBP);
+		wbp.persistFlags = nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
+		
+		wbp.progressListener = {
+			onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
+				if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
+					deferred.resolve();
+				}
+			}
+		};
+		
+		let nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
+					.createInstance(Components.interfaces.nsIURL);
+		nsIURL.spec = "chrome://dontprint/content/welcome/testpage.pdf";
+		try {
+			wbp.saveURI(nsIURL, null, null, null, null, destFile);
+		} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
+			// https://bugzilla.mozilla.org/show_bug.cgi?id=794602
+			//TODO: Always use when we no longer support Firefox < 18
+			wbp.saveURI(nsIURL, null, null, null, null, destFile, null);
+		}
+		
+		yield deferred.promise;
 	}
 	
 	
@@ -683,7 +814,7 @@ Dontprint = (function() {
 		let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 			.getService(Components.interfaces.nsIWindowMediator)
 			.getMostRecentWindow("navigator:browser").gBrowser;
-		let tab = gBrowser.loadOneTab(url, {inBackground:true});
+		let tab = gBrowser.loadOneTab(url, {inBackground: job.jobType!=='test'});
 		let tabBrowser = gBrowser.getBrowserForTab(tab);
 		
 		// set onload-handler for new tab. This cannot be done in Google Apps Script because we need to communicate back to this code.
@@ -1060,6 +1191,59 @@ Dontprint = (function() {
 	}
 	
 	
+	function detectK2pdfoptVersion(k2pdfoptpath, onSuccess, onOutdated, onNotFound, onError) {
+		clearTimeout(k2pdfoptTestTimeout);
+		let currentLine = "";
+		let lineNumber = 0;
+		let found = false;
+		
+		try {
+			let p = subprocess.call({
+				command: k2pdfoptpath,
+				arguments: ['-ui-', '-x', '-a-', '-?'],
+				stdout: function(data) {
+					if (lineNumber < 5 || !found) {
+						let lines = data.split(/[\n\r]+/);
+						lines[0] = currentLine + lines[0];
+						currentLine = lines.pop();
+						for (let i=0; i<Math.min(lines.length, 5-lineNumber); i++) {
+							let m = lines[i].match(/^\s*k2pdfopt\s+v(\d+(\.\d+)*)\s/);
+							if (m) {
+								found = true;
+								let v = m[1].split(".");
+								// require at least version 1.51
+								if (v[0]>1 || (v.length>=2 && v[0]==="1" && v[1]>=51)) {
+									onSuccess(m[1]);
+								} else {
+									onOutdated(m[1]);
+								}
+							}
+							lineNumber++;
+						}
+					}
+				},
+				done: function(result) {
+					if (!found) {
+						onNotFound();
+					}
+				},
+				mergeStderr: false
+			});
+		} catch (e) {
+			let errstr = e.toString();
+			if (errstr.length > 120) {
+				errstr = errstr.substr(0, 100) + "...";
+			}
+			onError(errstr);
+		} finally {
+			if (typeof p === "object") {
+				k2pdfoptTestTimeout = setTimeout(p.kill, 5000);  // 5 seconds
+			}
+		}
+	}
+
+	
+	
 	// ==== RETURN PUBLICLY VISIBLE METHODS =========================
 	
 	return {
@@ -1068,7 +1252,10 @@ Dontprint = (function() {
 		onStatusPopupShowing: onStatusPopupShowing,
 		dontprintThisPage: dontprintThisPage,
 		showProgress: showProgress,
-		abortJob: abortJob
+		abortJob: abortJob,
+		downloadK2pdfopt: downloadK2pdfopt,
+		detectK2pdfoptVersion: detectK2pdfoptVersion,
+		sendTestEmail: sendTestEmail
 	};
 }());
 
