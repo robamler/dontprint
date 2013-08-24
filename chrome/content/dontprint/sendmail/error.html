@@ -28,10 +28,17 @@ function truncateStr(str, hardlimit, softlimit) {
 	return str;
 }
 
-function initDisplay(job) {
+window.addEventListener("load", function load(event){
+	window.removeEventListener("load", load, false);
+	var Dontprint = Components.classes['@robamler.github.com/dontprint;1'].getService().wrappedJSObject;
+	var job = Dontprint.getRunningJobs()[location.hash.substr(1)];
+	if (!job) {
+		close();
+	}
 	document.getElementById("errmsg").textContent = truncateStr(job.result.errorString, 300, 250);
 	document.getElementById("operation").textContent = truncateStr(job.result.errorOperation, 200, 150);
-}
+	job.resultPageCallback();
+},false);
 </script>
 </head>
 <body>

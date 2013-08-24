@@ -34,9 +34,7 @@ a{text-decoration:underline;color:#000088}
 <script>
 $(function() {
 
-var Dontprint = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-				.getService(Components.interfaces.nsIWindowMediator)
-				.getMostRecentWindow("navigator:browser").Dontprint;
+var Dontprint = Components.classes['@robamler.github.com/dontprint;1'].getService().wrappedJSObject;
 
 var modelSettings = {};
 var initialKindleModel = Dontprint.getPrefs().getCharPref("kindleModel");

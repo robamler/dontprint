@@ -1,7 +1,9 @@
 $(function() {
-var Dontprint = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-				.getService(Components.interfaces.nsIWindowMediator)
-				.getMostRecentWindow("navigator:browser").Dontprint;
+var Dontprint = Components.classes['@robamler.github.com/dontprint;1'].getService().wrappedJSObject;
+
+if (location.hash !== '#' + Dontprint.welcomeScreenId) {
+	close();
+}
 
 var prefs = Components.classes["@mozilla.org/preferences-service;1"]
 				.getService(Components.interfaces.nsIPrefService)
@@ -121,8 +123,8 @@ function skipStep1() {
 		$("#step2header").text($("#step2header").text() + " (done)").css('opacity', .4);
 		
 		if (Dontprint.getRecipientEmail()) {
-			// this should only happen if page is reloaded due to session restore
-			close();
+			$('#steps').hide();
+			$('#congrats').show();
 		}
 		
 		$("#step3").show();
@@ -219,11 +221,10 @@ $("#acceptstep1").click(function() {
 	
 	// check if step 2 is already completed due to sync
 	if (prefs.getCharPref("kindleModel")) {
-		$("#step2body").hide();
-		$("#step2header").text($("#step2header").text() + " (done)").css('opacity', .4);
 		goToStep3();
+	} else {
+		$("#step2").slideDown();
 	}
-	$("#step2").slideDown();
 });
 
 $("#acceptstep2").click(function() {
@@ -250,12 +251,11 @@ $("#acceptstep2").click(function() {
 function goToStep3() {
 	// check if step 3 is already completed due to sync
 	if (Dontprint.getRecipientEmail()) {
-		$("#step3body").hide();
-		$("#step3header").text($("#step3header").text() + " (done)").css('opacity', .4);
+		$("#steps").slideUp();
 		$("#congrats").slideDown();
+	} else {
+		$("#step3").slideDown();
 	}
-	
-	$("#step3").slideDown();
 }
 
 $("#email-suffix").change(emailSuffixChange);
@@ -318,9 +318,8 @@ $("#acceptstep3").click(function() {
 		return false;
 	}
 	
-	$('#step3header').text($('#step3header').text() + ' (done)').fadeTo(400, 0.4);
-	$("#step3body").slideUp();
-	$("#congrats").slideDown();
+	$('#steps').slideUp();
+	$('#congrats').slideDown();
 });
 
 $("#acceptcongrats").click(function() {

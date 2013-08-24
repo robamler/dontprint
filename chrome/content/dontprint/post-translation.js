@@ -1,5 +1,7 @@
 (function() {
 
+var Dontprint = Components.classes['@robamler.github.com/dontprint;1'].getService().wrappedJSObject;
+
 
 /**
  * This postTranslator is documented and serves as a sample for all
@@ -60,6 +62,8 @@ function arxivPostTranslator(job) {
 		// Use crop settings only as a suggestion and always force manual cropping
 		// on arXiv because the layout of the preprint may be different from
 		// the layout in the journal.
+		// TODO: make sure this doesn't overwrite settings for the journal
+		//       with remember = false in the new database schema
 		job.crop.remember = false;
 	};
 	
@@ -130,7 +134,8 @@ function getDocumentForJob(job) {
 	}
 	
 	let deferred = Promise.defer();
-	let req = new XMLHttpRequest();
+	var req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
+						.createInstance(Components.interfaces.nsIXMLHttpRequest);
 	req.open("GET", job.pageurl, true);
 	req.responseType="document";
 	req.onload = function() {

@@ -1,5 +1,6 @@
-PDFCrop = (function() {
+$(function() {
 	// Constants
+	Dontprint = Components.classes['@robamler.github.com/dontprint;1'].getService().wrappedJSObject;
 	const voidfunction = function() {};
 	const dirLength = ['width', 'height', 'width', 'height'];
 	const dirPos = ['left', 'top', 'right', 'bottom'];
@@ -26,11 +27,13 @@ PDFCrop = (function() {
 	var pagenum = 1;
 	var availw, origw, availh, origh;
 	var pdf, pdfpage;
-	var job, successCallback, failCallback, builtinJournal;
+	var job, builtinJournal;
 	var successState = false;
+	
+	init();
 
 	// private methods
-	var loadpage = function(thepagenum) {
+	function loadpage(thepagenum) {
 		if (pageloading || thepagenum < 1 || thepagenum > pagecount)
 			return false;
 	
@@ -49,9 +52,9 @@ PDFCrop = (function() {
 			refreshpage();
 		});
 		return true;
-	};
+	}
 
-	var donePageLoading = function() {
+	function donePageLoading() {
 		pageloading = false;
 		if (pageLoadingDeferred) {
 			pageLoadingDeferred = false;
@@ -59,7 +62,7 @@ PDFCrop = (function() {
 		}
 	}
 
-	var refreshpage = function() {
+	function refreshpage() {
 		if (pdfpage === undefined)
 			return;
 		if (pageloading) {
@@ -105,15 +108,15 @@ PDFCrop = (function() {
 		dpi = 72*scale;
 		for (var i=0; i<4; i++)
 			setMargin[i](inmargins[i]);
-	};
+	}
 
-	var resize = function(inPdfRendering) {
+	function resize(inPdfRendering) {
 		availw = Math.max(100, viewcontainer.offsetWidth - 380);
 		availh = Math.max(100, viewcontainer.offsetHeight - 45 - turnpagesheight);
 		refreshpage();
 	}
 
-	var begindrag = function(event, direction) {
+	function begindrag(event, direction) {
 		enddrag();
 		region.addClass('dragging');
 
@@ -127,9 +130,9 @@ PDFCrop = (function() {
 
 		dragfunction(event);
 		magnifyfunction(event)
-	};
+	}
 
-	var showMagnifier = function(event, direction) {
+	function showMagnifier(event, direction) {
 		hideMagnifier();
 		magnifyer.addClass('dir' + (direction%2));
 
@@ -148,9 +151,9 @@ PDFCrop = (function() {
 		}(direction));
 
 		magnifyfunction(event);
-	};
+	}
 
-	var hideMagnifier = function() {
+	function hideMagnifier() {
 		magnifyer.removeClass('dir0');
 		magnifyer.removeClass('dir1');
 		for (var i=0; i<4; i++) {
@@ -158,21 +161,21 @@ PDFCrop = (function() {
 			magnifycanvas.style[dirPos[i]] = "auto";
 		}
 		magnifyfunction = voidfunction;
-	};
+	}
 
-	var enddrag = function () {
+	function enddrag() {
 		if (dragfunction !== voidfunction) {
 			dragfunction = voidfunction;
 			region.removeClass('dragging');
 		}
-	};
+	}
 
-	var mousemove = function (event) {
+	function mousemove(event) {
 		dragfunction(event);
 		magnifyfunction(event)
 	}
 
-	var textChange = function(dir, block) {
+	function textChange(dir, block) {
 		var invalue = parseFloat(inputs[dir].val());
 
 		if (setMargin[dir](invalue, block)) {
@@ -182,7 +185,7 @@ PDFCrop = (function() {
 		}
 	}
 
-	var loadpdf = function(path) {
+	function loadpdf(path) {
 	//    PDFJS.disableWorker = true;
 		PDFJS.workerSrc = 'combined-pdf.js'
 		PDFJS.getDocument("file://" + path).then(function(loadedpdf) {
@@ -193,7 +196,7 @@ PDFCrop = (function() {
 		});
 	};
 
-	var startConversion = function() {
+	function startConversion() {
 		job.crop.coverpage    = $("#coverpage").prop("checked");
 		job.crop.remember     = $("#savetemplate").prop("checked");
 		job.crop.sendsettings = $("#sendsettings").prop("checked");
@@ -202,22 +205,22 @@ PDFCrop = (function() {
 		job.crop.m3           = inmargins[2];
 		job.crop.m4           = inmargins[3];
 		
-		successCallback();
+		job.cropPageDeferred.resolve();
 		successState = true;
 		window.close();
 	};
 
-	var abortConversion = function() {
+	function abortConversion() {
 		window.close();		// implicitly calls windowUnload()
 	};
 	
-	var windowUnload = function() {
+	function windowUnload() {
 		if (!successState) {
-			failCallback("canceled");;
+			job.cropPageDeferred.reject("canceled");;
 		}
 	};
 	
-	var doInit = function(theJob, theSuccessCallback, theFailCallback) {
+	function init() {
 		// Initialize DOM elements
 		region = $('#region');
 		doccontainer = $('#document-container');
@@ -234,9 +237,11 @@ PDFCrop = (function() {
 		nextbtn = $("#nextbtn");
 
 		// process parameters
-		job = theJob;
-		successCallback = theSuccessCallback;
-		failCallback = theFailCallback;
+		job = Dontprint.getRunningJobs()[location.hash.substr(1)];
+		if (!job || !job.cropPageDeferred) {
+			// tab was reloaded from session restore or after pdfcrop was already closed.
+			close();
+		}
 		$('#journalname').text(
 			job.journalShortname !== undefined ? job.journalShortname : (
 				job.journalLongname !== undefined ? job.journalLongname :
@@ -326,15 +331,5 @@ PDFCrop = (function() {
 
 		// Load the page
 		loadpdf(job.originalFilePath);
-	};
-
-	// public methods
-	return {
-		init: function(theJob, theSuccessCallback, theFailCallback)  {
-			$(function() {
-				doInit(theJob, theSuccessCallback, theFailCallback);
-			});
-		}
-	};
-}());
-
+	}
+});

@@ -1,20 +1,26 @@
 // global variables
+var Dontprint = Components.classes['@robamler.github.com/dontprint;1'].getService().wrappedJSObject;
+var listenerId = null;
 var items = {};
 var wasRemoved = {};
 var queue = null;
-var progressId = null;
-var donptrint = null;
 
-function init(jobs, aProgressId, aDontprint) {
-// 	alert(!!Dontprint);
+
+// initialization
+$(function() {
 	queue = $("#queue");
-	progressId = aProgressId;
-	dontprint = aDontprint;
 	queue.empty();
+	listenerId = Dontprint.registerProgressListener(updateJob);
+	var jobs = Dontprint.getRunningJobs();
 	for (var id in jobs) {
 		addJob(jobs[id]);
 	}
-}
+});
+
+
+$(window).unload(function() {
+	Dontprint.unregisterProgressListener(listenerId);
+});
 
 
 /**
@@ -157,7 +163,7 @@ function removeItem(jobid) {
 
 
 function abortJob(jobid) {
-	dontprint.abortJob(jobid);
+	Dontprint.abortJob(jobid);
 }
 
 

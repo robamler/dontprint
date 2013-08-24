@@ -7,3 +7,7 @@ overlay	chrome://browser/content/browser.xul	chrome://dontprint/content/overlay.
 
 component	{4194dd40-1202-4b34-8873-5afcadd700e7}		components/minimal-zotero-service.js
 contract	@robamler.github.com/minimal-zotero;1		{4194dd40-1202-4b34-8873-5afcadd700e7}
+
+component {7432b5f0-ad37-4d1d-aab9-cf0559fb75a1} components/dontprint.js
+contract @robamler.github.com/dontprint;1 {7432b5f0-ad37-4d1d-aab9-cf0559fb75a1}
+category profile-after-change Dontprint @robamler.github.com/dontprint;1

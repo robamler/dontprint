@@ -13,14 +13,14 @@
 	<!-- "Dontprint this page" icon in urlbar -->
 	<hbox id="urlbar-icons">
 		<popupset>
-			<menupopup id="dontprint-status-image-context" onpopupshowing="Dontprint.onStatusPopupShowing(event)" />
+			<menupopup id="dontprint-status-image-context" onpopupshowing="DontprintBrowser.onStatusPopupShowing(event)" />
 		</popupset>
 		<image
 			id="dontprint-status-image"
 			src="chrome://dontprint/skin/dontprint-btn/idle.png"
 			tooltiptext="&dontprint.statusimglabel;"
 			context="dontprint-status-image-context"
-			onclick="if(event.button === 0) Dontprint.dontprintThisPage();"
+			onclick="if(event.button === 0) DontprintBrowser.dontprintThisPage();"
 			position="1" hidden="true" />
 			
 		<!-- Progress indicator in urlbar is shown if the currently displayed page is currently being processed -->
@@ -29,7 +29,7 @@
 			src="chrome://dontprint/skin/dontprint-btn/idle.png"
 			tooltiptext="&dontprint.progressimglabel;"
 			context="dontprint-status-image-context"
-			onclick="if(event.button === 0) Dontprint.showProgress()"
+			onclick="if(event.button === 0) DontprintBrowser.getDontprint().showProgress()"
 			position="1" hidden="true" />
 	</hbox>
 	
@@ -38,9 +38,9 @@
 		<menuseparator insertbefore="devToolsSeparator"/>
 		<menu insertbefore="devToolsSeparator" label="Dontprint">
 			<menupopup>
-				<menuitem oncommand="Dontprint.dontprintThisPage();"  label="&dontprint.thisPageMenuItemLabel;" id="dontprint-this-page-menu-item"/>
-				<menuitem oncommand="Dontprint.showProgress();"       label="&dontprint.showProgressMenuItemLabel;"/>
-				<menuitem oncommand="Dontprint.configureDontprint();" label="&dontprint.configureMenuItemLabel;"/>
+				<menuitem oncommand="DontprintBrowser.dontprintThisPage();"  label="&dontprint.thisPageMenuItemLabel;" id="dontprint-this-page-menu-item"/>
+				<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();"       label="&dontprint.showProgressMenuItemLabel;"/>
+				<menuitem oncommand="DontprintBrowser.configureDontprint();" label="&dontprint.configureMenuItemLabel;"/>
 			</menupopup>
 		</menu>
 	</menupopup>

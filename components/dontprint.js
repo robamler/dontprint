@@ -1,16 +1,13 @@
-Dontprint = (function() {
+function Dontprint() {
 	var k2pdfoptTestTimeout;
 	var databasePath = null;
-	var dontprintThisPageImg = null;
-	var dontprintProgressImg = null;
-	var dontprintThisPageMenuItem = null;
-	var dontprintFromZoteroBtn = null;
 	var zoteroInstalled = false;
 	var queuedUrls = [];
-	var nextProgressId = 0;
-	var nextJobId = 0;
 	var runningJobs = {};
-	var progressTabs = {};
+	var progressListeners = {};
+	var queuelength = 0;
+	var prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+					.getService(Components.interfaces.nsIPromptService);
 	
 	
 	// ==== PUBLICLY VISIBLE METHODS ================================
@@ -21,6 +18,7 @@ Dontprint = (function() {
 		Components.utils.import("resource://gre/modules/Task.jsm");
 		Components.utils.import("resource://EXTENSION/subprocess.jsm");
 		Components.utils.import("resource://gre/modules/AddonManager.jsm");
+		Components.utils.import("resource://gre/modules/Timer.jsm");
 		try {
 			// Gecko >= 25
 			Components.utils.import("resource://gre/modules/Promise.jsm");
@@ -68,20 +66,7 @@ Dontprint = (function() {
 		
 		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
 						.getService(Components.interfaces.mozIJSSubScriptLoader);
-		loader.loadSubScript("chrome://dontprint/content/post-translation.js", {Dontprint: this});
-		
-		let platform = prefs.getCharPref("k2pdfoptPlatform");
-		if (platform==="unknown" || !getRecipientEmail() || !prefs.getCharPref("kindleModel")) {
-			setTimeout(function() {
-				gBrowser.loadOneTab("chrome://dontprint/content/welcome/dontprint-welcome.html", {inBackground:false});
-			}, 3000);	//TODO: this is ugly
-			//TODO: detect if tab is already open (because of session restore)
-		} else if (platform.substr(0,7)!=="unknown" && prefs.getCharPref("k2pdfoptPath") === "") {
-			// Platform has been detected but download of k2pdfopt was interrupted. Resume download silently.
-			downloadK2pdfopt();
-		}
-		
-		dontprintThisPageMenuItem = document.getElementById("dontprint-this-page-menu-item");
+		loader.loadSubScript("chrome://dontprint/content/post-translation.js");
 		
 		// Detect whether Zotero is installed and finish inialization based on that
 		AddonManager.getAddonByID("zotero@chnm.gmu.edu", function(addon) {
@@ -95,6 +80,7 @@ Dontprint = (function() {
 	
 	
 	function initWithZotero() {
+		zoteroInstalled = true;
 		// Register this extension as an extension to Zotero
 		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
 						.getService(Components.interfaces.mozIJSSubScriptLoader);
@@ -104,36 +90,6 @@ Dontprint = (function() {
 		// Load some code that was adapted from Zotero's source code and may
 		// only be loaded *after* loading Zotero's main extension logic.
 		loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/translate-dontprint.js");
-		
-		// Programmatically insert a "Dontprint" button into the Zotero pane
-		dontprintFromZoteroBtn = document.createElement("toolbarbutton");
-		dontprintFromZoteroBtn.setAttribute("id", "dontprint-tbbtn");
-		dontprintFromZoteroBtn.setAttribute("class", "zotero-tb-button");
-		dontprintFromZoteroBtn.setAttribute("tooltiptext", "Dontprint selected item(s) (send to e-reader); right-click for progress information");
-		dontprintFromZoteroBtn.addEventListener("click", function(event) {
-			if (event.button === 2) {
-				Dontprint.showProgress();
-			}
-		}, true);
-		dontprintFromZoteroBtn.addEventListener("command", dontprintSelectionInZotero, true);
-		
-		let toolbar = document.getElementById("zotero-items-toolbar");
-		let searchBtn = document.getElementById("zotero-tb-advanced-search");
-		toolbar.insertBefore(dontprintFromZoteroBtn, searchBtn);
-		toolbar.insertBefore(document.createElement("toolbarseparator"), searchBtn);
-		
-		// Inject some own code into Zotero's updateStatus() function. This function
-		// is called to show or hide the "scrape this"-icon in the address bar.
-		// We first call the original Zotero implemntation and then add our own icon.
-		var oldUpdateStatus = Zotero_Browser.updateStatus;
-		Zotero_Browser.updateStatus = function() {
-			oldUpdateStatus.apply(Zotero_Browser, arguments);
-			updateDontprintIconVisibility();
-		};
-		
-		zoteroInstalled = true;
-		
-		updateDontprintIconVisibility();
 	}
 	
 	
@@ -153,33 +109,27 @@ Dontprint = (function() {
 		
 		// Load some code that was adapted from Zotero's code and that can
 		// only be loaded *after* the the Zotero xpcom module was initialized.
-		loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/browser.js");
+		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+						.getService(Components.interfaces.mozIJSSubScriptLoader);
 		loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/translate-dontprint.js");
-		
-		// Register a listener to changes in the visibility of the "Dontprint this page" icon
-		Zotero_Browser.updateStatusCallback = updateDontprintIconVisibility;
-		updateDontprintIconVisibility();
 	}
 	
 	
-	/**
-	 * Dontprint the document represented by the current page. Use functionality
-	 * originally developed for Zotero to get the original PDF file and its meta
-	 * data. Use the specified translator, or the translator that fits best for the
-	 * current page if translator === undefined.
-	 * This function is called with translator===undefined when the user clicks the
-	 * dontprint icon in the address bar and with translator!==undefined when the
-	 * user right-clicks the dontprint icon in the address bar and picks a custom
-	 * translator.
-	 */
-	function dontprintThisPage(translator) {
-		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-		runJob({
-			title:		'Unknown title',
-			jobType:	'page',
-			translator:	translator,
-			pageurl:	tab.page.document.location.href
-		});
+	function validatePreferences() {
+		let platform = prefs.getCharPref("k2pdfoptPlatform");
+		if (platform==="unknown" || !getRecipientEmail() || !prefs.getCharPref("kindleModel")) {
+			let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+				.getService(Components.interfaces.nsIWindowMediator)
+				.getMostRecentWindow("navigator:browser").gBrowser;
+			this.welcomeScreenId = Date.now();
+			gBrowser.loadOneTab(
+				"chrome://dontprint/content/welcome/dontprint-welcome.html#" + this.welcomeScreenId,
+				{ inBackground: false }
+			);
+		} else if (platform.substr(0,7)!=="unknown" && prefs.getCharPref("k2pdfoptPath") === "") {
+			// Platform has been detected but download of k2pdfopt was interrupted. Resume download silently.
+			downloadK2pdfopt();
+		}
 	}
 	
 	
@@ -204,11 +154,9 @@ Dontprint = (function() {
 	/**
 	 * Called when the user clicks the dontprint button in the Zotero pane.
 	 */
-	function dontprintSelectionInZotero() {
-		var selectedItems = ZoteroPane.getSelectedItems();
-		
+	function dontprintZoteroItems(items) {
 		// delete duplicates (e.g., if user selects both an attachment and its parent)
-		var entryIds = selectedItems.map(function(i) {
+		var entryIds = items.map(function(i) {
 			return i.getSource() || i.id;
 		});
 		var uniqueEntryIds = entryIds.filter(function(elem, pos, self) {
@@ -251,7 +199,7 @@ Dontprint = (function() {
 			return elem.originalFilePath === undefined;
 		});
 		if (noattach.length) {
-			alert("The following selected items cannot be sent to your e-reader because they do not have an attached PDF file:\n\n" +
+			prompts.alert(null, "Dontprint", "The following selected items cannot be sent to your e-reader because they do not have an attached PDF file:\n\n" +
 				noattach.map(function(elem) { return elem.title; }).join("\n"));
 		}
 		
@@ -259,11 +207,14 @@ Dontprint = (function() {
 			return elem.originalFilePath !== undefined;
 		});
 		if (jobs.length == 0) {
-			alert("No documents sent to your e-reader. Select an item with an attached PDF file and try again.");
+			prompts.alert(null, "Dontprint", "No documents sent to your e-reader. Select an item with an attached PDF file and try again.");
 			return;
 		}
 		
-		jobs.forEach(runJob);
+		let that = this;
+		jobs.forEach(function(job) {
+			runJob.call(that, job);
+		});
 	}
 	
 	
@@ -292,46 +243,37 @@ Dontprint = (function() {
 		let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 			.getService(Components.interfaces.nsIWindowMediator)
 			.getMostRecentWindow("navigator:browser").gBrowser;
-		let newTabBrowser = gBrowser.getBrowserForTab(
-			gBrowser.loadOneTab("chrome://dontprint/content/progress/progress.html", {inBackground:false})
+		gBrowser.loadOneTab(
+			"chrome://dontprint/content/progress/progress.html",
+			{ inBackground: false }
 		);
-		
-		newTabBrowser.addEventListener("load", function () {
-			newTabBrowser.contentWindow.init(runningJobs, nextProgressId, Dontprint);
-			progressTabs[nextProgressId++] = newTabBrowser;
-		}, true);
 	}
 	
 	
 	/**
-	 * Called when the user right-clicks the dontprint-icon in the address bar.
-	 * Show a list of available translators to dontprint the document represented
-	 * by the current page.
+	 * Registeres a listener function that will be called whenever the state
+	 * of any job changes.
+	 * @param listener The listener function. It will be called with the
+	 *                 job whose state changed as an argument.
+	 * @return A unique id representing this progress listener. Use this id
+	 *         as an argument to unregisterProgressListener() when you want
+	 *         to stop receiving notifications.
 	 */
-	function onStatusPopupShowing(e) {
-		var popup = e.target;
-		while (popup.hasChildNodes())
-			popup.removeChild(popup.lastChild);
-		
-		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-		var translators = tab.page.translators;
-		for (var i=0, n=translators.length; i<n; i++) {
-			let translator = translators[i];
-			
-			let menuitem = document.createElement("menuitem");
-			menuitem.setAttribute("label", "Dontprint document using " + translator.label + (i===0 ? " (recommended)" : ""));
-			menuitem.setAttribute("class", "menuitem-iconic");
-			menuitem.addEventListener("command", function(e) {
- 				dontprintThisPage(translator);
-			}, false);
-			popup.appendChild(menuitem);
+	function registerProgressListener(listener) {
+		let listenerId = Date.now();
+		while (listenerId in progressListeners) {
+			listenerId++;
 		}
-		
-		let menuitem = document.createElement("menuitem");
-		menuitem.setAttribute("label", "Show progress of currently running Donptrint jobs");
-		menuitem.addEventListener("command", showProgress, false);
-		popup.appendChild(document.createElement("menuseparator"));
-		popup.appendChild(menuitem);
+		progressListeners[listenerId] = listener;
+		return listenerId;
+	}
+	
+	
+	/**
+	 * Removes a listener previously registered with registerProgressListener().
+	 */
+	function unregisterProgressListener(listenerId) {
+		delete progressListeners[listenerId];
 	}
 	
 	
@@ -407,15 +349,6 @@ Dontprint = (function() {
 	}
 	
 	
-	function configureDontprint() {
-		window.openDialog(
-			'chrome://dontprint/content/options/options.xul',
-			'dontprint-prefs',
-			'chrome,titlebar,toolbar,dialog=yes'
-		).focus();  // focus the window if it was already open
-	}
-	
-	
 	function getRecipientEmail() {
 		let suffix = prefs.getCharPref("recipientEmailSuffix");
 		if (suffix === "other") {
@@ -430,6 +363,12 @@ Dontprint = (function() {
 	// ==== LIFE CYCLE OF A DONTPRINT JOB ===========================
 	
 	function runJob(job) {
+		job.id = Date.now();
+		while (job.id in runningJobs) {
+			job.id++;
+		}
+		runningJobs[job.id] = job;
+		
 		job.cleanup = function() {
 			if (!job.cleaned) {
 				job.cleaned = true;
@@ -441,12 +380,12 @@ Dontprint = (function() {
 		
 		// show progress indicator
 		incrementQueueLength(+1, job.jobType==='page' ? job.pageurl : undefined);
-		job.id = nextJobId++;
 		job.downloadProgress = 0;
 		job.convertProgress = 0;
 		job.uploadProgress = 0;
-		runningJobs[job.id] = job;
 		updateJobState(job, "queued");
+		
+		let that = this;
 		
 		Task.spawn(function() {
 			var newtab = null;
@@ -458,7 +397,7 @@ Dontprint = (function() {
 				}
 				
 				if (job.jobType !== 'test') {
-					yield cropMargins(job);
+					yield cropMargins.call(that, job);
 					if (job.crop.sendsettings) {
 						yield reportJournalSettings(job);
 					}
@@ -501,8 +440,7 @@ Dontprint = (function() {
 	function grabOriginalFileForCurrentTab(job) {
 		updateJobState(job, "downloading");
 		
-		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-		if (!tab || !tab.page.translators || !tab.page.translators.length) {
+		if (!job.tab || !job.tab.page.translators || !job.tab.page.translators.length) {
 			throw "No translators available for this web site.";
 		}
 		
@@ -510,11 +448,12 @@ Dontprint = (function() {
 		pdfFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 		
 		var translate = new Zotero.Translate.Dontprint();
-		job.document = tab.page.translate.document;
-		translate.setDocument(tab.page.translate.document);
+		job.document = job.tab.page.translate.document;
+		translate.setDocument(job.tab.page.translate.document);
 		translate.setDestFile(pdfFile);
-		translate.setTranslator(job.translator || tab.page.translators[0]);
+		translate.setTranslator(job.translator || job.tab.page.translators[0]);
 		delete job.translator;		// avoid memory leak
+		delete job.tab;
 		translate.clearHandlers("done");
 		translate.clearHandlers("itemDone");
 		
@@ -655,7 +594,7 @@ Dontprint = (function() {
 	function cropMargins(job) {
 		updateJobState(job, "cropping");
 		
-		yield Dontprint.postTranslate(job);
+		yield this.postTranslate(job);
 		
 		try {
 			var conn = yield Sqlite.openConnection({path: databasePath});
@@ -690,38 +629,26 @@ Dontprint = (function() {
 		delete job.document;
 		
 		if (sqlresult.length === 0 || !job.crop.remember) {
+			job.cropPageDeferred = Promise.defer();
+			
 			let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 				.getService(Components.interfaces.nsIWindowMediator)
 				.getMostRecentWindow("navigator:browser").gBrowser;
-			let newTabBrowser = gBrowser.getBrowserForTab(
-				gBrowser.loadOneTab("chrome://dontprint/content/pdfcrop/pdfcrop.html", {inBackground:false})
-			);
-			
- 			let deferred = Promise.defer();
-			let onloadfunction = function () {
-				// remove event listener because otherwise refreshing pdfCrop will reload a rejected job
-				newTabBrowser.removeEventListener("load", onloadfunction, true);
-				
-				// Wrap callbacks in a setTimeout to make sure that execution after the
-				// next yield operator doesn't block the closing of the PDFCrop tab.
-				newTabBrowser.contentWindow.PDFCrop.init(
-					job,
-					function() {setTimeout(deferred.resolve, 0);},
-					function(reason) {setTimeout(function() {deferred.reject(reason);}, 0);}
-				);
-			};
-			newTabBrowser.addEventListener("load", onloadfunction, true);
+			let newTabBrowser = gBrowser.getBrowserForTab(gBrowser.loadOneTab(
+				"chrome://dontprint/content/pdfcrop/pdfcrop.html#" + job.id,
+				{ inBackground: false }
+			));
 			
 			job.abortCurrentTask = function() {
-				// Setting job.abortCurrentTask = newTabBrowser.contentWindow.close
-				// won't work. With this function wrapper, it works.
 				newTabBrowser.contentWindow.close();
-				deferred.reject();
+				job.cropPageDeferred.reject("canceled");
 			};
+			
 			try {
-				yield deferred.promise;
+				yield job.cropPageDeferred.promise;
 			} finally {
 				delete job.abortCurrentTask;
+				delete job.cropPageDeferred;
 			}
 			
 			if (!job.crop.builtin) {//FIXME: why don't allow to overwrit builtin?
@@ -750,7 +677,6 @@ Dontprint = (function() {
 						]);
 					}
 				} catch (e) {
-					alert(e.toString());
 					// ignore errors
 				} finally {
 					yield conn2.close();
@@ -931,7 +857,7 @@ Dontprint = (function() {
 		// Wait for the page to load. This cannot be done with an onload handler because the
 		// content of the iframe is dynamically set by some JavaScript generated by Google.
 		let deferred = Promise.defer();
-		let interval = setInterval(function() {
+		let interval = tabBrowser.contentWindow.setInterval(function() {
 			if (
 				tabBrowser.contentWindow.frames.length === 1 &&
 				tabBrowser.contentWindow.frames[0].document.getElementsByName("dontprint-authtoken").length === 1 &&
@@ -940,8 +866,20 @@ Dontprint = (function() {
 				deferred.resolve();
 			}
 		}, 100);
-		yield deferred.promise;
-		clearInterval(interval);
+		let timeout = setTimeout(function() {
+			deferred.reject("Timeout trying to connect to sendmail app.");
+		}, 60000); // 1 minute
+		job.abortCurrentTask = function() {
+			deferred.reject("canceled");
+		};
+		
+		try {
+			yield deferred.promise;
+		} finally {
+			clearTimeout(timeout);
+			tabBrowser.contentWindow.clearInterval(interval);
+			delete job.abortCurrentTask;
+		}
 		
 		job.authtoken = tabBrowser.contentWindow.frames[0].document.getElementsByName("dontprint-authtoken")[0].value;
 		
@@ -1037,12 +975,9 @@ Dontprint = (function() {
 	function displayResult(job, newtab) {
 		job.result.errorOperation = job.state;
 		updateJobState(job, job.result.error ? "error" : "success");
-		var url = "chrome://dontprint/content/sendmail/" + job.state + ".html";
+		var url = "chrome://dontprint/content/sendmail/" + job.state + ".html#" + job.id;
 		deferred = Promise.defer();
-		let onloadFunction = function() {
-			newtab.tabBrowser.contentWindow.initDisplay(job);
-			deferred.resolve();
-		}
+		job.resultPageCallback = deferred.resolve;
 		
 		if (newtab === null) {
 			// Open new tab
@@ -1050,13 +985,10 @@ Dontprint = (function() {
 				.getService(Components.interfaces.nsIWindowMediator)
 				.getMostRecentWindow("navigator:browser").gBrowser;
 			let tab = gBrowser.loadOneTab(url, {inBackground: !job.result.error});
-			let tabBrowser = gBrowser.getBrowserForTab(tab);
-			tabBrowser.addEventListener("load", onloadFunction, true);
-			newtab = {gBrowser:gBrowser, tab: tab, tabBrowser: tabBrowser};
+			newtab = {gBrowser:gBrowser, tab: tab};
 		} else {
 			// reuse existing tab
 			newtab.tab.removeEventListener("TabClose", job.onUploadClose, true);
-			newtab.tabBrowser.addEventListener("load", onloadFunction, true);
 			newtab.tabBrowser.loadURIWithFlags(url, newtab.tabBrowser.webNavigation.LOAD_FLAGS_REPLACE_HISTORY);
 		}
 		
@@ -1070,8 +1002,11 @@ Dontprint = (function() {
 			updateJobState(job);
 		}
 		
-		yield deferred.promise;
-		newtab.tabBrowser.removeEventListener("load", onloadFunction, true);
+		try {
+			yield deferred.promise;
+		} finally {
+			delete job.resultPageCallback;
+		}
 		
 		if (job.result.error && newtab.tab !== undefined) {
 			newtab.gBrowser.selectedTab = newtab.tab;
@@ -1106,49 +1041,6 @@ Dontprint = (function() {
 	}
 	
 	
-	function updateDontprintIconVisibility() {
-		var tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-		
-		var showDontprintIcon = false;
-		if (tab && tab.page.translators && tab.page.translators.length) {
-			var itemType = tab.page.translators[0].itemType;
-			if (itemType !== "multiple") {		//TODO: implement itemType === "multiple"
-				showDontprintIcon = true;
-			}
-		}
-		
-		var alreadyProcessing = showDontprintIcon && queuedUrls.indexOf(tab.page.document.location.href) !== -1;
-		
-		dontprintThisPageMenuItem.disabled = !(showDontprintIcon && !alreadyProcessing);
-		
-		try {
-			dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
-			dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
-		} catch (e) {
-			// reset dontprintThisPageImg and dontprintProgressImg
-			// because tabs without urlbar apparently invalidate them
-			dontprintThisPageImg   = document.getElementById("dontprint-status-image");
-			dontprintProgressImg   = document.getElementById("dontprint-progress-image");
-			try {
-				dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
-				dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
-			} catch (e) {
-				// ignore
-			}
-		}
-	}
-	
-	/*
-	 * Gets a data object given a browser window object
-	 */
-	function _getTabObject(browser) {
-		if(!browser) return false;
-		if(!browser.zoteroBrowserData) {
-			browser.zoteroBrowserData = new Zotero_Browser.Tab(browser);
-		}
-		return browser.zoteroBrowserData;
-	}
-	
 	/**
 	 * return value if value isn't undefined; otherwise, return defaultTo or empty string
 	 */
@@ -1157,55 +1049,28 @@ Dontprint = (function() {
 	}
 	
 	
-	var incrementQueueLength = (function() {
-		// local variables
-		var queuelength = 0;
-		var timer = null;
-		var state = 0;
+	function incrementQueueLength(inc, url) {
+		if (url !== undefined) {
+			if (inc > 0) {
+				queuedUrls.push(url);
+			} else if (inc < 0) {
+				var index = queuedUrls.indexOf(url);
+				if (index !== -1) {
+					queuedUrls.splice(index, 1);
+				}
+			}
+		}
 		
-		// the actual function "incrementQueueLength(inc, url)"
-		return function(inc, url) {
-			clearInterval(timer);
-			
-			if (url !== undefined) {
-				if (inc > 0) {
-					queuedUrls.push(url);
-				} else if (inc < 0) {
-					var index = queuedUrls.indexOf(url);
-					if (index !== -1) {
-						queuedUrls.splice(index, 1);
-					}
-				}
-				updateDontprintIconVisibility();
-			}
-			
-			queuelength = Math.max(0, queuelength+inc);
-			
-			if (queuelength === 0) {
-				if (zoteroInstalled) {
-					dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/idle.png')";
-				}
-				if (dontprintProgressImg) {
-					dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/idle.png";
-				}
-			} else {
-				var len = Math.min(10, queuelength);
-				var timerfunc = function() {
-					if (zoteroInstalled) {
-						dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png')";
-					}
-					if (dontprintProgressImg) {
-						dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/"+len+("ab"[state])+".png";
-					}
-					state = (state+1)%2;
-				};
-				timerfunc();
-				timer = setInterval(timerfunc, 2000);
-			}
-			
-			return queuelength;
-		};
-	}());
+		queuelength = Math.max(0, queuelength+inc);
+		
+		let enumerator = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+						.getService(Components.interfaces.nsIWindowMediator)
+						.getEnumerator("navigator:browser");
+		
+		while (enumerator.hasMoreElements()) {
+			enumerator.getNext().DontprintBrowser.updateQueueLength(queuelength);
+		}
+	}
 	
 	
 	function buildURL(main, params) {
@@ -1231,13 +1096,13 @@ Dontprint = (function() {
 		}
 		
 		setTimeout(function() {
-			for (let i in progressTabs) {
+			for (let i in progressListeners) {
 				try {
-					progressTabs[i].contentWindow.updateJob(job);
+					progressListeners[i](job);
 				} catch (e) {
-					// apparently, progressTab has been closed;
-					// TODO: may I change progressTabs in this loop?
-					delete progressTabs[i];
+					// apparently, progressTab has been closed without unregistering the listener
+					// TODO: may I change progressListeners in this loop?
+					delete progressListeners[i];
 				}
 			}
 		}, 0);
@@ -1319,27 +1184,70 @@ Dontprint = (function() {
 
 	
 	
-	// ==== RETURN PUBLICLY VISIBLE METHODS =========================
+	// ==== EXPORT PUBLICLY VISIBLE METHODS =========================
 	
-	return {
+	this.wrappedJSObject = {
 		init: init,
-		dontprintSelectionInZotero: dontprintSelectionInZotero,
-		onStatusPopupShowing: onStatusPopupShowing,
-		dontprintThisPage: dontprintThisPage,
-		showProgress: showProgress,
+		validatePreferences: validatePreferences,
+		dontprintZoteroItems: dontprintZoteroItems,
+		runJob: runJob,
 		abortJob: abortJob,
+		showProgress: showProgress,
+		registerProgressListener: registerProgressListener,
+		unregisterProgressListener: unregisterProgressListener,
 		downloadK2pdfopt: downloadK2pdfopt,
 		detectK2pdfoptVersion: detectK2pdfoptVersion,
 		sendTestEmail: sendTestEmail,
-		configureDontprint: configureDontprint,
 		getRecipientEmail: getRecipientEmail,
 		compareVersionStrings: compareVersionStrings,
 		getPrefs: function() {return prefs;},
 		deleteFile: deleteFile,
-		reportScreenSettings: reportScreenSettings
+		reportScreenSettings: reportScreenSettings,
+		isZoteroInstalled: function() { return zoteroInstalled; },
+		isQueuedUrl: function(url) { return queuedUrls.indexOf(url) !== -1; },
+		getRunningJobs: function() { return runningJobs; }
 	};
-}());
+}
 
 
-// Initialize the utility
-window.addEventListener('load', function(e) { Dontprint.init(); }, false);
+const os = Components.classes["@mozilla.org/observer-service;1"]
+			.getService(Components.interfaces.nsIObserverService);
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+
+// Define XPCOM component
+Dontprint.prototype = {
+	classDescription:	"Singleton service for Dontprint add-on for Firefox",
+	classID:			Components.ID("{7432b5f0-ad37-4d1d-aab9-cf0559fb75a1}"),
+	contractID:			"@robamler.github.com/dontprint;1",
+	_xpcom_categories:	[{ category: "app-startup", service: true }],  /* for toolkit before 2.0 (Fx 4.0) */
+	QueryInterface:		XPCOMUtils.generateQI([Components.interfaces.nsIObserver]),
+	
+	// initialization
+	observe: function (aSubject, aTopic, aData) {
+		switch (aTopic) {
+		case "app-startup":  /* for toolkit before 2.0 (Fx 4.0) */
+			os.addObserver(this, "profile-after-change", false);
+			break;
+		
+		case "profile-after-change":
+			os.addObserver(this, "browser-delayed-startup-finished", false);
+			this.wrappedJSObject.init();
+			break;
+		
+		case "browser-delayed-startup-finished":
+			os.removeObserver(this, "browser-delayed-startup-finished");
+			this.wrappedJSObject.validatePreferences();
+			break;
+		}
+	}
+};
+
+// Register component
+if ("generateNSGetFactory" in XPCOMUtils) {
+	// Firefox 4.0 and higher
+	var NSGetFactory = XPCOMUtils.generateNSGetFactory([Dontprint]);
+} else {
+	// Firefox 3.x
+	var NSGetModule = XPCOMUtils.generateNSGetModule([Dontprint]);
+}

@@ -1,6 +1,4 @@
-var Dontprint = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-				.getService(Components.interfaces.nsIWindowMediator)
-				.getMostRecentWindow("navigator:browser").Dontprint;
+var Dontprint = Components.classes['@robamler.github.com/dontprint;1'].getService().wrappedJSObject;
 var k2pdfoptInstalledVersion = "0";
 var k2pdfoptNewVersion = "0";
 var platform = Dontprint.getPrefs().getCharPref("k2pdfoptPlatform");
