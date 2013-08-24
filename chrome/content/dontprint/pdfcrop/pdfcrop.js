@@ -20,8 +20,8 @@ $(function() {
 	var setMargin = [0,0,0,0];
 	var dragfunction = voidfunction;
 	var magnifyfunction = voidfunction;
-	var dpi = 1;
-	var inmargins = [0,0,0,0];
+	var dpmm = 1;
+	var mmmargins = [0,0,0,0];
 	var pxdimensions = [0,0];
 	var pagecount = 0;
 	var pagenum = 1;
@@ -105,14 +105,14 @@ $(function() {
 				donePageLoading();
 		});
 
-		dpi = 72*scale;
+		dpmm = 72/25.4*scale;
 		for (var i=0; i<4; i++)
-			setMargin[i](inmargins[i]);
+			setMargin[i](mmmargins[i]);
 	}
 
 	function resize(inPdfRendering) {
-		availw = Math.max(100, viewcontainer.offsetWidth - 380);
-		availh = Math.max(100, viewcontainer.offsetHeight - 45 - turnpagesheight);
+		availw = Math.max(100, viewcontainer.offsetWidth - 390);
+		availh = Math.max(100, viewcontainer.offsetHeight - 55 - turnpagesheight);
 		refreshpage();
 	}
 
@@ -124,7 +124,7 @@ $(function() {
 		dragfunction = (function(dir) {
 			return function(event) {
 				var pxvalue = Math.max(0, dirFactor[dir] * (event[dirMousecoord[dir]] - dirReference[dir]));
-				setMargin[dir](pxvalue/dpi);
+				setMargin[dir](pxvalue/dpmm);
 			};
 		}(direction));
 
@@ -139,10 +139,10 @@ $(function() {
 		// resetting the magnifyfunction in begindrag() avoids lookups in arrays[dir] each time dragfunction is called
 		magnifyfunction = (function(dir) {
 			return function(event) {
-				var pxvalue = inmargins[dir]*dpi;
+				var pxvalue = mmmargins[dir]*dpmm;
 				var pxvalue2 = Math.max(0, dirFactor[(dir+1)%2] * (event[dirMousecoord[(dir+1)%2]] - dirReference[(dir+1)%2]));
-				var pos2 = pxvalue2-85;
-				if (pos2 < -5)  pos2 += 100;
+				var pos2 = pxvalue2-115;
+				if (pos2 < -5 || dir%2===1)  pos2 += 130;
 				magnifyer.css(dirPos[dir], pxvalue-75);
 				magnifyer.css(dirPos[(dir+1)%2], pos2);
 				magnifycanvas.style[dirPos[dir]] = 75-3*pxvalue + "px";
@@ -176,13 +176,8 @@ $(function() {
 	}
 
 	function textChange(dir, block) {
-		var invalue = parseFloat(inputs[dir].val());
-
-		if (setMargin[dir](invalue, block)) {
-			inputs[dir].removeClass("invalid");
-		} else {
-			inputs[dir].addClass("invalid");
-		}
+		var mmvalue = parseFloat(inputs[dir].val().trim().replace(",", "."));
+		setMargin[dir](mmvalue, block);
 	}
 
 	function loadpdf(path) {
@@ -192,33 +187,85 @@ $(function() {
 			pdf = loadedpdf;
 			pagecount = pdf.numPages;
 			pagecountDisplay.text(pagecount);
+			$('#pageend').val(pagecount);
 			loadpage(1);
 		});
-	};
+	}
 
 	function startConversion() {
-		job.crop.coverpage    = $("#coverpage").prop("checked");
-		job.crop.remember     = $("#savetemplate").prop("checked");
-		job.crop.sendsettings = $("#sendsettings").prop("checked");
-		job.crop.m1           = inmargins[0];
-		job.crop.m2           = inmargins[1];
-		job.crop.m3           = inmargins[2];
-		job.crop.m4           = inmargins[3];
+		if ($("#pagerange").prop("checked")) {
+			job.crop.pagerange = $("#pagestart").val().trim() + "-" + $("#pageend").val().trim()
+			job.prohibitSaveJournalSettings = true;
+		}
+		job.crop.enabled        = $("#savetemplate").prop("checked");
+		job.crop.coverpage      = $("#coverpage").prop("checked");
+		job.crop.k2pdfoptParams = $("#additionalParamsCheckbox").prop("checked") ? $("#k2pdfoptParams").val().trim() : "";
+		job.crop.sendsettings   = $("#sendsettings").prop("checked") && $("#savetemplate").prop("checked") && !job.prohibitSaveJournalSettings;
+		job.crop.m1             = mmmargins[0];
+		job.crop.m2             = mmmargins[1];
+		job.crop.m3             = mmmargins[2];
+		job.crop.m4             = mmmargins[3];
 		
 		job.cropPageDeferred.resolve();
 		successState = true;
 		window.close();
-	};
+	}
 
 	function abortConversion() {
 		window.close();		// implicitly calls windowUnload()
-	};
+	}
 	
 	function windowUnload() {
 		if (!successState) {
-			job.cropPageDeferred.reject("canceled");;
+			job.cropPageDeferred.reject("canceled");
 		}
-	};
+	}
+	
+	function showPrivacyTooltip() {
+		if (!this.href) {
+			// link is disabled
+			return false;
+		}
+		
+		var tooltip = $('#privacyTooltip');
+		tooltip.css('visibility', 'hidden');
+		
+		$('#tooltipTitle').text(job.title);
+		$('#tooltipJournal').text(
+			job.crop.longname ? (
+				job.crop.shortname ? job.crop.longname + ' (' + job.crop.shortname + ')'
+				: job.crop.longname
+			) : job.crop.shortname
+		);
+		$('#tooltipDoi').text(job.doi ? job.doi : "(unknown)");
+		$('#tooltipWebsite').text(Dontprint.getHostFromUrl(job.pageurl));
+		$('#tooltipDate').text(job.articleDate);
+		$('#tooltipMargins').text(mmmargins.map(function(val) {
+			return val.toFixed(1) + "mm";
+		}).join(", "));
+		$('#tooltipPages').text($("#coverpage").prop("checked") ? "All but first page" : "All pages");
+		var params = $("#additionalParamsCheckbox").prop("checked") ? $("#k2pdfoptParams").val().trim() : "";
+		$('#tooltipParameters').text(params ? params : "(none)");
+		
+		tooltip.show();
+		var box = $('#sendsettings');
+		var off = box.offset();
+		tooltip.offset({
+			left: off.left + box.outerWidth()/2 - tooltip.outerWidth() + 45,
+			top:  off.top - tooltip.outerHeight()+10
+		});
+		
+		tooltip.hide();
+		tooltip.css('visibility', 'visible');
+		tooltip.fadeIn();
+		$('#overlay').fadeIn();
+		
+		return false;
+	}
+	
+	function hidePrivacyTooltip() {
+		$('#privacyTooltip,#overlay').fadeOut();
+	}
 	
 	function init() {
 		// Initialize DOM elements
@@ -239,42 +286,57 @@ $(function() {
 		// process parameters
 		job = Dontprint.getRunningJobs()[location.hash.substr(1)];
 		if (!job || !job.cropPageDeferred) {
-			// tab was reloaded from session restore or after pdfcrop was already closed.
+			// tab was reloaded from session restore or reopened after it was already closed.
 			close();
 		}
-		$('#journalname').text(
-			job.journalShortname !== undefined ? job.journalShortname : (
-				job.journalLongname !== undefined ? job.journalLongname :
-					'unknown journal'
-		));
-
+		
 		// set presets
-		builtinJournal = job.crop.builtin;
-		if (job.crop.builtin) $('#remember-display').hide();//FIXME: remove
-		else $('#savetemplate').prop("checked", job.crop.remember);
+		document.title = "Dontprint: " + job.title;
+		builtinJournal = job.crop.id < 0;
+		if (job.crop.coverpage) {
+			$("#coverpage").prop("checked", true);
+		} else {
+			$("#allpages").prop("checked", true);
+		}
 		$("#coverpage").prop("checked", job.crop.coverpage);
+		$("#pagestart").val("1");
 		for (var i=1; i<=4; i++) {
-			inmargins[i-1] = parseFloat(job.crop['m'+i]);
+			mmmargins[i-1] = parseFloat(job.crop['m'+i]);
+		}
+		
+		if (!job.crop.longname && !job.crop.shortname) {
+			job.prohibitSaveJournalSettings = true;
 		}
 		if (job.prohibitSaveJournalSettings) {
 			$("#remember-display,#sendsettings-display").hide();
 			$("#savetemplate,#sendsettings").prop("checked", false);
+		} else {
+			$('#journalname').text(job.crop.shortname ? job.crop.shortname : job.crop.longname);
+			$('#savetemplate').prop("checked", job.crop.rememberPreset);
+			$("#sendsettings").prop("checked", true).prop("disabled", !job.crop.rememberPreset);
+			$("#sendsettings-display").css("opacity", job.crop.rememberPreset ? 1 : 0.3);
+			if (!job.crop.rememberPreset) {
+				$('#privacyLink').removeAttr('href');
+			}
 		}
-
+		$('#additionalParamsCheckbox').prop("checked", job.crop.k2pdfoptParams!=="");
+		$('#k2pdfoptParams').prop("disabled", job.crop.k2pdfoptParams==="").val(job.crop.k2pdfoptParams);
+		
 		// Set up event handlers
 		// This hack avoids lookups in the arrays[direction] each time dragfunction is called.
 		for (var i=0; i<4; i++) {
 			setMargin[i] = (function(direction) {
-				return function(invalue, blocktext) {
-					var pxvalue = dpi*invalue;
-					if (isNaN(pxvalue) || pxvalue<0 || pxvalue + dpi*inmargins[(direction+2)%4] > pxdimensions[direction%2]-70) {
+				return function(mmvalue, blocktext) {
+					var pxvalue = dpmm*mmvalue;
+					if (isNaN(pxvalue) || pxvalue<0 || pxvalue + dpmm*mmmargins[(direction+2)%4] > pxdimensions[direction%2]-70) {
 						return false;
 					}
 					margins[direction].css(dirLength[direction], pxvalue);
-					inmargins[direction] = invalue;
+					mmmargins[direction] = mmvalue;
 					region.css(dirPos[direction], pxvalue);
-					if (!blocktext)
-						inputs[direction].val(invalue.toFixed(2));
+					if (!blocktext) {
+						inputs[direction].val(mmvalue.toFixed(1));
+					}
 					return true;
 				};
 			}(i));
@@ -325,6 +387,46 @@ $(function() {
 
 		$("#startbtn").click(startConversion);
 		$("#abortbtn").click(abortConversion);
+		$("#allpages,#coverpage").click(function() {
+			$("#pagestart,#pageend").prop("disabled", true);
+			$("#savetemplate").prop("disabled", false);
+			$("#remember-display").css("opacity", 1);
+			$("#sendsettings").prop("disabled", !$("#savetemplate").prop("checked"));
+			$("#sendsettings-display").css("opacity", $("#savetemplate").prop("checked") ? 1 : 0.3);
+			if ($("#savetemplate").prop("checked")) {
+				$('#privacyLink').attr('href', '#');
+			} else {
+				$('#privacyLink').removeAttr('href');
+			}
+		});
+		$("#pagerange").click(function() {
+			$("#pagestart,#pageend").prop("disabled", false);
+			$("#pagestart").focus();
+			$("#pagestart").get(0).setSelectionRange(0, $("#pagestart").val().length);
+			$("#savetemplate").prop("disabled", true);
+			$("#remember-display").css("opacity", 0.3);
+			$("#sendsettings").prop("disabled", true);
+			$("#sendsettings-display").css("opacity", 0.3);
+			$('#privacyLink').removeAttr('href');
+		});
+		$("#savetemplate").click(function() {
+			$("#sendsettings").prop("disabled", !this.checked);
+			$("#sendsettings-display").css("opacity", this.checked ? 1 : 0.3);
+			if (this.checked) {
+				$('#privacyLink').attr('href', '#');
+			} else {
+				$('#privacyLink').removeAttr('href');
+			}
+		});
+		$("#additionalParamsCheckbox").click(function() {
+			$("#k2pdfoptParams").prop("disabled", !this.checked);
+			if (this.checked) {
+				var paramsTextLen = $("#k2pdfoptParams").focus().val().length;
+				$("#k2pdfoptParams").get(0).setSelectionRange(paramsTextLen, paramsTextLen);
+			}
+		});
+		$("#privacyLink").click(showPrivacyTooltip);
+		$("#overlay,#closePrivacyTooltip").click(hidePrivacyTooltip);
 		$(window).unload(windowUnload);
 
 		resize();

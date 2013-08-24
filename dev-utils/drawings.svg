@@ -13,7 +13,7 @@
    height="297mm"
    id="svg2"
    version="1.1"
-   inkscape:version="0.48.3.1 r9886"
+   inkscape:version="0.48.4 r9939"
    sodipodi:docname="drawings.svg">
   <defs
      id="defs4">
@@ -219,9 +219,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.49497475"
-     inkscape:cx="-460.07136"
-     inkscape:cy="1081.227"
+     inkscape:zoom="2.8"
+     inkscape:cx="-15.90569"
+     inkscape:cy="691.92681"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -274,18 +274,6 @@
        inkscape:export-xdpi="11"
        inkscape:export-ydpi="11" />
     <g
-       id="g5500"
-       style="fill:#671010;fill-opacity:1"
-       inkscape:export-filename="/home/robamler/Documents/scripting/pdfcrop/magnifyarrow0.png"
-       inkscape:export-xdpi="70.220001"
-       inkscape:export-ydpi="70.220001">
-      <path
-         style="font-size:medium;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:start;text-decoration:none;line-height:normal;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:start;baseline-shift:baseline;color:#000000;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.29999995000000013;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Sans;-inkscape-font-specification:Sans;filter:url(#filter5546)"
-         d="m 128.90625,463.03125 c 1.48778,3.29679 -8.34003,0.27868 -10.8125,1.3125 3.4135,-4.69516 5.8884,-8.17993 -1.59375,-4.25 -7.21425,2.72331 -13.42487,4.65378 -20.21875,7.40625 8.71715,3.18433 17.42173,6.40296 26.125,9.625 -2.6716,-3.54741 -7.25371,-8.44736 0.6875,-6.5 7.78887,-1.64724 6.79177,1.5985 2.28125,6.40625 8.99592,-3.43171 17.6252,-6.1964 26.0625,-9.5625 -8.69905,-3.20526 -17.40125,-6.40199 -26.09375,-9.625 1.1875,1.72917 2.375,3.45833 3.5625,5.1875 z"
-         id="path5498"
-         inkscape:connector-curvature="0" />
-    </g>
-    <g
        id="g5396"
        transform="translate(1.894036,7.0710678)"
        inkscape:export-filename="/home/robamler/Documents/scripting/pdfcrop/magnifyarrow0.png"
@@ -305,15 +293,34 @@
        inkscape:export-filename="/home/robamler/Documents/scripting/pdfcrop/magnifyarrow0.png"
        inkscape:export-xdpi="57.27"
        inkscape:export-ydpi="57.27" />
-    <path
-       style="fill:none;stroke:#1e5800;stroke-width:2.29999995;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-start:url(#arrow2mstartgreen);marker-end:url(#arrow2mendgreen)"
-       d="m 105.1407,467.48386 37.45852,0"
-       id="path3006-2"
-       inkscape:connector-curvature="0"
-       inkscape:export-filename="/home/robamler/Documents/scripting/pdfcrop/magnifyarrow0.png"
-       inkscape:export-xdpi="57.27"
-       inkscape:export-ydpi="57.27"
-       sodipodi:nodetypes="cc" />
+    <g
+       id="g3030"
+       style="opacity:0.7"
+       inkscape:export-filename="/home/robamler/Documents/scripting/dontprint/chrome/content/dontprint/pdfcrop/magnifyarrow.png"
+       inkscape:export-xdpi="84.769997"
+       inkscape:export-ydpi="84.769997">
+      <g
+         inkscape:export-ydpi="70.220001"
+         inkscape:export-xdpi="70.220001"
+         inkscape:export-filename="/home/robamler/Documents/scripting/pdfcrop/magnifyarrow0.png"
+         style="fill:#671010;fill-opacity:1"
+         id="g5500">
+        <path
+           inkscape:connector-curvature="0"
+           id="path5498"
+           d="m 128.90625,463.03125 c 1.48778,3.29679 -8.34003,0.27868 -10.8125,1.3125 3.4135,-4.69516 5.8884,-8.17993 -1.59375,-4.25 -7.21425,2.72331 -13.42487,4.65378 -20.21875,7.40625 8.71715,3.18433 17.42173,6.40296 26.125,9.625 -2.6716,-3.54741 -7.25371,-8.44736 0.6875,-6.5 7.78887,-1.64724 6.79177,1.5985 2.28125,6.40625 8.99592,-3.43171 17.6252,-6.1964 26.0625,-9.5625 -8.69905,-3.20526 -17.40125,-6.40199 -26.09375,-9.625 1.1875,1.72917 2.375,3.45833 3.5625,5.1875 z"
+           style="font-size:medium;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:start;text-decoration:none;line-height:normal;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:start;baseline-shift:baseline;color:#000000;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.29999995000000013;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Sans;-inkscape-font-specification:Sans;filter:url(#filter5546)" />
+      </g>
+      <path
+         sodipodi:nodetypes="cc"
+         inkscape:export-ydpi="57.27"
+         inkscape:export-xdpi="57.27"
+         inkscape:export-filename="/home/robamler/Documents/scripting/pdfcrop/magnifyarrow0.png"
+         inkscape:connector-curvature="0"
+         id="path3006-2"
+         d="m 105.1407,467.48386 37.45852,0"
+         style="fill:none;stroke:#1e5800;stroke-width:2.29999995000000013;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-start:url(#arrow2mstartgreen);marker-end:url(#arrow2mendgreen)" />
+    </g>
     <g
        id="g622"
        style="font-size:12px;fill:#000000;fill-opacity:1"

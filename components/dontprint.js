@@ -1,4 +1,5 @@
 function Dontprint() {
+	const DATABASE_VERSION = 20130824;
 	var k2pdfoptTestTimeout;
 	var databasePath = null;
 	var zoteroInstalled = false;
@@ -36,28 +37,22 @@ function Dontprint() {
 						.getService(Components.interfaces.nsIPrefService)
 						.getBranch("extensions.dontprint.");
 		
-		// Initialize database in file "dontprint/db.sqlite" in the profile directory
+		// Initialize database in file "dontprint/db3.sqlite" in the profile directory
 		// FileUtils.getFile() creates the directory (but not the file) if necessary
-		let dbfile = FileUtils.getFile("ProfD", ["dontprint", "db2.sqlite"]);
+		let dbfile = FileUtils.getFile("ProfD", ["dontprint", "db3.sqlite"]);
 		databasePath = dbfile.path
 		
-		Task.spawn(function initDatabase() {
+		Task.spawn(function() {
 			try {
 				// Sqlite.openConnection() creates the file if necessary
 				var conn = yield Sqlite.openConnection({path: databasePath});
-				let exists = yield conn.tableExists("journals");
-				if (!exists) {
-					yield conn.execute("CREATE TABLE journals (" +
-						"journalname TEXT UNIQUE ON CONFLICT REPLACE COLLATE NOCASE," +
-						"builtin INT," +
-						"remember INT," +
-						"coverpage INT," +
-						"m1 TEXT," +				// for some reason, using FLOAT here dosn't work
-						"m2 TEXT," +
-						"m3 TEXT," +
-						"m4 TEXT," +
-						"CHECK(journalname <> '')" +
-					")");
+				if (!(yield conn.tableExists("settings"))) {
+					yield conn.executeTransaction(updateDatabase);
+				} else {
+					let sqlresult = yield conn.execute("SELECT value FROM settings WHERE key='dbversion'");
+					if (sqlresult.length === 0 || sqlresult[0].getResultByName("value") < DATABASE_VERSION) {
+						yield conn.executeTransaction(updateDatabase);
+					}
 				}
 			} finally {
 				yield conn.close();
@@ -76,6 +71,34 @@ function Dontprint() {
 				initWithoutZotero();
 			}
 		});
+	}
+	
+	
+	function updateDatabase(conn) {
+		yield conn.execute(
+			"CREATE TABLE IF NOT EXISTS journals (" +
+				"id INTEGER PRIMARY KEY ASC ON CONFLICT REPLACE," +
+				"priority INTEGER," +
+				"lastModified TEXT DEFAULT CURRENT_TIMESTAMP," +
+				"enabled INTEGER," +
+				"longname TEXT," +
+				"shortname TEXT," +
+				"minDate INTEGER," +
+				"maxDate INTEGER," +
+				"m1 TEXT," +
+				"m2 TEXT," +
+				"m3 TEXT," +
+				"m4 TEXT," +
+				"coverpage INTEGER," +
+				"k2pdfoptParams TEXT" +
+			")"
+		);
+		yield conn.execute("CREATE TABLE IF NOT EXISTS deletedBuiltinJournals (id INTEGER PRIMARY KEY)");
+		yield conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY ON CONFLICT REPLACE, value TEXT)");
+		yield conn.execute("INSERT INTO settings VALUES ('dbversion', ?)", [DATABASE_VERSION]);
+		
+		// TODO: copy builtin journals; then run the following sql statement:
+		// UPDATE journals SET enabled=0, priority=priority & ~2097152 WHERE id IN (SELECT id FROM deletedBuiltinJournals)
 	}
 	
 	
@@ -594,13 +617,27 @@ function Dontprint() {
 	function cropMargins(job) {
 		updateJobState(job, "cropping");
 		
+		// sanitize journal names
+		if (!job.journalLongname) {
+			job.journalLongname = "";
+		}
+		if (!job.journalShortname) {
+			job.journalShortname = "";
+		}
+		
 		yield this.postTranslate(job);
+		
+		let dates = parseDateString(job.articleDate);
 		
 		try {
 			var conn = yield Sqlite.openConnection({path: databasePath});
-			var sqlresult = yield conn.executeCached(
-				"SELECT * FROM journals WHERE journalname = ? OR journalname = ?",
-				[job.journalLongname, job.journalShortname]
+			var longnameresult = yield conn.executeCached(
+				"SELECT * FROM journals WHERE :longname!='' AND longname=:longname AND ((minDate=0 AND maxDate=0) OR (:smalldate!=0 AND minDate!=0 AND minDate<=:smalldate AND (maxDate=0 OR maxDate>=:largedate)) OR (:smalldate!=0 AND maxDate!=0 AND maxDate>=:largedate AND minDate=0)) ORDER BY priority DESC, lastModified DESC LIMIT 1",
+				{ longname: job.journalLongname, smalldate: dates.small, largedate: dates.large }
+			);
+			var shortnameresult = yield conn.executeCached(
+				"SELECT * FROM journals WHERE :shortname!='' AND shortname=:shortname AND ((minDate=0 AND maxDate=0) OR (:smalldate!=0 AND minDate!=0 AND minDate<=:smalldate AND (maxDate=0 OR maxDate>=:largedate)) OR (:smalldate!=0 AND maxDate!=0 AND maxDate>=:largedate AND minDate=0)) ORDER BY priority DESC, lastModified DESC LIMIT 1",
+				{ shortname: job.journalShortname, smalldate: dates.small, largedate: dates.large }
 			);
 		} catch (e) {
 			// ignore errors
@@ -608,18 +645,41 @@ function Dontprint() {
 			yield conn.close();
 		}
 		
-		if (sqlresult.length === 0) {
-			job.crop = {
-				builtin:false, remember:true, coverpage:false,
-				m1:0.2, m2:0.2, m3:0.2, m4:0.2
-			};
+		// augment sqlresults with priority based on matching shortname and/or longname
+		let sqlresult = null;
+		if (longnameresult.length === 0) {
+			if (shortnameresult.length === 1) {
+				sqlresult = shortnameresult;
+			}
+		} else if (shortnameresult.legnth === 0) {
+			sqlresult = longnameresult;
 		} else {
-			job.crop = {};
-			["journalname", "builtin", "remember", "coverpage", "m1", "m2", "m3", "m4"].forEach(
+			// found match for both longname and shortname
+			let spriority = parseFloat(shortnameresult[0].getResultByName("priority")) + 01000;
+			let lpriority = parseFloat(longnameresult[0].getResultByName("priority")) + 010000;
+			sqlresult = spriority > lpriority ? shortnameresult : longnameresult;
+		}
+		
+		if (sqlresult) {
+			job.crop = { rememberPreset:false }; // if crop window needs to be shown, then by default don't remember settings
+			["id", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams"].forEach(
 				function(key) {
 					job.crop[key] = sqlresult[0].getResultByName(key);
 				}
 			);
+		} else {
+			job.crop = {
+				rememberPreset:true, id:0, enabled:false,
+				minDate:0, maxDate:0,
+				m1:5, m2:5, m3:5, m4:5,
+				coverpage:false, k2pdfoptParams: ""
+			};
+		}
+		if (!job.crop.longname) {
+			job.crop.longname = job.journalLongname;
+		}
+		if (!job.crop.shortname) {
+			job.crop.shortname = job.journalShortname;
 		}
 		
 		if (job.adjustCropDefaults) {
@@ -628,7 +688,7 @@ function Dontprint() {
 		}
 		delete job.document;
 		
-		if (sqlresult.length === 0 || !job.crop.remember) {
+		if (!job.crop.enabled) {
 			job.cropPageDeferred = Promise.defer();
 			
 			let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
@@ -651,37 +711,56 @@ function Dontprint() {
 				delete job.cropPageDeferred;
 			}
 			
-			if (!job.crop.builtin) {//FIXME: why don't allow to overwrit builtin?
-				try {
-					var conn2 = yield Sqlite.openConnection({path: databasePath});
-					if (job.journalLongname !== undefined && job.journalLongname !== "") {
-						yield conn2.executeCached("INSERT INTO journals VALUES (?, 0, ?, ?, ?, ?, ?, ?)", [
-							job.journalLongname,
-							job.crop.remember ? 1 : 0,
-							job.crop.coverpage ? 1 : 0,
-							""+job.crop.m1,		// explicitly cast margins to strings
-							""+job.crop.m2,		// (don't know why this is necessary
-							""+job.crop.m3,		// but, whithout this, sqlite would
-							""+job.crop.m4		// only store the integer part)
-						]);
-					}
-					if (job.journalShortname !== undefined && job.journalShortname !== "") {
-						yield conn2.executeCached("INSERT INTO journals VALUES (?, 0, ?, ?, ?, ?, ?, ?)", [
-							job.journalShortname,
-							job.crop.remember ? 1 : 0,
-							job.crop.coverpage ? 1 : 0,
-							""+job.crop.m1,		// explicitly cast margins to strings
-							""+job.crop.m2,		// (don't know why this is necessary
-							""+job.crop.m3,		// but, whithout this, sqlite would
-							""+job.crop.m4		// only store the integer part)
-						]);
-					}
-				} catch (e) {
-					// ignore errors
-				} finally {
-					yield conn2.close();
-				}
+			if (!job.crop.prohibitSaveJournalSettings && (job.crop.shortname !== "" || job.crop.longname !== "")) {
+				yield saveJournalSettings(job.crop);
 			}
+		}
+	}
+	
+	
+	/**
+	 * Call as a task ("yield saveJournalSettings(job.crop)")
+	 * to save the data in job.crop to the database. Automatically
+	 * calculates the priority and decides whether to overwrite
+	 * an existing setting or to add a new entry.
+	 */
+	function saveJournalSettings(crop) {
+		// determine priority (octal values --> don't remove leading zero!)
+		crop.priority = (
+			// If enabled===false, then the filter should be viewed as deleted
+			// will only be used as a suggestion.
+			(crop.enabled					?  010000000 : 0)
+			// Setting minDate and/or maxDate increases the specivity of the filter
+			+ (crop.minDate !== 0			?   01000000 : 0)
+			+ (crop.maxDate !== 0			?   01000000 : 0)
+			// If two filters are equally specivic, then custom filters have priority over builtin ones
+			+ (crop.id >= 0					?    0100000 : 0)
+			// longname matches:                  010000 (set in cropMargins())
+			// shortname matches:                  01000 (set in cropMargins())
+			// If there's still a tie, then use the more cautious filter.
+			+ (!crop.coverpage				?       0100 : 0)
+			+ (crop.k2pdfoptParams !== ""	?        010 : 0)
+		);
+		
+		// Synthesize sql query (this is necessary because conn.execute() fails if
+		// if given more parameters than used in bound parameters.
+		let sqlfields = ["priority", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams"];
+		if (crop.id > 0) {
+			// don't overwrite builtin entries (id<0) or new entries (id===0)
+			sqlfields.push("id");
+		}
+		let sqlcommand = "INSERT INTO journals (" + sqlfields.join(",") + ") VALUES (" + sqlfields.map(function() {return "?";}).join(",") + ")";
+		let sqlparams = sqlfields.map(function(key) {
+			return crop[key];
+		});
+		
+		try {
+			var conn = yield Sqlite.openConnection({path: databasePath});
+			yield conn.execute(sqlcommand, sqlparams);
+		} catch (e) {
+			// ignore errors
+		} finally {
+			yield conn.close();
 		}
 	}
 	
@@ -708,6 +787,12 @@ function Dontprint() {
 		req.open("GET", url, true);
 		req.send();
 		// don't set onload handler because we don't really care about the response
+	}
+	
+	
+	function getHostFromUrl(url) {
+		var m = url.match(/^([^#/?:]+:[^#/?:]*\/+)?([^#/?]+\.[^#/?]+)([#/?].*)?$/);
+		return m ? m[2] : "unknown";
 	}
 	
 	
@@ -1181,7 +1266,73 @@ function Dontprint() {
 			}
 		}
 	}
-
+	
+	
+	/**
+	 * Tries to understand a date string from zotero. On success, returns an
+	 * integer of the form YYYYMMDD. On Failure, returns 0. If only the year
+	 * or only the year and the month can be recognized, unrecognized fileds
+	 * are set to zero.
+	 */
+	function parseDateString(str) {
+		var y=0, m=0, d=0;
+		
+		(function setYMD() {
+			// first try some patterns that would interfere with newDate(str)
+			if (!str) {
+				return;
+			}
+			if (str.match(/^\d{8}$/)) {
+				let val = parseFloat(str);
+				d = val % 100;
+				m = ((val-d)/100) % 100;
+				y = (val-d-100*m)/10000;
+				return;
+			}
+			let mm = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})\./);
+			if (mm) {
+				d = parseFloat(mm[1]);
+				m = parseFloat(mm[2]);
+				y = parseFloat(mm[3]);
+				if (y < 100) {
+					y += 1900;
+				}
+				return;
+			}
+			
+			// now try to parse with JavaScript's builtin Date parser
+			let date = new Date(str);
+			if (!isNaN(date.getFullYear())) {
+				y = date.getFullYear();
+				m = isNaN(date.getMonth()) ? 0 : date.getMonth()+1;
+				d = isNaN(date.getDate()) ? 0 : date.getDate();
+				return;
+			}
+			
+			// if this still fails, try to read at least the year
+			mm = str.match(/\b(\d{4})\b/);
+			y = mm ? parseFloat(mm[1]) : 0;
+		}());
+		
+		var small, large;
+		if (y===0) {  // unable to parse date
+			small = 0;
+			large = 0;
+		} else if (m===0) {  // only year known
+			small = y*10000 + 101;   // 1 January
+			large = y*10000 + 1231;  // 31 December
+		} else if (d===0) {  // only year and month known
+			small = y*10000 + m*100 + 1; // first of month
+			let date = new Date(m===12 ? y+1 : y, m%12, 1);  // one month later
+			date = new Date(date.getTime()-10000); // subtract 10 seconds
+			large = date.getFullYear()*10000 + (date.getMonth()+1)*100 + date.getDate();
+		} else {  // year, month, and day known
+			small = y*10000 + m*100 + d;
+			large = small;
+		}
+		
+		return { small: small, large: large };
+	}
 	
 	
 	// ==== EXPORT PUBLICLY VISIBLE METHODS =========================
@@ -1205,7 +1356,8 @@ function Dontprint() {
 		reportScreenSettings: reportScreenSettings,
 		isZoteroInstalled: function() { return zoteroInstalled; },
 		isQueuedUrl: function(url) { return queuedUrls.indexOf(url) !== -1; },
-		getRunningJobs: function() { return runningJobs; }
+		getRunningJobs: function() { return runningJobs; },
+		getHostFromUrl: getHostFromUrl
 	};
 }
 

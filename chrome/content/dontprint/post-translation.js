@@ -48,7 +48,7 @@ function arxivPostTranslator(job) {
 		/* This function will be called after Dontprint has searched the journals
 		 * table but before a crop page is shown, if any will be shown. Use cases
 		 * include setting different crop parameters (see below) or setting
-		 * job.crop.remember to false to force manual cropping (see below). */
+		 * job.crop.enabled to false to force manual cropping (see below). */
 		
 		// If j.coverpage is set, this means that the PDF one could download from
 		// the journal's web site has a cover page. But articles on arXiv never
@@ -56,15 +56,14 @@ function arxivPostTranslator(job) {
 		job.crop.coverpage = false;
 		
 		// make sure the watermark with the arXiv identifier is cut off
-		// TODO: convert 0.52 to mm when we use mm in data base
-		job.crop.m1 = Math.max(job.crop.m1, 0.52);
+		job.crop.m1 = Math.max(job.crop.m1, 13);
 		
 		// Use crop settings only as a suggestion and always force manual cropping
 		// on arXiv because the layout of the preprint may be different from
-		// the layout in the journal.
-		// TODO: make sure this doesn't overwrite settings for the journal
-		//       with remember = false in the new database schema
-		job.crop.remember = false;
+		// the layout in the journal. If you set this to false, you probably also
+		// want to set job.prohibitSaveJournalSettings to true. Otherwise, an
+		// existing filter may be accidentially deleted.
+		job.crop.enabled = false;
 	};
 	
 	if (yield getDocumentForJob(job)) {  // make sure job.document is set
