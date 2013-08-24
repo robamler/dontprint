@@ -22,9 +22,29 @@ git submodule init
 git submodule update
 cd ..
 
+profdir=""
+if [ -d "$HOME/.mozilla/firefox" ]; then
+  profdir="`echo "$HOME/.mozilla/firefox"/*.default`"
+elif [ -d "$HOME/Library/Mozilla/Firefox/Profiles" ]; then
+  profdir="`echo "$HOME/Library/Mozilla/Firefox/Profiles"/*.default`"
+elif [ -d "$HOME/Library/Application Support/Firefox/Profiles" ]; then
+  profdir="`echo "$HOME/Library/Application Support/Firefox/Profiles"/*.default`"
+else
+  echo "ERROR: Could not find Firefox Profile directory."
+  exit 1
+fi
+
+if [ ! -d "$profdir" ]; then
+  echo "ERROR: Could not find Firefox default profile."
+  echo "ERROR: search path was $profdir"
+  exit 2
+fi
+
+echo
 echo 'Dontprint: Registering the addon in the "default" profile of Firefox...'
-mkdir `echo ~/.mozilla/firefox/*.default`/extensions 2>/dev/null
-pwd > `echo ~/.mozilla/firefox/*.default/extensions`/dontprint@robamler.github.com
+echo "Dontprint: Profile directory is $profdir"
+mkdir "$profdir/extensions" 2>/dev/null
+pwd > "$profdir/extensions/dontprint@robamler.github.com"
 
 echo
 echo 'Dontprint: Installation completed. Restart Firefox now.'
