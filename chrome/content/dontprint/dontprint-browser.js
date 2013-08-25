@@ -15,6 +15,8 @@ DontprintBrowser = (function() {
 					.getService().wrappedJSObject;
 		
 		dontprintThisPageMenuItem = document.getElementById("dontprint-this-page-menu-item");
+		dontprintThisPageImg = document.getElementById("dontprint-status-image");
+		dontprintProgressImg = document.getElementById("dontprint-progress-image");
 		
 		if (Dontprint.isZoteroInstalled()) {
 			// Programmatically insert a "Dontprint" button into the Zotero pane
@@ -119,18 +121,14 @@ DontprintBrowser = (function() {
 			if (Dontprint.isZoteroInstalled()) {
 				dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/idle.png')";
 			}
-			if (dontprintProgressImg) {
-				dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/idle.png";
-			}
+			dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/idle.png";
 		} else {
 			let len = Math.min(10, queuelength);
 			let timerfunc = function() {
 				if (Dontprint.isZoteroInstalled()) {
 					dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/"+len+("ab"[idleAnimationState])+".png')";
 				}
-				if (dontprintProgressImg) {
-					dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/"+len+("ab"[idleAnimationState])+".png";
-				}
+				dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/"+len+("ab"[idleAnimationState])+".png";
 				idleAnimationState = (idleAnimationState+1)%2;
 			};
 			timerfunc();
@@ -156,22 +154,8 @@ DontprintBrowser = (function() {
 		let alreadyProcessing = showDontprintIcon && Dontprint.isQueuedUrl(tab.page.document.location.href);
 		
 		dontprintThisPageMenuItem.disabled = !(showDontprintIcon && !alreadyProcessing);
-		
-		try {
-			dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
-			dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
-		} catch (e) {
-			// reset dontprintThisPageImg and dontprintProgressImg
-			// because tabs without urlbar apparently invalidate them
-			dontprintThisPageImg = document.getElementById("dontprint-status-image");
-			dontprintProgressImg = document.getElementById("dontprint-progress-image");
-			try {
-				dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
-				dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
-			} catch (e) {
-				// ignore
-			}
-		}
+		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
+		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
 	}
 	
 	
