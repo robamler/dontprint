@@ -93,7 +93,7 @@ function Dontprint() {
 				"k2pdfoptParams TEXT" +
 			")"
 		);
-		yield conn.execute("CREATE TABLE IF NOT EXISTS deletedBuiltinJournals (id INTEGER PRIMARY KEY)");
+		yield conn.execute("CREATE TABLE IF NOT EXISTS deletedBuiltinJournals (id INTEGER PRIMARY KEY ON CONFLICT IGNORE)");
 		yield conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY ON CONFLICT REPLACE, value TEXT)");
 		yield conn.execute("INSERT INTO settings VALUES ('dbversion', ?)", [DATABASE_VERSION]);
 		
@@ -709,7 +709,14 @@ function Dontprint() {
 			}
 			
 			if (!job.crop.prohibitSaveJournalSettings && (job.crop.shortname !== "" || job.crop.longname !== "")) {
-				yield saveJournalSettings(job.crop);
+				try {
+					var conn = yield Sqlite.openConnection({path: databasePath});
+					yield saveJournalSettings(conn, job.crop);
+				} catch (e) {
+					// ignore errors
+				} finally {
+					yield conn.close();
+				}
 				if (job.crop.sendsettings) {
 					yield reportJournalSettings(job);
 				}
@@ -719,49 +726,86 @@ function Dontprint() {
 	
 	
 	/**
-	 * Call as a task ("yield saveJournalSettings(job.crop)")
-	 * to save the data in job.crop to the database. Automatically
-	 * calculates the priority and decides whether to overwrite
-	 * an existing setting or to add a new entry.
+	 * Returns a promise. Call either from within a transaction with
+	 *   yield deleteJournalSettings(conn, crop.id, true);
+	 * or outside of a transaction but within a task:
+	 *   yield deleteJournalSettings(conn, crop.id, false);
+	 * or run asynchroneously outside of a transaction and outside of a task:
+	 *   deleteJournalSettings(conn, crop.id, false).then(onResolve, onReject);
 	 */
-	function saveJournalSettings(crop) {
-		// determine priority (octal values --> don't remove leading zero!)
-		crop.priority = (
-			// If enabled===false, then the filter should be viewed as deleted
-			// will only be used as a suggestion.
-			(crop.enabled					?  010000000 : 0)
-			// Setting minDate and/or maxDate increases the specivity of the filter
-			+ (crop.minDate !== 0			?   01000000 : 0)
-			+ (crop.maxDate !== 0			?   01000000 : 0)
-			// If two filters are equally specivic, then custom filters have priority over builtin ones
-			+ (crop.id >= 0					?    0100000 : 0)
-			// longname matches:                  010000 (set in cropMargins())
-			// shortname matches:                  01000 (set in cropMargins())
-			// If there's still a tie, then use the more cautious filter.
-			+ (!crop.coverpage				?       0100 : 0)
-			+ (crop.k2pdfoptParams !== ""	?        010 : 0)
-		);
-		
-		// Synthesize sql query (this is necessary because conn.execute() fails if
-		// if given more parameters than used in bound parameters.
-		let sqlfields = ["priority", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams"];
-		if (crop.id > 0) {
-			// don't overwrite builtin entries (id<0) or new entries (id===0)
-			sqlfields.push("id");
+	function deleteJournalSettings(conn, id, inTransaction) {
+		function run() {
+			yield conn.executeCached(
+				"UPDATE journals set enabled=0, priority=priority & ~2097152 WHERE id=?",
+				[id]
+			);
+			if (id < 0) {
+				// builtin filter
+				yield conn.executeCached(
+					"INSERT INTO deletedBuiltinJournals VALUES (?)",
+					[id]
+				);
+			}
 		}
-		let sqlcommand = "INSERT INTO journals (" + sqlfields.join(",") + ") VALUES (" + sqlfields.map(function() {return "?";}).join(",") + ")";
-		let sqlparams = sqlfields.map(function(key) {
-			return crop[key];
+		
+		if (inTransaction) {
+			return run();
+		} else {
+			return conn.executeTransaction(run);
+		}
+	}
+	
+	
+	/**
+	 * Asynchroneous function. Returns a promise.
+	 * Saves the data in job.crop to the database. Automatically
+	 * calculates the priority and decides whether to overwrite
+	 * an existing setting or to add a new entry. If crop.id < 0, then
+	 * the builtin filter is marked as disabled, a new filter is
+	 * inserted and crop.id will be set to the new (positive) id.
+	 */
+	function saveJournalSettings(conn, crop) {
+		return conn.executeTransaction(function() {
+			if (crop.id < 0) {
+				// builtin filter; mark as deleted and then insert new filter
+				yield deleteJournalSettings(conn, crop.id, true);
+			}
+			
+			// determine priority (octal values --> don't remove leading zero!)
+			crop.priority = (
+				// If enabled===false, then the filter should be regarded as deleted.
+				// It will only be used as a suggestion and only if no other filter matches.
+				(crop.enabled					?  010000000 : 0)
+				// Setting minDate and/or maxDate increases the specificity of the filter
+				+ (crop.minDate !== 0			?   01000000 : 0)
+				+ (crop.maxDate !== 0			?   01000000 : 0)
+				// If two filters are equally specific, then custom filters have priority over builtin ones; this function only inserts custom filters
+				+ 								     0100000
+				// longname matches:                  010000 (set in cropMargins())
+				// shortname matches:                  01000 (set in cropMargins())
+				// If there's still a tie, then use the more cautious filter.
+				+ (!crop.coverpage				?       0100 : 0)
+				+ (crop.k2pdfoptParams !== ""	?        010 : 0)
+			);
+			
+			// Synthesize sql query (this is necessary because conn.execute() fails if
+			// if given more parameters than used in bound parameters.
+			let sqlfields = ["priority", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams"];
+			if (crop.id > 0) {
+				// don't overwrite builtin entries (id<0) or new entries (id===0)
+				sqlfields.push("id");
+			}
+			let sqlcommand = "INSERT INTO journals (" + sqlfields.join(",") + ") VALUES (" + sqlfields.map(function() {return "?";}).join(",") + ")";
+			let sqlparams = sqlfields.map(function(key) {
+				return crop[key];
+			});
+			
+			yield conn.executeCached(sqlcommand, sqlparams);
+			if (crop.id <= 0) {
+				// TODO: this is ugly. Find something that is thread save
+				crop.id = conn.lastInsertRowID;
+			}
 		});
-		
-		try {
-			var conn = yield Sqlite.openConnection({path: databasePath});
-			yield conn.execute(sqlcommand, sqlparams);
-		} catch (e) {
-			// ignore errors
-		} finally {
-			yield conn.close();
-		}
 	}
 	
 	
@@ -1366,7 +1410,13 @@ function Dontprint() {
 		isZoteroInstalled: function() { return zoteroInstalled; },
 		isQueuedUrl: function(url) { return queuedUrls.indexOf(url) !== -1; },
 		getRunningJobs: function() { return runningJobs; },
-		getHostFromUrl: getHostFromUrl
+		getHostFromUrl: getHostFromUrl,
+		getDB: function() {
+			// call with "var conn = yield Dontprint.getDB();" from a task
+			return Sqlite.openConnection({path: databasePath});
+		},
+		saveJournalSettings: saveJournalSettings,
+		deleteJournalSettings: deleteJournalSettings
 	};
 }
 

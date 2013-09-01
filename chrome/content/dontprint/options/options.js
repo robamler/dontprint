@@ -1,10 +1,51 @@
+Components.utils.import("resource://gre/modules/Task.jsm");
+try {
+	// Gecko >= 25
+	Components.utils.import("resource://gre/modules/Promise.jsm");
+} catch (e) {
+	try {
+		// Gecko 21 to 24
+		Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+	} catch (e) {
+		// Gecko 17 to 20
+		Components.utils.import("resource://gre/modules/commonjs/promise/core.js");
+	}
+}
 var Dontprint = Components.classes['@robamler.github.com/dontprint;1'].getService().wrappedJSObject;
+
+var conn = null;
 var k2pdfoptInstalledVersion = "0";
 var k2pdfoptNewVersion = "0";
 var platform = Dontprint.getPrefs().getCharPref("k2pdfoptPlatform");
+var journalFilters = null;
+var selectedFilter = null;
+var originalSelectedFilter = null;
+var journalFilterList;
+var nextJournalFilterNumber = 0;
+
 if (platform.substr(0,7) === "unknown") {
 	platform = "src";
 	document.getElementById("updateK2pdfoptButton").style.display = "none";
+}
+
+
+function onLoad() {
+	emailSuffixChange();
+	ccEmailsCheckboxChange();
+	getK2pdfoptVersion();
+}
+
+
+function onUnload() {
+	saveOldSelection().then(conn.close, conn.close);
+	
+	document.getElementById("deviceIframe").contentWindow.screenSettingsChange();
+	if (
+		Dontprint.getPrefs().getCharPref("kindleModel") !== "other" &&
+		document.getElementById("deviceIframe").contentWindow.document.getElementById("sendScreenSettigns").checked
+	) {
+		Dontprint.reportScreenSettings();
+	}
 }
 
 
@@ -91,7 +132,7 @@ function checkForK2pdfoptUpdate() {
 	
 	var req = new XMLHttpRequest();
 	req.onload = reqListener;
-	req.open("get", "http://robamler.github.com/dontprint/k2pdfopt/versions.json", true);	//TODO: url
+	req.open("get", "http://robamler.github.com/dontprint/k2pdfopt/versions.json", true);
 	req.send();
 }
 
@@ -133,19 +174,209 @@ function updateK2pdfoptManually() {
 }
 
 
-function onLoad() {
-	emailSuffixChange();
-	ccEmailsCheckboxChange();
-	getK2pdfoptVersion();
+// MARGINS TAB ====================================================
+
+
+function marginsPaneLoad() {
+	journalFilterList = document.getElementById("journal-list");
+	Task.spawn(loadJournalFilters);
 }
 
 
-function onUnload() {
-	document.getElementById("deviceIframe").contentWindow.screenSettingsChange();
-	if (
-		Dontprint.getPrefs().getCharPref("kindleModel") !== "other" &&
-		document.getElementById("deviceIframe").contentWindow.document.getElementById("sendScreenSettigns").checked
-	) {
-		Dontprint.reportScreenSettings();
+function loadJournalFilters() {
+	conn = yield Dontprint.getDB();
+	var sqlresult = yield conn.execute("SELECT id, longname, shortname, minDate, maxDate, m1, m2, m3, m4, coverpage, k2pdfoptParams FROM journals WHERE enabled=1 ORDER BY priority DESC, lastModified DESC");
+	
+	var fields = ["id", "longname", "shortname", "minDate", "maxDate",  "coverpage", "k2pdfoptParams"];
+	var floatFields = ["m1", "m2", "m3", "m4"];
+	
+	nextJournalFilterNumber = 0;
+	journalFilters = {};
+	sqlresult.forEach(function(sqlentry) {
+		var j = {enabled:1};
+		fields.forEach(function(key) {
+			j[key] = sqlentry.getResultByName(key);
+		});
+		floatFields.forEach(function(key) {
+			j[key] = parseFloat(sqlentry.getResultByName(key)).toFixed(1);
+		});
+		journalFilterList.appendItem(getJournalFilterLabel(j), nextJournalFilterNumber);
+		journalFilters[nextJournalFilterNumber] = j;
+		nextJournalFilterNumber++;
+	});
+	
+	journalFilterList.selectItem(journalFilterList.getItemAtIndex(0));
+}
+
+
+function getJournalFilterLabel(j) {
+	var ret;
+	if (j.longname) {
+		if (j.shortname) {
+			ret = j.longname + " (" + j.shortname + ")";
+		} else {
+			ret = j.longname;
+		}
+	} else {
+		if (j.shortname) {
+			ret = j.shortname;
+		} else {
+			return "(invalid filter)";
+		}
 	}
+	
+	if (j.minDate) {
+		if (j.maxDate) {
+			ret += " [from " + formatDate(j.minDate) + " to " + formatDate(j.maxDate) + "]";
+		} else {
+			ret += " [since " + formatDate(j.minDate) + "]";
+		}
+	} else {
+		if (j.maxDate) {
+			ret += " [until " + formatDate(j.maxDate) + "]";
+		}
+	}
+	
+	return ret;
+}
+
+
+function formatDate(dateint) {
+	if (!dateint) {
+		return null;
+	} else {
+		return dateint.toString().replace(/^([+-]?\d{1,4})(\d\d)(\d\d)$/, "$1-$2-$3");
+	}
+}
+
+
+function deformatDate(datestr) {
+	return parseFloat(datestr.replace(/^([+-]?\d{1,4})-(\d\d)-(\d\d)$/, "$1$2$3"));
+}
+
+
+function journalFilterSelect() {
+	saveOldSelection();
+	
+	selectedFilter = journalFilters[journalFilterList.value];
+	originalSelectedFilter = {};
+	var fields = ["id", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams"];
+	fields.forEach(function(key) {
+		originalSelectedFilter[key] = selectedFilter[key];
+	});
+	
+	document.getElementById("longname_control").value = selectedFilter.longname;
+	document.getElementById("shortname_control").value = selectedFilter.shortname;
+	document.getElementById("minDate_switch").checked = selectedFilter.minDate!==0;
+	document.getElementById("minDate_control").disabled = selectedFilter.minDate===0;
+	if (selectedFilter.minDate !== 0) {
+		document.getElementById("minDate_control").value = formatDate(selectedFilter.minDate);
+	} else {
+		document.getElementById("minDate_control").dateValue = new Date();
+	}
+	document.getElementById("maxDate_switch").checked = selectedFilter.maxDate!==0;
+	document.getElementById("maxDate_control").disabled = selectedFilter.maxDate===0;
+	if (selectedFilter.maxDate !== 0) {
+		document.getElementById("maxDate_control").value = formatDate(selectedFilter.maxDate);
+	} else {
+		document.getElementById("maxDate_control").dateValue = new Date();
+	}
+	document.getElementById("m1_control").value = selectedFilter.m1;
+	document.getElementById("m2_control").value = selectedFilter.m2;
+	document.getElementById("m3_control").value = selectedFilter.m3;
+	document.getElementById("m4_control").value = selectedFilter.m4;
+	document.getElementById("coverpage_control").checked = selectedFilter.coverpage;
+	document.getElementById("k2pdfoptParams_control").value = selectedFilter.k2pdfoptParams;
+}
+
+
+function dateSwitchClicked(minmax, checked) {
+	document.getElementById(minmax + "Date_control").disabled = !checked;
+	updateSelectedFilter();
+}
+
+
+function updateSelectedFilter() {
+	var thenindex = journalFilterList.currentIndex;
+	var thenselectedFilter = selectedFilter;
+	// set timeout to work around bug 799
+	setTimeout(function() {
+		updateVisibleFilterData(thenselectedFilter);
+		journalFilterList.getItemAtIndex(thenindex).label = getJournalFilterLabel(thenselectedFilter);
+	}, 0);
+}
+
+
+function updateVisibleFilterData(sel) {
+	if (!sel) {
+		sel = selectedFilter;
+	}
+	sel.longname = document.getElementById("longname_control").value.trim();
+	sel.shortname = document.getElementById("shortname_control").value.trim();
+	sel.minDate = document.getElementById("minDate_switch").checked ? deformatDate(document.getElementById("minDate_control").value) : 0;
+	sel.maxDate = document.getElementById("maxDate_switch").checked ? deformatDate(document.getElementById("maxDate_control").value) : 0;
+}
+
+
+function saveOldSelection() {
+	if (!selectedFilter) {
+		return;
+	}
+	
+	updateVisibleFilterData(); // sets longname, shortname, minDate, maxDate
+	selectedFilter.m1 = document.getElementById("m1_control").valueNumber.toFixed(1);
+	selectedFilter.m2 = document.getElementById("m2_control").valueNumber.toFixed(1);
+	selectedFilter.m3 = document.getElementById("m3_control").valueNumber.toFixed(1);
+	selectedFilter.m4 = document.getElementById("m4_control").valueNumber.toFixed(1);
+	selectedFilter.coverpage = document.getElementById("coverpage_control").checked;
+	selectedFilter.k2pdfoptParams = document.getElementById("k2pdfoptParams_control").value;
+	
+	// see if anything has been changed (this is necessary because we would
+	// otherwise delete builtin journals without a reason and also update
+	// the lastModified timestamp.)
+	var equal = true;
+	for (key in selectedFilter) {
+		// we really need != and not !== here because Sqlite returns everything as string
+		if (originalSelectedFilter[key] != selectedFilter[key]) {
+			equal = false;
+			break;
+		}
+	}
+	
+	if (!equal) {
+		return Dontprint.saveJournalSettings(conn, selectedFilter);
+	} else {
+		return Promise.resolve();
+	}
+}
+
+
+function newJournalFilter() {
+	saveOldSelection();
+	selectedFilter = null;
+	
+	journalFilters[nextJournalFilterNumber] = {
+		id:0, enabled:1, longname:"", shortname:"", minDate:0, maxDate:0,
+		m1:5, m2:5, m3:5, m4:5, coverpage:0, k2pdfoptParams:""
+	};
+	journalFilterList.insertItemAt(0, "(new filter)", nextJournalFilterNumber);
+	nextJournalFilterNumber++;
+	journalFilterList.selectItem(journalFilterList.getItemAtIndex(0));
+	journalFilterSelect();
+	document.getElementById("longname_control").focus();
+}
+
+
+function deleteJournalFilter() {
+	if (!selectedFilter) {
+		return;
+	}
+	
+	Dontprint.deleteJournalSettings(conn, selectedFilter.id, false);
+	selectedFilter = null;
+	var index = journalFilterList.currentIndex;
+	delete journalFilters[journalFilterList.value];
+	journalFilterList.removeItemAt(index);
+	journalFilterList.selectItem(journalFilterList.getItemAtIndex(0));
+	journalFilterSelect();
 }

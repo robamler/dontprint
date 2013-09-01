@@ -57,31 +57,22 @@
 	<prefpane id="dontprint-prefpane-device" label="Device" image="device.png">
 		<iframe xmlns="http://www.w3.org/1999/xhtml" src="options-device.html" id="deviceIframe" style="width:100%;height:400px;border:0" marginwidth="0" marginheight="0" scrolling="no"/>
 	</prefpane>
-	<prefpane id="dontprint-prefpane-margins" label="Margins" image="margins.png" style="height:100%">
+	<prefpane id="dontprint-prefpane-margins" label="Margins" image="margins.png" style="height:100%" onpaneload="marginsPaneLoad();">
 		<description>When Dontprint optimizes the layout of an article for your Kindle, it cuts off repeating headers and footers because they would otherwise appear at random positions in the converted document. You can fine-tune this behaviour below.</description>
-		<description>TODO: this is not yet implemented.</description>
 		<hbox flex="1" align="stretch">
 			<vbox flex="1">
-				<listbox id="journal-list" flex="1">
+				<listbox id="journal-list" flex="1" onselect="journalFilterSelect();">
 					<listhead>
-						<listheader hflex="min" label="List of journals" />
+						<listheader hflex="min" label="List of filters (most specific ones first)" />
 					</listhead>
-					<listcols>
-						<listcol flex="1"/>
-					</listcols>
-					<listitem label="Physical Review Letters (Phys. Rev. Lett.) [since 2003-03-15]"/>
-					<listitem label="Physical Review B (Phys. Rev. B) [until 2003-03-15]"/>
-					<listitem label="Review of Modern Physics (Rev. Mod. Phys.) [from 2003-03-15 to 2005-11-01]"/>
 				</listbox>
 				<hbox>
-					<button id="addJournal_button" label="New"/>
-					<button id="delJournal_button" label="Delete"/>
-					<spacer flex="1"/>
-					<button id="resetJournal_button" label="Reset selected journal"/>
+					<button id="addJournal_button" label="New" oncommand="newJournalFilter();"/>
+					<button id="delJournal_button" label="Delete" oncommand="deleteJournalFilter();"/>
 				</hbox>
 			</vbox>
 			<groupbox>
-				<caption>Modify settings for selected journal</caption>
+				<caption>Modify settings for selected filter</caption>
 				<grid>
 					<columns>
 						<column/>
@@ -90,40 +81,40 @@
 					<rows>
 						<row>
 							<label value="Journal title:" control="longname_control"/>
-							<textbox id="longname_control"/>
+							<textbox id="longname_control" onkeyup="updateSelectedFilter();" onchange="updateSelectedFilter();"/>
 						</row>
 						<row>
 							<label value="Journal abbreviation:" control="shortname_control"/>
-							<textbox id="shortname_control"/>
+							<textbox id="shortname_control" onkeyup="updateSelectedFilter();" onchange="updateSelectedFilter();"/>
 						</row>
 						<row>
 							<label value="Apply only to articles"/>
 							<spacer/>
 						</row>
 						<row>
-							<checkbox id="minDate_switch" style="margin-left:1em" label="published since:"/>
-							<datepicker id="minDate_control" type="popup"/>
+							<checkbox id="minDate_switch" style="margin-left:1em" label="published since:" oncommand="dateSwitchClicked('min',this.checked);"/>
+							<datepicker id="minDate_control" type="popup" onchange="updateSelectedFilter();"/>
 						</row>
 						<row>
-							<checkbox id="maxDate_switch" style="margin-left:1em" label="published until:"/>
-							<datepicker id="maxDate_control" type="popup"/>
+							<checkbox id="maxDate_switch" style="margin-left:1em" label="published until:" oncommand="dateSwitchClicked('max',this.checked);"/>
+							<datepicker id="maxDate_control" type="popup" onchange="updateSelectedFilter();"/>
 						</row>
 						<row style="margin-top:2ex;margin-bottom:2ex">
 							<label value="Margins (mm):"/>
 							<vbox>
 								<hbox>
 									<spacer flex="1"/>
-									<textbox id="m1_control" size="2" type="number"/>
+									<textbox id="m2_control" size="2" type="number" decimalplaces="1"/>
 									<spacer flex="1"/>
 								</hbox>
 								<hbox>
-									<textbox id="m4_control" size="2" type="number"/>
+									<textbox id="m1_control" size="2" type="number" decimalplaces="1"/>
 									<spacer flex="1"/>
-									<textbox id="m2_control" size="2" type="number"/>
+									<textbox id="m3_control" size="2" type="number" decimalplaces="1"/>
 								</hbox>
 								<hbox>
 									<spacer flex="1"/>
-									<textbox id="m3_control" size="2" type="number"/>
+									<textbox id="m4_control" size="2" type="number" decimalplaces="1"/>
 									<spacer flex="1"/>
 								</hbox>
 							</vbox>
@@ -131,7 +122,6 @@
 					</rows>
 				</grid>
 				<checkbox id="coverpage_control" label="Discard first page (cover page)"/>
-				<checkbox id="applyDirectly_control" label="Don't show crop dialog for matching articles"/>
 				<label value="Additional parameters to k2pdfopt (for experts):" style="margin-top:1ex" control="k2pdfoptParams_control"/>
 				<textbox id="k2pdfoptParams_control"/>
 			</groupbox>
