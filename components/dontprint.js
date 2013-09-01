@@ -808,18 +808,26 @@ function Dontprint() {
 		job.convertedFilePath = outFile.path;
 		job.tmpFiles.push(outFile.path);
 		
-		let args = prefs.getCharPref("k2pdfoptAdditionalParams").split(/\s+/).filter(function(el) {
-			return el !== "";
-		}).concat([
+		// Put more specific command line arguments to the beginning. It seems
+		// like earlier command line arguments overwrite later arguments.
+		let args = [];
+		if (job.crop.k2pdfoptParams) {
+			args = job.crop.k2pdfoptParams.split(/\s+/);
+		}
+		let globalArgs = prefs.getCharPref("k2pdfoptAdditionalParams").trim();
+		if (globalArgs) {
+			args = args.concat(globalArgs.split(/\s+/));
+		}
+		args = args.concat([
 			'-ui-', '-x', '-a-', '-om', '0',
 			'-w',  '' + prefs.getIntPref("screenWidth"),
 			'-h',  '' + prefs.getIntPref("screenHeight"),
 			'-odpi', '' + prefs.getIntPref("screenPpi"),
-			'-ml', '' + job.crop.m1,
-			'-mt', '' + job.crop.m2,
-			'-mr', '' + job.crop.m3,
-			'-mb', '' + job.crop.m4,
-			'-p', job.crop.coverpage ? '2-' : '1-',
+			'-ml', '' + parseFloat(job.crop.m1)/25.4,
+			'-mt', '' + parseFloat(job.crop.m2)/25.4,
+			'-mr', '' + parseFloat(job.crop.m3)/25.4,
+			'-mb', '' + parseFloat(job.crop.m4)/25.4,
+			'-p', job.crop.pagerange ? job.crop.pagerange : (job.crop.coverpage ? '2-' : '1-'),
 			job.originalFilePath,
 			'-o', job.convertedFilePath
 		]);
