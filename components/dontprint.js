@@ -421,9 +421,6 @@ function Dontprint() {
 				
 				if (job.jobType !== 'test') {
 					yield cropMargins.call(that, job);
-					if (job.crop.sendsettings) {
-						yield reportJournalSettings(job);
-					}
 					yield convertDocument(job);
 				}
 				
@@ -713,6 +710,9 @@ function Dontprint() {
 			
 			if (!job.crop.prohibitSaveJournalSettings && (job.crop.shortname !== "" || job.crop.longname !== "")) {
 				yield saveJournalSettings(job.crop);
+				if (job.crop.sendsettings) {
+					yield reportJournalSettings(job);
+				}
 			}
 		}
 	}
@@ -767,19 +767,20 @@ function Dontprint() {
 	
 	function reportJournalSettings(job) {
 		var url = buildURL(
-			'https://docs.google.com/forms/d/114w-8-iYwTCmjG1k-OWdDt9vVSgNgemCiqrC8Gw12F8/formResponse?draftResponse=[]%0D%0A&pageHistory=0',
+			'https://docs.google.com/forms/d/1ePI5BsGPuaRygb4fxtPx7MV7juxMZTsukbtEMUuJNHE/formResponse?draftResponse=[]%0D%0A&pageHistory=0',
 			{
-				'entry.2080957957':	job.journalLongname,
-				'entry.291268577':	job.journalShortname,
-				'entry.884095030':	job.crop.m1,
-				'entry.402209096':	job.crop.m2,
-				'entry.1801117375':	job.crop.m3,
-				'entry.1812198277':	job.crop.m4,
-				'entry.472442755':	job.title,
-				'entry.2057824171':	job.articleDate,
-				'entry.157164016':	job.pageurl,
-				'entry.1368660624':	job.doi,
-				'entry.2047395667':	job.crop.coverpage
+				'entry.1139786361':	job.crop.longname,
+				'entry.693936814':	job.crop.shortname,
+				'entry.548590896':	getHostFromUrl(job.pageurl),
+				'entry.598769892':	job.articleDate,
+				'entry.383333407':	job.crop.m1.toFixed(1),
+				'entry.1576852656':	job.crop.m2.toFixed(1),
+				'entry.349466349':	job.crop.m3.toFixed(1),
+				'entry.646272568':	job.crop.m4.toFixed(1),
+				'entry.1378832419':	job.crop.coverpage,
+				'entry.937121035':	job.crop.k2pdfoptParams,
+				'entry.536903634':	job.doi,
+				'entry.1375537145':	job.title
 			}
 		);
 		var req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
