@@ -241,6 +241,40 @@ function Dontprint() {
 	}
 	
 	
+	function dontprintLocalFile() {
+		let Dontprint = Components.classes['@robamler.github.com/dontprint;1']
+						.getService().wrappedJSObject;
+		let win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+			.getService(Components.interfaces.nsIWindowMediator)
+			.getMostRecentWindow("navigator:browser");
+		
+		let nsIFilePicker = Components.interfaces.nsIFilePicker;
+		let fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+		fp.addToRecentDocs = true;
+		fp.init(win, "Pick a PDF document to send to your e-reader", nsIFilePicker.modeOpenMultiple);
+		fp.appendFilter("PDF documents", "*.pdf");
+		fp.appendFilters(nsIFilePicker.filterAll);
+		
+		if (fp.show() === nsIFilePicker.returnOK) {
+			Dontprint.showProgress();
+			let files = fp.files;
+			while (files.hasMoreElements())  {
+				let file = files.getNext().QueryInterface(Components.interfaces.nsILocalFile);
+				let m = file.leafName.match(/^(.*)\.pdf$/i);
+				let title = m ? m[1] : file.leafName;
+				Dontprint.runJob({
+					jobType:			"localfile",
+					title:				title,
+					journalLongname:	"",
+					journalShortname:	"",
+					originalFilePath:	file.path,
+					tmpFiles:			[]
+				});
+			}
+		}
+	}
+	
+	
 	function abortJob(jobid) {
 		let job = runningJobs[jobid];
 		try {
@@ -263,10 +297,26 @@ function Dontprint() {
 	
 	
 	function showProgress() {
-		let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+		let win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 			.getService(Components.interfaces.nsIWindowMediator)
-			.getMostRecentWindow("navigator:browser").gBrowser;
-		gBrowser.loadOneTab(
+			.getMostRecentWindow("navigator:browser");
+		
+		// check if progress tab is already displayed
+		if (win.content.location.href === "chrome://dontprint/content/progress/progress.html") {
+			return;
+		}
+		
+		// check if we can reuse an existing progress tab
+		for (let i=0; i<win.gBrowser.browsers.length; i++) {
+			let b = win.gBrowser.getBrowserAtIndex(i);
+			if (b.currentURI.spec === "chrome://dontprint/content/progress/progress.html") {
+				win.gBrowser.selectedTab = win.gBrowser.tabs[i];
+				return;
+			}
+		}
+		
+		// open a new progress tab
+		win.gBrowser.loadOneTab(
 			"chrome://dontprint/content/progress/progress.html",
 			{ inBackground: false }
 		);
@@ -1395,6 +1445,7 @@ function Dontprint() {
 		validatePreferences: validatePreferences,
 		dontprintZoteroItems: dontprintZoteroItems,
 		runJob: runJob,
+		dontprintLocalFile: dontprintLocalFile,
 		abortJob: abortJob,
 		showProgress: showProgress,
 		registerProgressListener: registerProgressListener,
