@@ -29,6 +29,7 @@ $(function() {
 	var pdf, pdfpage;
 	var job, builtinJournal;
 	var successState = false;
+	var neverReportJournalSettings = true;
 	
 	init();
 
@@ -200,7 +201,7 @@ $(function() {
 		job.crop.enabled        = $("#savetemplate").prop("checked");
 		job.crop.coverpage      = $("#coverpage").prop("checked");
 		job.crop.k2pdfoptParams = $("#additionalParamsCheckbox").prop("checked") ? $("#k2pdfoptParams").val().trim() : "";
-		job.crop.sendsettings   = $("#sendsettings").prop("checked") && $("#savetemplate").prop("checked") && !job.prohibitSaveJournalSettings;
+		job.crop.sendsettings   = $("#sendsettings").prop("checked") && $("#savetemplate").prop("checked") && !job.prohibitSaveJournalSettings && !neverReportJournalSettings;
 		job.crop.m1             = mmmargins[0];
 		job.crop.m2             = mmmargins[1];
 		job.crop.m3             = mmmargins[2];
@@ -291,6 +292,7 @@ $(function() {
 		}
 		
 		// set presets
+		neverReportJournalSettings = Dontprint.getPrefs().getBoolPref("neverReportJournalSettings");
 		document.title = "Dontprint: " + job.title;
 		builtinJournal = job.crop.id < 0;
 		if (job.crop.coverpage) {
@@ -313,10 +315,14 @@ $(function() {
 		} else {
 			$('#journalname').text(job.crop.shortname ? job.crop.shortname : job.crop.longname);
 			$('#savetemplate').prop("checked", job.crop.rememberPreset);
-			$("#sendsettings").prop("checked", true).prop("disabled", !job.crop.rememberPreset);
-			$("#sendsettings-display").css("opacity", job.crop.rememberPreset ? 1 : 0.3);
-			if (!job.crop.rememberPreset) {
-				$('#privacyLink').removeAttr('href');
+			if (neverReportJournalSettings) {
+				$("#sendsettings-display").hide();
+			} else {
+				$("#sendsettings").prop("checked", true).prop("disabled", !job.crop.rememberPreset);
+				$("#sendsettings-display").css("opacity", job.crop.rememberPreset ? 1 : 0.3);
+				if (!job.crop.rememberPreset) {
+					$('#privacyLink').removeAttr('href');
+				}
 			}
 		}
 		$('#additionalParamsCheckbox').prop("checked", job.crop.k2pdfoptParams!=="");

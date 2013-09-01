@@ -131,43 +131,53 @@
 		<preferences>
 			<preference id="k2pdfoptAdditionalParams_symbol" name="extensions.dontprint.k2pdfoptAdditionalParams" type="string"/>
 			<preference id="k2pdfoptPath_symbol" name="extensions.dontprint.k2pdfoptPath" type="string"/>
+			<preference id="neverReportJournalSettings_symbol" name="extensions.dontprint.neverReportJournalSettings" type="bool"/>
 		</preferences>
-		<description>Dontprint uses a program called "k2pdfopt" to optimize the layout of articles before sending them to your Kindle. For more information about k2pdfopt, visit <label class="text-link" href="http://www.willus.com/k2pdfopt/">willus.com</label>.</description>
-		
-		<grid>
-			<columns>
-				<column/>
-				<column/>
-			</columns>
-			<rows>
-				<row>
-					<label value="Installed version of k2pdfopt:"/>
-					<hbox>
-						<label value="checking..." id="k2pdfoptInstalledVersion" />
-						<button label="Check for update" disabled="true" oncommand="checkForK2pdfoptUpdate()" id="checkForK2pdfoptUpdateButton"/>
-					</hbox>
-				</row>
-				<row id="k2pdfoptUpdateInformation">
-					<label value="Available update:"/>
-					<hbox>
-						<label id="k2pdfoptUpdateVersion_label"/>
-						<button id="updateK2pdfoptButton" label="Update now" oncommand="updateK2pdfopt()"/>
-						<button id="updateK2pdfoptManuallyButton" label="Update manually" oncommand="updateK2pdfoptManually()"/>
-					</hbox>
-				</row>
-			</rows>
-		</grid>
-		<vbox id="k2pdfoptUpdateManuallyInstructions">
-			<description>To update k2pdfopt manually, download the latest version from <label class="text-link" href="http://www.willus.com/k2pdfopt/download/">willus.com</label> and make sure you have execution rights for the downloaded file. Then, enter the path to the executable file in the textbox below.</description>
+		<groupbox style="margin-bottom:4ex">
+			<caption>Privacy settings</caption>
+			<description>When you dontprint an article from a journal you may sometimes have to set the page margins manually because Dontprint does not yet know the correct margins for this journal. Since this can be annoying, Dontprint provides to you the option to report the selected margins to its developer. Future versions of Dontprint will then recognize this journal automatically.</description>
+			<description>Dontprint will <label style="font-weight:bold;border:none;margin:0">not</label> send any user-specific data (such as e-mail addresses or user names). You can inspect the data before it is being sent and reject the transmission for each case individually. If you nevertheless prefer to never report any journal margins, check the box below.</description>
+			<checkbox label="Don't help to improve future versions of Dontprint and never anonymously send any page margins" preference="neverReportJournalSettings_symbol"/>
+		</groupbox>
+		<groupbox>
+			<caption>Third party software</caption>
+			<description>Dontprint uses a program called "k2pdfopt" to optimize the layout of articles before sending them to your Kindle. For more information about k2pdfopt, visit <label class="text-link" href="http://www.willus.com/k2pdfopt/">willus.com</label>.</description>
+			
+			<grid>
+				<columns>
+					<column/>
+					<column/>
+				</columns>
+				<rows>
+					<row>
+						<label value="Installed version of k2pdfopt:"/>
+						<hbox>
+							<label value="checking..." id="k2pdfoptInstalledVersion" />
+							<button label="Check for update" disabled="true" oncommand="checkForK2pdfoptUpdate()" id="checkForK2pdfoptUpdateButton"/>
+						</hbox>
+					</row>
+					<row id="k2pdfoptUpdateInformation">
+						<label value="Available update:"/>
+						<hbox>
+							<label id="k2pdfoptUpdateVersion_label"/>
+							<button id="updateK2pdfoptButton" label="Update now" oncommand="updateK2pdfopt()"/>
+							<button id="updateK2pdfoptManuallyButton" label="Update manually" oncommand="updateK2pdfoptManually()"/>
+						</hbox>
+					</row>
+				</rows>
+			</grid>
+			<vbox id="k2pdfoptUpdateManuallyInstructions">
+				<description>To update k2pdfopt manually, download the latest version from <label class="text-link" href="http://www.willus.com/k2pdfopt/download/">willus.com</label> and make sure you have execution rights for the downloaded file. Then, enter the path to the executable file in the textbox below.</description>
+				<hbox>
+					<label control="k2pdfoptPath_control" value="Path to k2pdfopt executable:"/>
+					<textbox size="40" preference="k2pdfoptPath_symbol" id="k2pdfoptPath_control" flex="1"/>
+				</hbox>
+			</vbox>
 			<hbox>
-				<label control="k2pdfoptPath_control" value="Path to k2pdfopt executable:"/>
-				<textbox size="40" preference="k2pdfoptPath_symbol" id="k2pdfoptPath_control"/>
+				<label value="Additional command line parameters to k2pdfopt (for experts):" control="k2pdfoptAdditionalParams_control"/>
+				<textbox id="k2pdfoptAdditionalParams_control" preference="k2pdfoptAdditionalParams_symbol" flex="1"/>
 			</hbox>
-		</vbox>
-		<hbox>
-			<label value="Additional command line parameters to k2pdfopt (for experts):" control="k2pdfoptAdditionalParams_control"/>
-			<textbox id="k2pdfoptAdditionalParams_control" preference="k2pdfoptAdditionalParams_symbol"/>
-		</hbox>
+		</groupbox>
 	</prefpane>
 	<script src="options.js" type="application/javascript;version=1.8"/>
 </prefwindow>
