@@ -82,6 +82,18 @@ DontprintBrowser = (function() {
 	}
 	
 	
+	function cancelJobForThisPage() {
+		let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+		let pageurl = tab.page.document.location.href;
+		let jobs = Dontprint.getRunningJobs();
+		for (let jobid in jobs) {
+			if (jobs[jobid].pageurl === pageurl) {
+				Dontprint.abortJob(jobid);
+			}
+		}
+	}
+	
+	
 	/**
 	 * Called when the user right-clicks the dontprint-icon in the address bar.
 	 * Show a list of available translators to dontprint the document represented
@@ -183,6 +195,7 @@ DontprintBrowser = (function() {
 	return {
 		init: init,
 		dontprintThisPage: dontprintThisPage,
+		cancelJobForThisPage: cancelJobForThisPage,
 		updateQueueLength: updateQueueLength,
 		onStatusPopupShowing: onStatusPopupShowing,
 		configureDontprint: configureDontprint,
