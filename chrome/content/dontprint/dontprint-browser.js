@@ -69,13 +69,17 @@ DontprintBrowser = (function() {
 	 * dontprint icon in the address bar and with translator!==undefined when the
 	 * user right-clicks the dontprint icon in the address bar and picks a custom
 	 * translator.
+	 * @param forceCropWindow Set to true if the page where the user can set custom
+	 *   crop margins and page ranges should always be shown even if Dontprint
+	 *   thinks to know how to handle articles from this journal.
 	 */
-	function dontprintThisPage(translator) {
+	function dontprintThisPage(translator, forceCropWindow) {
 		let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
 		Dontprint.runJob({
 			title:		'Unknown title',
 			jobType:	'page',
 			translator:	translator,
+			forceCropWindow: forceCropWindow,
 			pageurl:	tab.page.document.location.href,
 			tab:		tab
 		});
@@ -110,19 +114,13 @@ DontprintBrowser = (function() {
 			let translator = translators[i];
 			
 			let menuitem = document.createElement("menuitem");
-			menuitem.setAttribute("label", "Dontprint document using " + translator.label + (i===0 ? " (recommended)" : ""));
+			menuitem.setAttribute("label", translator.label + (i===0 ? " (recommended)" : ""));
 			menuitem.setAttribute("class", "menuitem-iconic");
 			menuitem.addEventListener("command", function(e) {
  				dontprintThisPage(translator);
 			}, false);
 			popup.appendChild(menuitem);
 		}
-		
-		let menuitem = document.createElement("menuitem");
-		menuitem.setAttribute("label", "Show progress of currently running Donptrint jobs");
-		menuitem.addEventListener("command", Dontprint.showProgress, false);
-		popup.appendChild(document.createElement("menuseparator"));
-		popup.appendChild(menuitem);
 	}
 	
 	

@@ -735,6 +735,17 @@ function Dontprint() {
 		}
 		delete job.document;
 		
+		if (job.forceCropWindow) {
+			// Make sure the crop window is displayed and also uncheck the "remember"
+			// box by default. If the user still decides to check the "remember"
+			// box then existing journal settings will be overwritten if applicable.
+			// This is the correct behaviour: It allows to correct a mistake in
+			// a journal filter by running Dontprint on an article from that
+			// journal again with the new (corrected) settings.
+			job.crop.enabled = false;
+			job.crop.rememberPreset = false;
+		}
+		
 		if (!job.crop.enabled) {
 			job.cropPageDeferred = Promise.defer();
 			
