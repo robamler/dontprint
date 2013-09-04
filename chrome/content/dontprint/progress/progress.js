@@ -61,8 +61,11 @@ function addJob(job) {
  * Assumes that the state never moves backward.
  */
 function updateJob(job) {
+	if (wasRemoved[job.id]) {
+		return;
+	}
 	var item = items[job.id];
-	if (item === undefined && wasRemoved[job.id] === undefined) {
+	if (item === undefined) {
 		addJob(job);
 		return;
 	}

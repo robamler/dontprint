@@ -1289,7 +1289,6 @@ function Dontprint() {
 					progressListeners[i](job);
 				} catch (e) {
 					// apparently, progressTab has been closed without unregistering the listener
-					// TODO: may I change progressListeners in this loop?
 					delete progressListeners[i];
 				}
 			}
