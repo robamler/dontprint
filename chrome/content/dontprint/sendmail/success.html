@@ -6,7 +6,7 @@
 <title>Success: Document sent to e-reader. (Dontprint)</title>
 <base target="_blank">
 <style type="text/css">
-body{font-family: sans-serif; font-size:18px}
+body{font-family:"Trebuchet MS", Helvetica, sans-serif; font-size:18px}
 #container{margin:0 auto; max-width:800px; min-height:100%; padding:0; position:absolute; text-align:left; left:1ex; right:1ex; top:0; bottom:0}
 h1{color:#294b1b; font-size:180%; margin-top:0; margin-left:0; padding-left:34px; background-image:url(check.png); background-position:1px 6px; background-repeat:no-repeat; font-weight:bold}
 #icon{position:absolute; left:0; top:4.5em; background-color:#8dff5c}
@@ -19,6 +19,7 @@ p{margin-top:0.5em; margin-bottom:0}
 #origin{font-size:80%; text-align:right; margin-top:1em}
 #origin > a{text-decoration:none; color:#222}
 #ccrow{display:none}
+#footer{position:fixed; bottom:2ex; width:100%; text-align:center; font-size:80%; color:#333}
 </style>
 <script>
 window.addEventListener("load", function load(event){
@@ -29,6 +30,12 @@ window.addEventListener("load", function load(event){
 	if (!job) {
 		close();
 	}
+	
+	var checkbox = document.getElementById("openInBackground");
+	checkbox.checked = Dontprint.getPrefs().getBoolPref("uploadInBackground");
+	checkbox.addEventListener("click", function() {
+		Dontprint.getPrefs().setBoolPref("uploadInBackground", this.checked)
+	}, false);
 	
 	document.getElementById("filename").textContent = job.result.params.filename;
 	document.getElementById("filesize").textContent = job.result.filesize;
@@ -91,5 +98,8 @@ This tab will close automatically in about <span id="countdown">60</span> second
 <img id="icon" src="../dontprint-speaking.png" alt="">
 </div>
 
+<div id="footer">
+<input type="checkbox" id="openInBackground"><label for="openInBackground">In the future open this tab in the background</label>
+</div>
 </body>
 </html>
