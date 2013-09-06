@@ -489,13 +489,6 @@ function Dontprint() {
 					} catch (e) {
 						// job.state is already "canceled". That's OK.
 					}
-					if (newtab !== null) {
-						try {
-							newtab.tabBrowser.contentWindow.close()
-						} catch (e) {
-							// ignore if tab's already been closed
-						}
-					}
 				} else {
 					yield displayResult(job, newtab);
 				}
@@ -1077,41 +1070,10 @@ function Dontprint() {
 		
 		job.authtoken = tabBrowser.contentWindow.frames[0].document.getElementsByName("dontprint-authtoken")[0].value;
 		
-		let deferred2 = Promise.defer();
-		job.waitPageCallback = function(progressBar, stateDisplay) {
-			job.setUploadProgress = function(value) {
-				job.uploadProgress = value;
-				updateJobState(job);
-				
-				progressBar.style.width = value*100 + "%";
-				if (value > 0.95) {
-					updateJobState(job, "sending");
-					stateDisplay.textContent = "sending e-mail";
-					progressBar.parentNode.style.display = "none";
-					delete job.setUploadProgress;
-				}
-			};
-			deferred2.resolve();
-		};
-		
 		tabBrowser.loadURIWithFlags(
 			"chrome://dontprint/content/sendmail/wait.html#" + job.id,
 			tabBrowser.webNavigation.LOAD_FLAGS_REPLACE_HISTORY
 		);
-		
-		let timeout2 = setTimeout(function() {
-			deferred2.reject("Timeout trying to connect to wait page.");
-		}, 60000); // 1 minute
-		job.abortCurrentTask = function() {
-			deferred2.reject("canceled");
-		};
-		
-		try {
-			yield deferred2.promise;
-		} finally {
-			clearTimeout(timeout2);
-			delete job.abortCurrentTask;
-		}
 	}
 	
 	
@@ -1155,15 +1117,10 @@ function Dontprint() {
 		let deferred = Promise.defer();
 		
 		req.upload.onprogress = function (e) {
-			if (job.setUploadProgress) {
-				job.setUploadProgress(e.loaded / e.total);
-			}
+			job.uploadProgress = e.loaded / e.total;
+			updateJobState(job, job.uploadProgress < 0.95 ? "uploading" : "sending");
 		};
 		req.onload = function() {
-			if (job.setUploadProgress) {
-				job.setUploadProgress(1);
-				delete job.setUploadProgress;
-			}
 			try {
 				job.result = JSON.parse(req.responseText);
 				deferred.resolve();

@@ -22,12 +22,45 @@ body{font-family:"Trebuchet MS", Helvetica, sans-serif; font-size:18px}
 <script>
 $(function() {
 
+var progressBar = $("#progress-bar");
+var stateDisplay = $("#state-text");
+
 var Dontprint = Components.classes['@robamler.github.com/dontprint;1'].getService().wrappedJSObject;
 var jobid = location.hash.substr(1);
 var job = Dontprint.getRunningJobs()[jobid];
 if (!job) {
 	close();
 }
+
+var listenerId = Dontprint.registerProgressListener(updateJob);
+updateJob(job);
+
+function updateJob(job) {
+	if (job.id != jobid) {
+		return;
+	}
+	
+	switch (job.state) {
+	case "uploading":
+		progressBar.width(job.uploadProgress*100 + "%");
+		break;
+		
+	case "sending":
+		stateDisplay.text("sending e-mail");
+		$('#progress-bar-wrapper').slideUp();
+		break;
+	
+	case "canceled":
+		$('#msg').fadeOut(400, function() {
+			$('#abortmsg').fadeIn();
+		});
+		break;
+	
+	default:
+		break;
+	}
+}
+
 
 $('#openInBackground').prop(
 	'checked', Dontprint.getPrefs().getBoolPref("uploadInBackground")
@@ -48,12 +81,11 @@ $('#nobtn').click(function() {
 
 $('#yesbtn').click(function() {
 	Dontprint.abortJob(jobid);
-	$('#msg').fadeOut(400, function() {
-		$('#abortmsg').fadeIn();
-	});
 });
 
-job.waitPageCallback(document.getElementById("progress-bar"), document.getElementById("state-text"));
+$(window).unload(function() {
+	Dontprint.unregisterProgressListener(listenerId);
+});
 
 });
 </script>
@@ -71,7 +103,7 @@ job.waitPageCallback(document.getElementById("progress-bar"), document.getElemen
 
 <div id="abortmsg">
 <div id="abortmsgtext">Job canceled.</div>
-<div>You can now close this tab.</div>
+<div>You can close this tab now.</div>
 </div>
 
 <div id="footer">
