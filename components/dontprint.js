@@ -762,7 +762,7 @@ function Dontprint() {
 				delete job.cropPageDeferred;
 			}
 			
-			if (!job.crop.prohibitSaveJournalSettings && (job.crop.shortname !== "" || job.crop.longname !== "")) {
+			if (!job.prohibitSaveJournalSettings && (job.crop.shortname !== "" || job.crop.longname !== "")) {
 				try {
 					var conn = yield Sqlite.openConnection({path: databasePath});
 					yield saveJournalSettings(conn, job.crop);
