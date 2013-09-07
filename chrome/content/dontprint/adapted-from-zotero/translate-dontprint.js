@@ -31,32 +31,40 @@ Zotero.Translate.Dontprint.prototype._prepareTranslation = function() {
  * This is adapted from code in Zotero's translate_item.js.
  */
 Zotero.Translate.Dontprint.prototype.dontprintSaveItems = function(items, callback, attachmentCallback) {
-	try {
-		var newItems = [];
+	function getFirstPdfAttachmentUrl() {
 		for each(var item in items) {
 			// Get typeID, defaulting to "webpage"
-			var newItem;
 			var type = (item.itemType ? item.itemType : "webpage");
 			
-			if(type == "note") {
+			if (type == "note") {
 				//ignore
 			} else {
-				if(type == "attachment") {	// handle attachments differently
+				if (type == "attachment") {	// handle attachments differently
 					//TODO
 				} else {
 					// handle attachments
 					if(item.attachments) {
-						for(var i=0; i<item.attachments.length; i++) {
+						for (var i=0; i<item.attachments.length; i++) {
 							var attachment = item.attachments[i];
 							if (attachment.mimeType && attachment.mimeType === "application/pdf") {
-								var newAttachment = this.downloadPdfAttachment(attachment.url);
+								return attachment.url;
 							}
 						}
 					}
 				}
 			}
 		}
-		callback(true, newItems);
+		return null;
+	};
+	
+	try {
+		var pdfurl = getFirstPdfAttachmentUrl();
+		if (pdfurl) {
+			this.downloadPdfAttachment(pdfurl);
+			callback(true, []);
+		} else {
+			throw "Dontprint cannot find a PDF document that is associated with this web page. Navigate your browser to a web page that clearly describes a single specific article before you click the Dontprint icon.";
+		}
 	} catch(e) {
 		if (this.errorHandler) {
 			this.errorHandler(e);

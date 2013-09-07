@@ -552,6 +552,7 @@ function Dontprint() {
 		
 		var pdfFile = FileUtils.getFile("TmpD", ["dontprint-original.pdf"]);
 		pdfFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+		job.tmpFiles = [pdfFile.path];
 		
 		var translate = new Zotero.Translate.Dontprint();
 		job.document = job.tab.page.translate.document;
@@ -584,7 +585,6 @@ function Dontprint() {
 			job.doi					= checkUndefined(item.DOI);
 			job.articleDate			= checkUndefined(item.date);
 			job.originalFilePath	= pdfFile.path;
-			job.tmpFiles			= [pdfFile.path];
 			itemDoneDeferred.resolve();
 			timeoutDeferred.resolve();
 		});
@@ -607,11 +607,8 @@ function Dontprint() {
 		});
 		
 		translate.setErrorHandler(function(e) {
-			try {
-				itemDoneDeferred.reject(e);
-			} catch (e) {
-				// has already been resolved; that's OK.
-			}
+			timeoutDeferred.reject(e)
+			itemDoneDeferred.reject(e);
 			attachDoneDeferred.reject(e)
 		});
 		
@@ -627,18 +624,25 @@ function Dontprint() {
 		}, 180000); // 3 minutes
 		
 		try {
-			yield timeoutDeferred.promise;
-			yield itemDoneDeferred.promise;
-			yield attachDoneDeferred.promise;
+			try {
+				yield timeoutDeferred.promise;
+				yield itemDoneDeferred.promise;
+				yield attachDoneDeferred.promise;
+			} catch (e) {
+				try {
+					job.abortCurrentTask();
+				} catch (e2) {} //ignore
+				throw e;
+			}
 		} finally {
 			// remove event handlers (avoid memory leaks)
-			delete job.abortCurrentTask;
 			translate.clearHandlers("done");
 			translate.clearHandlers("error");
 			translate.setErrorHandler(null);
 			translate.clearHandlers("itemDone");
 			translate.setAttachDoneHandler(null);
 		}
+		delete job.abortCurrentTask;
 		
 		job.downloadProgress = 1;
 		updateJobState(job);
