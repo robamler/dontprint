@@ -10,6 +10,20 @@ function Dontprint() {
 	var prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
 					.getService(Components.interfaces.nsIPromptService);
 	
+	const EREADER_MODEL_DEFAULTS = {
+		'paperwhite':		{w: 708,  h: 935,  ppi: 212},
+		'touch':			{w: 557,  h: 721,  ppi: 167},
+		'generation4':		{w: 557,  h: 721,  ppi: 167},
+		'keyboard':			{w: 557,  h: 721,  ppi: 167},
+		'dx':				{w: 790,  h: 1110, ppi: 150},
+		'generation2':		{w: 557,  h: 721,  ppi: 167},
+		'generation1':		{w: 557,  h: 721,  ppi: 167},
+		'fire-1or2':		{w: 557,  h: 940,  ppi: 169},
+		'fire-hd-7inch':	{w: 750,  h: 1180, ppi: 216},
+		'fire-hd-8p9inch':	{w: 1136, h: 1800, ppi: 254},
+		'other':			{w: 600,  h: 800,  ppi: 170}
+	};
+	
 	
 	// ==== PUBLICLY VISIBLE METHODS ================================
 	
@@ -156,18 +170,37 @@ function Dontprint() {
 	}
 	
 	
+	function getScreenDimensions() {
+		let ret = {
+			w:		prefs.getIntPref("screenWidth"),
+			h:		prefs.getIntPref("screenHeight"),
+			ppi:	prefs.getIntPref("screenPpi")
+		};
+		let defaultSettings = EREADER_MODEL_DEFAULTS[prefs.getCharPref("kindleModel")];
+		if (!defaultSettings) {
+			defaultSettings = EREADER_MODEL_DEFAULTS["other"];
+		}
+		for (let key in ret) {
+			if (ret[key] < 0) {
+				ret[key] = defaultSettings[key];
+			}
+		}
+		return ret;
+	}
+	
+	
 	function reportScreenSettings() {
-		prefs.setCharPref("MESSAGE", "a");
-		var url = buildURL(
+		let dims = getScreenDimensions();
+		let url = buildURL(
 			'https://docs.google.com/forms/d/1YCclhAjI9iDOf9tQybcJuW4QYM8Ayr1K6HB8894GfrI/formResponse?draftResponse=[]%0D%0A&pageHistory=0',
 			{
 				'entry.1501323902':	prefs.getCharPref("kindleModel"),
-				'entry.1922726083':	prefs.getIntPref("screenWidth"),
-				'entry.651002044':	prefs.getIntPref("screenHeight"),
-				'entry.2016260998':	prefs.getIntPref("screenPpi")
+				'entry.1922726083':	dims.w,
+				'entry.651002044':	dims.h,
+				'entry.2016260998':	dims.ppi
 			}
 		);
-		var req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
+		let req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
 							.createInstance(Components.interfaces.nsIXMLHttpRequest);
 		req.open("GET", url, true);
 		req.send();
@@ -927,11 +960,12 @@ function Dontprint() {
 		if (globalArgs) {
 			args = args.concat(globalArgs.split(/\s+/));
 		}
+		let dims = getScreenDimensions();
 		args = args.concat([
 			'-ui-', '-x', '-a-', '-om', '0',
-			'-w',  '' + prefs.getIntPref("screenWidth"),
-			'-h',  '' + prefs.getIntPref("screenHeight"),
-			'-odpi', '' + prefs.getIntPref("screenPpi"),
+			'-w',  '' + dims.w,
+			'-h',  '' + dims.h,
+			'-odpi', '' + dims.ppi,
 			'-ml', '' + parseFloat(job.crop.m1)/25.4,
 			'-mt', '' + parseFloat(job.crop.m2)/25.4,
 			'-mr', '' + parseFloat(job.crop.m3)/25.4,
@@ -1463,7 +1497,9 @@ function Dontprint() {
 			return Sqlite.openConnection({path: databasePath});
 		},
 		saveJournalSettings: saveJournalSettings,
-		deleteJournalSettings: deleteJournalSettings
+		deleteJournalSettings: deleteJournalSettings,
+		EREADER_MODEL_DEFAULTS: EREADER_MODEL_DEFAULTS,
+		getScreenDimensions: getScreenDimensions
 	};
 }
 

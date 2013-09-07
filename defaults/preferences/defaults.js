@@ -7,9 +7,9 @@ pref("extensions.dontprint.recipientEmailPrefix", "");
 pref("extensions.dontprint.recipientEmailSuffix", "@free.kindle.com");
 pref("extensions.dontprint.recipientEmailOther", "");
 pref("extensions.dontprint.kindleModel", "");
-pref("extensions.dontprint.screenWidth", 557);
-pref("extensions.dontprint.screenHeight", 721);
-pref("extensions.dontprint.screenPpi", 167);
+pref("extensions.dontprint.screenWidth", -1);
+pref("extensions.dontprint.screenHeight", -1);
+pref("extensions.dontprint.screenPpi", -1);
 pref("extensions.dontprint.uploadInBackground", false);
 pref("extensions.dontprint.neverReportJournalSettings", false);
 

@@ -2,17 +2,17 @@ ModelPicker = {
 	initialized: false,
 	selection: null,
 	models: {
-		'paperwhite':		{w: 708,  h: 935,  ppi: 212, label: 'Kindle Paperwhite',	hint: '- black-and-white display\n- no keyboard\n- builtin display backlight'},
-		'touch':			{w: 557,  h: 721,  ppi: 167, label: 'Kindle Touch',			hint: '- black-and-white display\n- no keyboard\n- no display backlight'},
-		'generation4':		{w: 557,  h: 721,  ppi: 167, label: 'Kindle 4',				hint: '- black-and-white display\n- no keyboard\n- no touch screen'},
-		'keyboard':			{w: 557,  h: 721,  ppi: 167, label: 'Kindle keyboard',		hint: '- 4 rows of circular keys\n- spacebar is below C,V,B,N,M'},
-		'dx':				{w: 790,  h: 1110, ppi: 150, label: 'Kindle DX',			hint: '- 4 rows of rounded-rectangular keys\n- spacebar is below V,B,N,M'},
-		'generation2':		{w: 557,  h: 721,  ppi: 167, label: 'Kindle 2',				hint: '- 5 rows of circular keys'},
-		'generation1':		{w: 557,  h: 721,  ppi: 167, label: 'Kindle 1',				hint: '- 5 rows of rectangular keys\n- gap between left and right half of keyboard'},
-		'fire-1or2':		{w: 557,  h: 940,  ppi: 169, label: 'Kindle Fire',			hint: '- color display\n- 7 inch (18 cm) display diagonal\n- 1024x600 pixels'},
-		'fire-hd-7inch':	{w: 750,  h: 1180, ppi: 216, label: 'Kindle Fire HD 7"',	hint: '- color display\n- 7 inch (18 cm) display diagonal\n- 1280x800 pixels'},
-		'fire-hd-8p9inch':	{w: 1136, h: 1800, ppi: 254, label: 'Kindle Fire HD 8.9"',	hint: '- color display\n- 8.9 inch (23 cm) display diagonal\n- 1920x1200 pixels'},
-		'other':			{w: 600,  h: 800,  ppi: 170, label: 'not a Kindle',			hint: '- select this option if your e-reader\n  is not an amazon Kindle'}
+		'paperwhite':		{label: 'Kindle Paperwhite',	hint: '- black-and-white display\n- no keyboard\n- builtin display backlight'},
+		'touch':			{label: 'Kindle Touch',			hint: '- black-and-white display\n- no keyboard\n- no display backlight'},
+		'generation4':		{label: 'Kindle 4',				hint: '- black-and-white display\n- no keyboard\n- no touch screen'},
+		'keyboard':			{label: 'Kindle keyboard',		hint: '- 4 rows of circular keys\n- spacebar is below C,V,B,N,M'},
+		'dx':				{label: 'Kindle DX',			hint: '- 4 rows of rounded-rectangular keys\n- spacebar is below V,B,N,M'},
+		'generation2':		{label: 'Kindle 2',				hint: '- 5 rows of circular keys'},
+		'generation1':		{label: 'Kindle 1',				hint: '- 5 rows of rectangular keys\n- gap between left and right half of keyboard'},
+		'fire-1or2':		{label: 'Kindle Fire',			hint: '- color display\n- 7 inch (18 cm) display diagonal\n- 1024x600 pixels'},
+		'fire-hd-7inch':	{label: 'Kindle Fire HD 7"',	hint: '- color display\n- 7 inch (18 cm) display diagonal\n- 1280x800 pixels'},
+		'fire-hd-8p9inch':	{label: 'Kindle Fire HD 8.9"',	hint: '- color display\n- 8.9 inch (23 cm) display diagonal\n- 1920x1200 pixels'},
+		'other':			{label: 'not a Kindle',			hint: '- select this option if your e-reader\n  is not an amazon Kindle'}
 	},
 	questions: {
 		'START': {

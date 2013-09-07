@@ -39,11 +39,7 @@ var Dontprint = Components.classes['@robamler.github.com/dontprint;1'].getServic
 var modelSettings = {};
 var initialKindleModel = Dontprint.getPrefs().getCharPref("kindleModel");
 if (initialKindleModel) {
-	modelSettings[initialKindleModel] = {
-		w:		Dontprint.getPrefs().getIntPref("screenWidth"),
-		h:		Dontprint.getPrefs().getIntPref("screenHeight"),
-		ppi:	Dontprint.getPrefs().getIntPref("screenPpi")
-	};
+	modelSettings[initialKindleModel] = Dontprint.getScreenDimensions();
 }
 
 
@@ -59,16 +55,17 @@ function modelSelectListener(modelName) {
 	var model = ModelPicker.models[modelName];
 	var res = $('#model-result');
 	if (model) {
+		var modelDefaults = Dontprint.EREADER_MODEL_DEFAULTS[modelName];
 		$('#model-result-text').text(model.label);
 		if (modelName==="other") {
 			$('#recomendations,#sendScreenSettignsContainer').hide();
 		} else {
-			$('#recommendedWidth').text(model.w);
-			$('#recommendedHeight').text(model.h);
-			$('#recommendedPpi').text(model.ppi);
+			$('#recommendedWidth').text(modelDefaults.w);
+			$('#recommendedHeight').text(modelDefaults.h);
+			$('#recommendedPpi').text(modelDefaults.ppi);
 			$('#recomendations,#sendScreenSettignsContainer').show();
 		}
-		var userSettings = modelSettings[modelName] ? modelSettings[modelName] : model;
+		var userSettings = modelSettings[modelName] ? modelSettings[modelName] : modelDefaults;
 		$('#widthinput').val(userSettings.w);
 		$('#heightinput').val(userSettings.h);
 		$('#ppiinput').val(userSettings.ppi);
@@ -151,20 +148,34 @@ changeHeightListener(0);
 
 
 function screenSettingsChange() {
-	if (!modelSettings[ModelPicker.selection]) {
-		var m = ModelPicker.models[mod];
-		modelSettings[ModelPicker.selection] = { w:m.w, h:m.h, ppi:m.ppi };
+	var modname = ModelPicker.selection;
+	var defs = Dontprint.EREADER_MODEL_DEFAULTS[modname];
+	if (!defs) {
+		// nothing was selected
+		return;
 	}
-	function saveChange(el, short, preference) {
+	if (!modelSettings[modname]) {
+		modelSettings[modname] = { w:defs.w, h:defs.h, ppi:defs.ppi };
+	}
+	var alldefaults = true;
+	function checkChange(el, short, preference) {
 		if (el.get(0).validity.valid) {
-			Dontprint.getPrefs().setIntPref(preference, el.val());
-			modelSettings[ModelPicker.selection][short] = el.val();
+			modelSettings[modname][short] = el.val();
+		}
+		if (modelSettings[modname][short] != defs[short]) {
+			alldefaults = false;
 		}
 	}
 	
-	saveChange($('#widthinput'), 'w', 'screenWidth');
-	saveChange($('#heightinput'), 'h', 'screenHeight');
-	saveChange($('#ppiinput'), 'ppi', 'screenPpi');
+	checkChange($('#widthinput'), 'w', 'screenWidth');
+	checkChange($('#heightinput'), 'h', 'screenHeight');
+	checkChange($('#ppiinput'), 'ppi', 'screenPpi');
+	
+	// Store -1 if ALL values are default. This way, they will implicitly be updated if defaults change.
+	var newvalues = alldefaults ? {w:-1, h:-1, ppi:-1} : modelSettings[modname];
+	Dontprint.getPrefs().setIntPref('screenWidth', newvalues.w);
+	Dontprint.getPrefs().setIntPref('screenHeight', newvalues.h);
+	Dontprint.getPrefs().setIntPref('screenPpi', newvalues.ppi);
 }
 
 $('#widthinput,#heightinput,#ppiinput').change(screenSettingsChange);

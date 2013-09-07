@@ -49,7 +49,7 @@ function onUnload() {
 }
 
 
-// GENERAL TAB ====================================================
+// E-MAIL TAB =====================================================
 
 function emailSuffixChange() {
 	let other = document.getElementById("emailSuffix_control").value === "other";
@@ -93,6 +93,8 @@ function sendTestPage() {
 	}
 }
 
+
+// ADVANCED TAB ===================================================
 
 function getK2pdfoptVersion() {
 	function onFound(versionString) {

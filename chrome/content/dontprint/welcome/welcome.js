@@ -50,10 +50,11 @@ $("#platform-selector").val(platformstring);
 function modelSelectListener(modelName) {
 	var model = ModelPicker.models[modelName];
 	if (model) {
+		var modelDefaults = Dontprint.EREADER_MODEL_DEFAULTS[modelName];
 		$('#model-result-text').text(model.label);
-		$('#widthinput').val(model.w);
-		$('#heightinput').val(model.h);
-		$('#ppiinput').val(model.ppi);
+		$('#widthinput').val(modelDefaults.w);
+		$('#heightinput').val(modelDefaults.h);
+		$('#ppiinput').val(modelDefaults.ppi);
 		var res = $('#model-result');
 		var resheight = null;
 		if (res.is(':visible')) {
@@ -239,9 +240,24 @@ $("#acceptstep2").click(function() {
 	}
 	
 	prefs.setCharPref("kindleModel", ModelPicker.selection);
-	prefs.setIntPref("screenWidth", $('#widthinput').val());
-	prefs.setIntPref("screenHeight", $('#heightinput').val());
-	prefs.setIntPref("screenPpi", $('#ppiinput').val());
+	
+	var screenSettings = {
+		w: $('#widthinput').val(),
+		h: $('#heightinput').val(),
+		ppi: $('#ppiinput').val(),
+	};
+	var modelDefaults = Dontprint.EREADER_MODEL_DEFAULTS[ModelPicker.selection];
+	var alldefaults = true;
+	for (var key in screenSettings) {
+		if (screenSettings[key] != modelDefaults[key]) {
+			alldefaults = false;
+			break;
+		}
+	}
+	var newvalues = alldefaults ? {w:-1, h:-1, ppi:-1} : screenSettings;
+	Dontprint.getPrefs().setIntPref('screenWidth', newvalues.w);
+	Dontprint.getPrefs().setIntPref('screenHeight', newvalues.h);
+	Dontprint.getPrefs().setIntPref('screenPpi', newvalues.ppi);
 	
 	$('#step2header').text($('#step2header').text() + ' (done)').fadeTo(400, .4);
 	$('#step2body').slideUp();
