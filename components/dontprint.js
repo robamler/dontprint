@@ -416,6 +416,7 @@ function Dontprint() {
 		runJob({
 			title:		'Dontprint test document',
 			jobType:	'test',
+			pdfurl:		"http://robamler.github.com/dontprint/test-documents/" + prefs.getCharPref("kindleModel") + ".pdf",
 			tmpFiles:	[],
 			callback:	callback
 		});
@@ -446,13 +447,15 @@ function Dontprint() {
 			if (!job.cleaned) {
 				job.cleaned = true;
 				delete runningJobs[job.id];
-				incrementQueueLength(-1, job.jobType==='page' ? job.pageurl : undefined);
-				job.tmpFiles.forEach(deleteFile);
+				incrementQueueLength(-1, job.identifierurl);
+				if (job.tmpFiles) {
+					job.tmpFiles.forEach(deleteFile);
+				}
 			}
 		};
 		
 		// show progress indicator
-		incrementQueueLength(+1, job.jobType==='page' ? job.pageurl : undefined);
+		incrementQueueLength(+1, job.identifierurl);
 		job.downloadProgress = 0;
 		job.convertProgress = 0;
 		job.uploadProgress = 0;
@@ -463,13 +466,20 @@ function Dontprint() {
 		Task.spawn(function() {
 			var newtab = null;
 			try {
-				if (job.jobType === 'page') {
-					yield grabOriginalFileForCurrentTab(job);
-				} else if (job.jobType === 'test') {
-					yield getTestDocument(job);
+				switch (job.jobType) {
+					case "page":
+						yield grabOriginalFileForCurrentTab(job);
+						break;
+					
+					case "pdfurl":
+					case "test":
+						yield downloadPdfUrl(job);
+						break;
 				}
 				
-				if (job.jobType !== 'test') {
+				if (job.jobType === 'test') {
+					job.convertedFilePath = job.originalFilePath;
+				} else {
 					yield cropMargins.call(that, job);
 					yield convertDocument(job);
 				}
@@ -606,12 +616,12 @@ function Dontprint() {
 	}
 	
 	
-	function getTestDocument(job) {
+	function downloadPdfUrl(job) {
 		updateJobState(job, "downloading");
 		
-		let destFile = FileUtils.getFile("TmpD", ["dontprint-test.pdf"]);
+		let destFile = FileUtils.getFile("TmpD", ["dontprint-original.pdf"]);
 		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
-		job.convertedFilePath = destFile.path;
+		job.originalFilePath = destFile.path;
 		job.tmpFiles.push(destFile.path);
 		
 		let deferred = Promise.defer();
@@ -640,7 +650,7 @@ function Dontprint() {
 		
 		let nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
 					.createInstance(Components.interfaces.nsIURL);
-		nsIURL.spec = "http://robamler.github.com/dontprint/test-documents/" + prefs.getCharPref("kindleModel") + ".pdf";
+		nsIURL.spec = job.pdfurl;
 		
 		try {
 			wbp.saveURI(nsIURL, null, null, null, null, destFile);
@@ -989,7 +999,7 @@ function Dontprint() {
 			.getMostRecentWindow("navigator:browser").gBrowser;
 		let tab = gBrowser.loadOneTab(
 			url,
-			{ inBackground: job.jobType!=='test' && prefs.getBoolPref("uploadInBackground") }
+			{ inBackground: prefs.getBoolPref("uploadInBackground") }
 		);
 		let tabBrowser = gBrowser.getBrowserForTab(tab);
 		

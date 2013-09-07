@@ -4,6 +4,7 @@ skin		dontprint	default		chrome/skin/default/dontprint/
 resource	EXTENSION				modules/
 
 overlay	chrome://browser/content/browser.xul	chrome://dontprint/content/overlay.xul
+overlay chrome://mozapps/content/downloads/unknownContentType.xul chrome://dontprint/content/downloadOverlay.xul
 
 component	{4194dd40-1202-4b34-8873-5afcadd700e7}		components/minimal-zotero-service.js
 contract	@robamler.github.com/minimal-zotero;1		{4194dd40-1202-4b34-8873-5afcadd700e7}

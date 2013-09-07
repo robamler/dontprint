@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<overlay xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<script type="application/x-javascript" src="downloadOverlay.js"/>
+	<radiogroup id="mode">
+		<vbox id="dontprint-container" flex="1" hidden="true">
+			<radio id="dontprint-radio" label="Send to my e-reader with Dontprint" accesskey="d"/>
+			<hbox style="margin-left:2em" align="center">
+				<label control="dontprint-title" value="Document title:"/>
+				<textbox flex="1" disabled="true" id="dontprint-title"/>
+			</hbox>
+		</vbox>
+	</radiogroup>
+</overlay>
+

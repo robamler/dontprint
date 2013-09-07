@@ -74,24 +74,42 @@ DontprintBrowser = (function() {
 	 *   thinks to know how to handle articles from this journal.
 	 */
 	function dontprintThisPage(translator, forceCropWindow) {
-		let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-		Dontprint.runJob({
-			title:		'Unknown title',
-			jobType:	'page',
-			translator:	translator,
-			forceCropWindow: forceCropWindow,
-			pageurl:	tab.page.document.location.href,
-			tab:		tab
-		});
+		let url = gBrowser.selectedBrowser.contentDocument.location.href;
+		
+		if (gBrowser.selectedBrowser.contentDocument.contentType.toLowerCase() === "application/pdf") {
+			let title = decodeURIComponent(url.match(/([^/]*?)(\.pdf)?([?#].*)?$/i)[1]);
+			if (!title) {
+				title = "Untitled document";
+			}
+			Dontprint.runJob({
+				jobType:			"pdfurl",
+				title:				title,
+				pdfurl:				url,
+				identifierurl:		url,
+				journalLongname:	"",
+				journalShortname:	"",
+				tmpFiles:			[]
+			});
+		} else {		
+			let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+			Dontprint.runJob({
+				title:				'Unknown title',
+				jobType:			'page',
+				translator:			translator,
+				forceCropWindow:	forceCropWindow,
+				pageurl:			url,
+				identifierurl:		url,
+				tab:				tab
+			});
+		}
 	}
 	
 	
 	function cancelJobForThisPage() {
-		let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-		let pageurl = tab.page.document.location.href;
+		let identifierurl = gBrowser.selectedBrowser.contentDocument.location.href;
 		let jobs = Dontprint.getRunningJobs();
 		for (let jobid in jobs) {
-			if (jobs[jobid].pageurl === pageurl) {
+			if (jobs[jobid].identifierurl === identifierurl) {
 				Dontprint.abortJob(jobid);
 			}
 		}
@@ -104,22 +122,28 @@ DontprintBrowser = (function() {
 	 * by the current page.
 	 */
 	function onStatusPopupShowing(e) {
-		let popup = e.target;
+		let popup = document.getElementById("dontprint-status-image-context-custom-translator-submenu");
 		while (popup.hasChildNodes())
 			popup.removeChild(popup.lastChild);
 		
-		let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-		let translators = tab.page.translators;
-		for (let i=0, n=translators.length; i<n; i++) {
-			let translator = translators[i];
-			
-			let menuitem = document.createElement("menuitem");
-			menuitem.setAttribute("label", translator.label + (i===0 ? " (recommended)" : ""));
-			menuitem.setAttribute("class", "menuitem-iconic");
-			menuitem.addEventListener("command", function(e) {
- 				dontprintThisPage(translator);
-			}, false);
-			popup.appendChild(menuitem);
+		let numtranslators = 0;
+		try {
+			let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+			let translators = tab.page.translators;
+			for (let i=0, n=translators.length; i<n; i++) {
+				let translator = translators[i];
+				
+				let menuitem = document.createElement("menuitem");
+				menuitem.setAttribute("label", translator.label + (i===0 ? " (recommended)" : ""));
+				menuitem.setAttribute("class", "menuitem-iconic");
+				menuitem.addEventListener("command", function(e) {
+					dontprintThisPage(translator);
+				}, false);
+				popup.appendChild(menuitem);
+				numtranslators++;
+			}
+		} finally {
+			document.getElementById("dontprint-status-image-context-custom-translator").disabled = numtranslators===0;
 		}
 	}
 	
@@ -151,18 +175,30 @@ DontprintBrowser = (function() {
 	// PRIVATE FUNCTIONS ===========================================	
 	
 	function updateDontprintIconVisibility() {
-		let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-		
 		let showDontprintIcon = false;
-		if (tab && tab.page.translators && tab.page.translators.length) {
-			let itemType = tab.page.translators[0].itemType;
-			if (itemType !== "multiple") {		//TODO: implement itemType === "multiple"
+		
+		// First detect if a PDF document is displayed.
+		try {
+			if (gBrowser.selectedBrowser.contentDocument.contentType.toLowerCase() === "application/pdf") {
 				showDontprintIcon = true;
 			}
+		} catch (e) { } // ignore
+		
+		// If no PDF document is displayed, try Zotero's translators.
+		if (!showDontprintIcon) {
+			try {
+				let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+				if (tab && tab.page.translators && tab.page.translators.length) {
+					let itemType = tab.page.translators[0].itemType;
+					if (itemType !== "multiple") {
+						showDontprintIcon = true;
+					}
+				}
+			} catch (e) { } // ignore
 		}
 		
-		let alreadyProcessing = showDontprintIcon && Dontprint.isQueuedUrl(tab.page.document.location.href);
-		
+		// update the status icons
+		let alreadyProcessing = showDontprintIcon && Dontprint.isQueuedUrl(gBrowser.selectedBrowser.contentDocument.location.href);
 		dontprintThisPageMenuItem.disabled = !(showDontprintIcon && !alreadyProcessing);
 		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
 		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);

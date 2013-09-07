@@ -13,11 +13,11 @@
 	<!-- "Dontprint this page" icon in urlbar -->
 	<hbox id="urlbar-icons">
 		<popupset>
-			<menupopup id="dontprint-status-image-context">
+			<menupopup id="dontprint-status-image-context" onpopupshowing="DontprintBrowser.onStatusPopupShowing(event)">
 				<menuitem oncommand="DontprintBrowser.dontprintThisPage(undefined,false);" label="Dontprint document (send to e-reader) with default settings"/>
 				<menuitem oncommand="DontprintBrowser.dontprintThisPage(undefined,true);" label="Dontprint document with custom settings..."/>
-				<menu label="Dontprint document using custom meta-data detector">
-					<menupopup onpopupshowing="DontprintBrowser.onStatusPopupShowing(event)" />
+				<menu id="dontprint-status-image-context-custom-translator" label="Dontprint document using custom meta-data detector">
+					<menupopup id="dontprint-status-image-context-custom-translator-submenu" />
 				</menu>
 				<menuseparator/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
