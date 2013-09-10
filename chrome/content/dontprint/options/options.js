@@ -37,8 +37,10 @@ function onLoad() {
 
 
 function onUnload() {
-	saveOldSelection().then(conn.close, conn.close);
-	
+	var savePromise = saveOldSelection();
+	if (savePromise !== undefined) {
+		savePromise.then(conn.close, conn.close);
+	}
 	document.getElementById("deviceIframe").contentWindow.screenSettingsChange();
 	if (
 		Dontprint.getPrefs().getCharPref("kindleModel") !== "other" &&
@@ -46,7 +48,9 @@ function onUnload() {
 	) {
 		Dontprint.reportScreenSettings();
 	}
+	return true;
 }
+
 
 
 // E-MAIL TAB =====================================================
