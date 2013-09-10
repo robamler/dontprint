@@ -1102,7 +1102,7 @@ function Dontprint() {
 			}
 		}, 100);
 		let timeout = setTimeout(function() {
-			deferred.reject("Timeout trying to connect to sendmail app.");
+			deferred.reject("Timeout while trying to connect to sendmail app.");
 		}, 60000); // 1 minute
 		job.abortCurrentTask = function() {
 			deferred.reject("canceled");
@@ -1118,10 +1118,30 @@ function Dontprint() {
 		
 		job.authtoken = tabBrowser.contentWindow.frames[0].document.getElementsByName("dontprint-authtoken")[0].value;
 		
+		let deferred2 = Promise.defer();
+		job.waitPageCallback = deferred2.resolve;
+		job.abortCurrentTask = function() {
+			deferred2.reject("canceled");
+		}
+		let timeout2 = setTimeout(function() {
+			deferred2.reject("Timeout while trying to connect to wait page.");
+		}, 30000); // 30sec
+		
 		tabBrowser.loadURIWithFlags(
 			"chrome://dontprint/content/sendmail/wait.html#" + job.id,
 			tabBrowser.webNavigation.LOAD_FLAGS_REPLACE_HISTORY
 		);
+		
+		try {
+			// We really should not be foreced to wait for the page to load but
+			// if we don't the XHR's onload handler in sendMail() is sometimes
+			// not fired when sending rather small files over a fast connection.
+			yield deferred2.promise
+		} finally {
+			clearTimeout(timeout2);
+			delete job.waitPageCallback;
+			delete job.abortCurrentTask;
+		}
 	}
 	
 	
