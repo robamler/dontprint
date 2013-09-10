@@ -4,7 +4,6 @@ DontprintBrowser = (function() {
 	var dontprintFromZoteroBtn = null;
 	var Dontprint = null;
 	var idleAnimationTimer = null;
-	var idleAnimationState = 0;
 	
 	
 	// PUBLIC FUNCTIONS ===========================================	
@@ -19,7 +18,7 @@ DontprintBrowser = (function() {
 		if (Dontprint.isZoteroInstalled()) {
 			// Programmatically insert a "Dontprint" button into the Zotero pane
 			dontprintFromZoteroBtn = document.createElement("toolbarbutton");
-			dontprintFromZoteroBtn.setAttribute("id", "dontprint-tbbtn");
+			dontprintFromZoteroBtn.setAttribute("id", "dontprint-zotero-tbbtn");
 			dontprintFromZoteroBtn.setAttribute("class", "zotero-tb-button");
 			dontprintFromZoteroBtn.setAttribute("tooltiptext", "Dontprint selected item(s) (send to e-reader); right-click for progress information");
 			dontprintFromZoteroBtn.addEventListener("click", function(event) {
@@ -148,20 +147,30 @@ DontprintBrowser = (function() {
 	
 	function updateQueueLength(queuelength) {
 		clearInterval(idleAnimationTimer);
-		
 		if (queuelength === 0) {
 			if (Dontprint.isZoteroInstalled()) {
-				dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/idle.png')";
+				dontprintFromZoteroBtn.style.MozImageRegion = "rect(0px 16px 16px 0px)";
 			}
-			dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/idle.png";
+			dontprintProgressImg.style.MozImageRegion = "rect(0px 16px 16px 0px)";
+			try {
+				document.getElementById("dontprint-toolbar-button").style.MozImageRegion = "rect(0px 16px 16px 0px)";
+			} catch (e) {} // button not displayed
 		} else {
 			let len = Math.min(10, queuelength);
+			let cliprect = [
+				"rect(0px " + (len*16+16) + "px 16px " + (len*16) + "px)",
+				"rect(16px " + (len*16+16) + "px 32px " + (len*16) + "px)"
+			];
+			let animationState = 0;
 			let timerfunc = function() {
 				if (Dontprint.isZoteroInstalled()) {
-					dontprintFromZoteroBtn.style.listStyleImage = "url('chrome://dontprint/skin/dontprint-btn/"+len+("ab"[idleAnimationState])+".png')";
+					dontprintFromZoteroBtn.style.MozImageRegion = cliprect[animationState];
 				}
-				dontprintProgressImg.src = "chrome://dontprint/skin/dontprint-btn/"+len+("ab"[idleAnimationState])+".png";
-				idleAnimationState = (idleAnimationState+1)%2;
+				dontprintProgressImg.style.MozImageRegion = cliprect[animationState];
+				try {
+					document.getElementById("dontprint-toolbar-button").style.MozImageRegion = cliprect[animationState];
+				} catch (e) {} // button not displayed
+				animationState = (animationState+1)%2;
 			};
 			timerfunc();
 			idleAnimationTimer = setInterval(timerfunc, 2000);
@@ -197,14 +206,18 @@ DontprintBrowser = (function() {
 		
 		// update the status icons
 		let alreadyProcessing = showDontprintIcon && Dontprint.isQueuedUrl(gBrowser.selectedBrowser.contentDocument.location.href);
-		try {
-			document.getElementById("dontprint-this-page-menu-item").disabled = !(showDontprintIcon && !alreadyProcessing);
-		} catch (e) {} // menu item not displayed
-		try {
-			document.getElementById("dontprint-this-page-menu-item2").disabled = !(showDontprintIcon && !alreadyProcessing);
-		} catch (e) {} // menu item not displayed
 		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
 		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
+		
+		try {
+			document.getElementById("dontprint-this-page-menu-item").disabled = !(showDontprintIcon && !alreadyProcessing);
+		} catch (e) {} // "Tools" menu not displayed
+		try {
+			document.getElementById("dontprint-this-page-menu-item2").disabled = !(showDontprintIcon && !alreadyProcessing);
+		} catch (e) {} // minified menu not displayed
+		try {
+			document.getElementById("dontprint-this-page-menu-item3").disabled = !(showDontprintIcon && !alreadyProcessing);
+		} catch (e) {} // toolbar button not displayed
 	}
 	
 	
