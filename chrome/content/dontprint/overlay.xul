@@ -49,8 +49,8 @@
 	<!-- menu entry in tools menu -->
 	<menupopup id="menu_ToolsPopup">
 		<menu id="dontprint-tools-menu" insertbefore="devToolsEndSeparator" label="Dontprint">
-			<menupopup>
-				<menuitem oncommand="DontprintBrowser.dontprintThisPage();"  label="&dontprint.thisPageMenuItemLabel;" id="dontprint-this-page-menu-item"/>
+			<menupopup onpopupshowing="DontprintBrowser.onDontprintMenuShow(event)">
+				<menuitem class="dontprintThisPage" oncommand="DontprintBrowser.dontprintThisPage();"  label="&dontprint.thisPageMenuItemLabel;"/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().dontprintLocalFile();" label="Send a local PDF document to e-reader..."/>
 				<menuseparator/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
@@ -62,8 +62,8 @@
 	<!-- menu entry in the minified menu on Windows -->
 	<vbox id="appmenuSecondaryPane">
 		<menu id="dontprint-minified-menu" insertafter="appmenu_addons" label="Dontprint">
-			<menupopup>
-				<menuitem oncommand="DontprintBrowser.dontprintThisPage();" label="&dontprint.thisPageMenuItemLabel;" id="dontprint-this-page-menu-item2"/>
+			<menupopup onpopupshowing="DontprintBrowser.onDontprintMenuShow(event)">
+				<menuitem class="dontprintThisPage" oncommand="DontprintBrowser.dontprintThisPage();" label="&dontprint.thisPageMenuItemLabel;"/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().dontprintLocalFile();" label="Send a local PDF document to e-reader..."/>
 				<menuseparator/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
@@ -75,8 +75,8 @@
 	<!-- toolbar button -->
 	<toolbarpalette id="BrowserToolbarPalette">
 		<toolbarbutton id="dontprint-toolbar-button" class="chromeclass-toolbar-additional" tooltiptext="Dontprint" label="Dontprint" type="menu">
-			<menupopup>
-				<menuitem oncommand="DontprintBrowser.dontprintThisPage();" label="&dontprint.thisPageMenuItemLabel;" id="dontprint-this-page-menu-item3"/>
+			<menupopup onpopupshowing="DontprintBrowser.onDontprintMenuShow(event)">
+				<menuitem class="dontprintThisPage" oncommand="DontprintBrowser.dontprintThisPage();" label="&dontprint.thisPageMenuItemLabel;"/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().dontprintLocalFile();" label="Send a local PDF document to e-reader..."/>
 				<menuseparator/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>

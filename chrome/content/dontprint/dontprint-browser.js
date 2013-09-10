@@ -4,6 +4,8 @@ DontprintBrowser = (function() {
 	var dontprintFromZoteroBtn = null;
 	var Dontprint = null;
 	var idleAnimationTimer = null;
+	var showDontprintIcon = false;
+	var alreadyProcessing = false;
 	
 	
 	// PUBLIC FUNCTIONS ===========================================	
@@ -145,6 +147,15 @@ DontprintBrowser = (function() {
 	}
 	
 	
+	/**
+	 * Called when any of the various menus that contains a "Dontprint
+	 * this page" button which may have to be disabled is shown.
+	 */
+	function onDontprintMenuShow(event) {
+		event.target.getElementsByClassName("dontprintThisPage")[0].disabled = !(showDontprintIcon && !alreadyProcessing);
+	}
+	
+	
 	function updateQueueLength(queuelength) {
 		clearInterval(idleAnimationTimer);
 		if (queuelength === 0) {
@@ -182,7 +193,7 @@ DontprintBrowser = (function() {
 	// PRIVATE FUNCTIONS ===========================================	
 	
 	function updateDontprintIconVisibility() {
-		let showDontprintIcon = false;
+		showDontprintIcon = false;
 		
 		// First detect if a PDF document is displayed.
 		try {
@@ -205,19 +216,9 @@ DontprintBrowser = (function() {
 		}
 		
 		// update the status icons
-		let alreadyProcessing = showDontprintIcon && Dontprint.isQueuedUrl(gBrowser.selectedBrowser.contentDocument.location.href);
+		alreadyProcessing = showDontprintIcon && Dontprint.isQueuedUrl(gBrowser.selectedBrowser.contentDocument.location.href);
 		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
 		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
-		
-		try {
-			document.getElementById("dontprint-this-page-menu-item").disabled = !(showDontprintIcon && !alreadyProcessing);
-		} catch (e) {} // "Tools" menu not displayed
-		try {
-			document.getElementById("dontprint-this-page-menu-item2").disabled = !(showDontprintIcon && !alreadyProcessing);
-		} catch (e) {} // minified menu not displayed
-		try {
-			document.getElementById("dontprint-this-page-menu-item3").disabled = !(showDontprintIcon && !alreadyProcessing);
-		} catch (e) {} // toolbar button not displayed
 	}
 	
 	
@@ -248,6 +249,7 @@ DontprintBrowser = (function() {
 		cancelJobForThisPage: cancelJobForThisPage,
 		updateQueueLength: updateQueueLength,
 		onStatusPopupShowing: onStatusPopupShowing,
+		onDontprintMenuShow: onDontprintMenuShow,
 		configureDontprint: configureDontprint,
 		getDontprint: function() { return Dontprint; }
 	};
