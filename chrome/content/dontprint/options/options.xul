@@ -7,7 +7,8 @@
  
 <prefwindow id="dontprint-prefs"
 	title="&dontprint.preferences.title;"
-	onload="onLoad()" onunload="onUnload()"
+	onload="onLoad()" ondialogaccept="onUnload()"
+	buttons="accept"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
 	<prefpane id="dontprint-prefpane-email" label="E-mail" image="email.png">
@@ -28,7 +29,7 @@
 				<row>
 					<label control="emailPrefix_control" value="Your Kindle's e-mail address:"/>
 					<hbox>
-						<textbox size="15" preference="emailPrefix_symbol" id="emailPrefix_control" style="text-align:right"/>
+						<textbox size="25" preference="emailPrefix_symbol" id="emailPrefix_control" style="text-align:right"/>
 						<menulist id="emailSuffix_control" preference="emailSuffix_symbol" oncommand="emailSuffixChange()">
 							<menupopup>
 								<menuitem value="@free.kindle.com" label="@free.kindle.com   (Wi-Fi only, no charges)"/>

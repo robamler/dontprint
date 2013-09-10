@@ -1,5 +1,4 @@
 DontprintBrowser = (function() {
-	var dontprintThisPageMenuItem = null;
 	var dontprintThisPageImg = null;
 	var dontprintProgressImg = null;
 	var dontprintFromZoteroBtn = null;
@@ -14,7 +13,6 @@ DontprintBrowser = (function() {
 		Dontprint = Components.classes['@robamler.github.com/dontprint;1']
 					.getService().wrappedJSObject;
 		
-		dontprintThisPageMenuItem = document.getElementById("dontprint-this-page-menu-item");
 		dontprintThisPageImg = document.getElementById("dontprint-status-image");
 		dontprintProgressImg = document.getElementById("dontprint-progress-image");
 		
@@ -199,7 +197,12 @@ DontprintBrowser = (function() {
 		
 		// update the status icons
 		let alreadyProcessing = showDontprintIcon && Dontprint.isQueuedUrl(gBrowser.selectedBrowser.contentDocument.location.href);
-		dontprintThisPageMenuItem.disabled = !(showDontprintIcon && !alreadyProcessing);
+		try {
+			document.getElementById("dontprint-this-page-menu-item").disabled = !(showDontprintIcon && !alreadyProcessing);
+		} catch (e) {} // menu item not displayed
+		try {
+			document.getElementById("dontprint-this-page-menu-item2").disabled = !(showDontprintIcon && !alreadyProcessing);
+		} catch (e) {} // menu item not displayed
 		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
 		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
 	}

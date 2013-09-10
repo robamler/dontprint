@@ -50,17 +50,29 @@
 	
 	<!-- menu entry in tools menu -->
 	<menupopup id="menu_ToolsPopup">
-		<menuseparator insertbefore="devToolsSeparator"/>
-		<menu insertbefore="devToolsSeparator" label="Dontprint">
+		<menu id="dontprint-tools-menu" insertbefore="devToolsEndSeparator" label="Dontprint">
 			<menupopup>
 				<menuitem oncommand="DontprintBrowser.dontprintThisPage();"  label="&dontprint.thisPageMenuItemLabel;" id="dontprint-this-page-menu-item"/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().dontprintLocalFile();" label="Send a local PDF document to e-reader..."/>
 				<menuseparator/>
-				<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();"       label="&dontprint.showProgressMenuItemLabel;"/>
+				<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
 				<menuitem oncommand="DontprintBrowser.configureDontprint();" label="&dontprint.configureMenuItemLabel;"/>
 			</menupopup>
 		</menu>
 	</menupopup>
+	
+	<!-- menu entry in the minified menu on Windows -->
+	<vbox id="appmenuSecondaryPane">
+		<menu id="dontprint-minified-menu" insertafter="appmenu_addons" label="Dontprint">
+			<menupopup>
+				<menuitem oncommand="DontprintBrowser.dontprintThisPage();"  label="&dontprint.thisPageMenuItemLabel;" id="dontprint-this-page-menu-item2"/>
+				<menuitem oncommand="DontprintBrowser.getDontprint().dontprintLocalFile();" label="Send a local PDF document to e-reader..."/>
+				<menuseparator/>
+				<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
+				<menuitem oncommand="DontprintBrowser.configureDontprint();" label="&dontprint.configureMenuItemLabel;"/>
+			</menupopup>
+		</menu>
+	</vbox>
 	
 	<script src="chrome://dontprint/content/include.js"/>
 </overlay>
