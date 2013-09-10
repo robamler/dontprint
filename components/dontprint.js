@@ -1170,11 +1170,6 @@ function Dontprint() {
 		var stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
 					.createInstance(Components.interfaces.nsIFileInputStream);
 		stream.init(file, 0x04 | 0x08, 0644, 0x04);
-		var postData = Components.classes["@mozilla.org/network/mime-input-stream;1"].
-					createInstance(Components.interfaces.nsIMIMEInputStream);
-		postData.addHeader("Content-Type", "application/pdf");
-		postData.addContentLength = true;
-		postData.setData(stream);
 		
 		// Use XHR to send POST data because sending POST data directly to the new
 		// tab will freeze the interface and change the tab's title to "Connecting",
