@@ -289,7 +289,6 @@ function Dontprint() {
 		fp.appendFilters(nsIFilePicker.filterAll);
 		
 		if (fp.show() === nsIFilePicker.returnOK) {
-			Dontprint.showProgress();
 			let files = fp.files;
 			while (files.hasMoreElements())  {
 				let file = files.getNext().QueryInterface(Components.interfaces.nsILocalFile);
@@ -493,6 +492,10 @@ function Dontprint() {
 		job.convertProgress = 0;
 		job.uploadProgress = 0;
 		updateJobState(job, "queued");
+		
+		if (prefs.getBoolPref("autoShowProgress")) {
+			showProgress();
+		}
 		
 		let that = this;
 		
@@ -939,6 +942,30 @@ function Dontprint() {
 	function getHostFromUrl(url) {
 		var m = url.match(/^([^#/?:]+:[^#/?:]*\/+)?([^#/?]+\.[^#/?]+)([#/?].*)?$/);
 		return m ? m[2] : "unknown";
+	}
+	
+	
+	function getToolsMenuLabel() {
+		try {
+			let win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+				.getService(Components.interfaces.nsIWindowMediator)
+				.getMostRecentWindow("navigator:browser");
+			
+			// Is the minified menu visible? (usually on Windows)
+			let atb = win.document.getElementById("appmenu-toolbar-button");
+			if (!atb.hidden) {
+				return atb.label;
+			}
+			
+			// Is the traditional tools menu visible?
+			let tm = win.document.getElementById("tools-menu");
+			if (!tm.hidden) {
+				return tm.label;
+			}
+		} catch (e) {}
+		
+		// Fallback
+		return "Tools";
 	}
 	
 	
@@ -1515,6 +1542,7 @@ function Dontprint() {
 			// call with "var conn = yield Dontprint.getDB();" from a task
 			return Sqlite.openConnection({path: databasePath});
 		},
+		getToolsMenuLabel: getToolsMenuLabel,
 		saveJournalSettings: saveJournalSettings,
 		deleteJournalSettings: deleteJournalSettings,
 		EREADER_MODEL_DEFAULTS: EREADER_MODEL_DEFAULTS,

@@ -24,7 +24,6 @@ var Dontprint_DownloadOverlay = new function() {
 			journalShortname:	"",
 			tmpFiles:			[]
 		});
-		Dontprint.showProgress();
 		
 		return true;
 	};

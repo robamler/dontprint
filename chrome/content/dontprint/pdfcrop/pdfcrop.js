@@ -231,6 +231,7 @@ $(function() {
 		var tooltip = $('#privacyTooltip');
 		tooltip.css('visibility', 'hidden');
 		
+		$("#toolsmenulabel").text(Dontprint.getToolsMenuLabel());
 		$('#tooltipTitle').text(job.title);
 		$('#tooltipJournal').text(
 			job.crop.longname ? (

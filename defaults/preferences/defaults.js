@@ -11,6 +11,7 @@ pref("extensions.dontprint.screenWidth", -1);
 pref("extensions.dontprint.screenHeight", -1);
 pref("extensions.dontprint.screenPpi", -1);
 pref("extensions.dontprint.uploadInBackground", false);
+pref("extensions.dontprint.autoShowProgress", true);
 pref("extensions.dontprint.neverReportJournalSettings", false);
 
 pref("services.sync.prefs.sync.extensions.dontprint.ccEmails", true);
@@ -23,4 +24,5 @@ pref("services.sync.prefs.sync.extensions.dontprint.screenWidth", true);
 pref("services.sync.prefs.sync.extensions.dontprint.screenHeight", true);
 pref("services.sync.prefs.sync.extensions.dontprint.screenPpi", true);
 pref("services.sync.prefs.sync.extensions.dontprint.uploadInBackground", true);
+pref("services.sync.prefs.sync.extensions.dontprint.autoShowProgress", true);
 pref("services.sync.prefs.sync.extensions.dontprint.neverReportJournalSettings", true);

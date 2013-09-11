@@ -8,6 +8,13 @@ var queue = null;
 
 // initialization
 $(function() {
+	$("#toolsmenulabel").text(Dontprint.getToolsMenuLabel());
+	$('#autoShowProgress').prop(
+		'checked', Dontprint.getPrefs().getBoolPref("autoShowProgress")
+	).click(function() {
+		Dontprint.getPrefs().setBoolPref("autoShowProgress", this.checked)
+	});
+	
 	queue = $("#queue");
 	queue.empty();
 	listenerId = Dontprint.registerProgressListener(updateJob);
