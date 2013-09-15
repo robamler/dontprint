@@ -1206,22 +1206,54 @@ function Dontprint() {
 		
 		let deferred = Promise.defer();
 		
-		req.upload.onprogress = function (e) {
+		req.upload.addEventListener("progress", function uploadProgressListener(e) {
 			job.uploadProgress = e.loaded / e.total;
-			updateJobState(job, job.uploadProgress < 0.95 ? "uploading" : "sending");
-		};
+			if (job.uploadProgress < 0.95) {
+				updateJobState(job);
+			} else {
+				req.upload.removeEventListener("progress", uploadProgressListener, false);
+				job.sendProgress = 0;
+				updateJobState(job, "sending");
+				
+				// We don't have access to any real progress information for sending.
+				// However, in the "sending" state all operations take place in Google's
+				// data centers and possible on Amazon. Therefore, execution speed
+				// should be independent of the user's CPU or network bandwidth. In
+				// fact, simple tests on different computers with different internet
+				// connections showed a fairly linear sending slowness of approx.
+				// 6 seconds per MB. This allows us to show an estimated progress bar.
+				const sendSlowness = 6e-3; // 6seconds per MB = 6e-3 milliseconds per byte
+				let sendTime = filesize * sendSlowness;
+				let sendStart = Date.now();
+				job.sendInterval = tabBrowser.contentWindow.setInterval(function() {
+					// Let sendProgress exponentially relax to 1 so that the progress
+					// bar always keeps increasing but never exceeds 100%.
+					job.sendProgress = 1 - Math.exp(-(Date.now()-sendStart)/sendTime);
+					updateJobState(job);
+				}, 500);
+			}
+		}, false);
 		req.onload = function() {
+			try {
+				tabBrowser.contentWindow.clearInterval(job.sendInterval);
+			} catch (err) {}
 			try {
 				job.result = JSON.parse(req.responseText);
 				deferred.resolve();
-			} catch (e) {
-				deferred.reject(e);
+			} catch (err) {
+				deferred.reject(err);
 			}
 		};
 		req.onerror = function(e) {
+			try {
+				tabBrowser.contentWindow.clearInterval(job.sendInterval);
+			} catch (err) {}
 			deferred.reject("Sendmail error: " + e.toString());
 		};
 		req.onabort = function() {
+			try {
+				tabBrowser.contentWindow.clearInterval(job.sendInterval);
+			} catch (err) {}
 			deferred.reject("Sendmail error: operation canceled.");
 		};
 		req.open('POST', url, true);

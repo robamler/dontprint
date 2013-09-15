@@ -34,21 +34,24 @@ $(window).unload(function() {
  * Don't call addJob() from outside. Call updateJob() instead.
  */
 function addJob(job) {
-	var jobNode = $('<div class="job"><a href="#" class="del" title="click to abort job"></a><div class="jtitle"></div><table class="tasks"><tr><td><div class="task"><div class="bar"></div><div class="tlabel">download</div></div></td><td><div class="task">crop</div></td><td><div class="task"><div class="bar"></div><div class="tlabel">convert</div></div></td><td><div class="task"><div class="bar"></div><div class="tlabel">upload</div></div></td><td><div class="task">send</div></td></tr></table></div>');
+	var jobNode = $('<div class="job"><a href="#" class="del" title="click to abort job"></a><div class="jtitle"></div><table class="tasks"><tr><td><div class="task"><div class="bar"></div><div class="tlabel">download</div></div></td><td><div class="task">crop</div></td><td><div class="task"><div class="bar"></div><div class="tlabel">convert</div></div></td><td><div class="task"><div class="bar"></div><div class="tlabel">upload</div></div></td><td><div class="task"><div class="bar"></div><div class="tlabel">send</div></div></td></tr></table></div>');
 	
+	var tasks = jobNode.find('.task');
+	var bars = jobNode.find('.bar');
 	var item = {
 		jobNode:		jobNode,
 		titleNode:		jobNode.find('.jtitle'),
 		delBtn:			jobNode.find('.del'),
 		tasksNode:		jobNode.find('.tasks'),
-		downloadNode:	jobNode.find('.task').eq(0),
-		cropNode:		jobNode.find('.task').eq(1),
-		convertNode:	jobNode.find('.task').eq(2),
-		uploadNode:		jobNode.find('.task').eq(3),
-		sendNode:		jobNode.find('.task').eq(4),
-		downloadBar:	jobNode.find('.bar').eq(0),
-		convertBar:		jobNode.find('.bar').eq(1),
-		uploadBar:		jobNode.find('.bar').eq(2)
+		downloadNode:	tasks.eq(0),
+		cropNode:		tasks.eq(1),
+		convertNode:	tasks.eq(2),
+		uploadNode:		tasks.eq(3),
+		sendNode:		tasks.eq(4),
+		downloadBar:	bars.eq(0),
+		convertBar:		bars.eq(1),
+		uploadBar:		bars.eq(2),
+		sendBar:		bars.eq(3)
 	};
 	
 	var jobid = job.id;	// use dummy variable so that delBtn.click doesn't need to keep a reference to job
@@ -110,6 +113,7 @@ function updateJob(job) {
 		break;
 		
 	case "sending":
+		item.sendBar.width(100*job.sendProgress + "%");
 		item.downloadNode.addClass("done");
 		item.cropNode.addClass("done");
 		item.convertNode.addClass("done");

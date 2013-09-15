@@ -42,12 +42,12 @@ function updateJob(job) {
 	
 	switch (job.state) {
 	case "uploading":
-		progressBar.width(job.uploadProgress*100 + "%");
+		progressBar.width(job.uploadProgress*50 + "%");
 		break;
 		
 	case "sending":
 		stateDisplay.text("sending e-mail");
-		$('#progress-bar-wrapper').slideUp();
+		progressBar.width((50 + job.sendProgress*50) + "%");
 		break;
 	
 	case "canceled":
