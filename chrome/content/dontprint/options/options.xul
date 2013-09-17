@@ -23,13 +23,13 @@
 		<grid>
 			<columns>
 				<column/>
-				<column/>
+				<column flex="1"/>
 			</columns>
 			<rows>
 				<row>
 					<label control="emailPrefix_control" value="Your Kindle's e-mail address:"/>
 					<hbox>
-						<textbox size="25" preference="emailPrefix_symbol" id="emailPrefix_control" style="text-align:right"/>
+						<textbox flex="1" preference="emailPrefix_symbol" id="emailPrefix_control" style="text-align:right"/>
 						<menulist id="emailSuffix_control" preference="emailSuffix_symbol" oncommand="emailSuffixChange()">
 							<menupopup>
 								<menuitem value="@free.kindle.com" label="@free.kindle.com   (Wi-Fi only, no charges)"/>
@@ -42,11 +42,11 @@
 				</row>
 				<row id="otherEmailRow">
 					<spacer/>
-					<textbox size="15" id="otherEmail_control" preference="emailOther_symbol"/>
+					<textbox flex="1" id="otherEmail_control" preference="emailOther_symbol"/>
 				</row>
 				<row>
 					<checkbox label="Send a copy to:" id="ccEmails_switch" preference="ccEmailsEnabled_symbol" oncommand="ccEmailsCheckboxChange()"/>
-					<textbox size="15" id="ccEmails_control" preference="ccEmails_symbol"/>
+					<textbox flex="1" id="ccEmails_control" preference="ccEmails_symbol"/>
 				</row>
 			</rows>
 		</grid>
