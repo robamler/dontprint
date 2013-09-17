@@ -41,7 +41,7 @@ var Dontprint_DownloadOverlay = new function() {
 			let title = document.getElementById("dontprint-title").value;
 			document.getElementById("dontprint-title").setSelectionRange(0, title.length);
 			document.getElementById("dontprint-title").focus();
-		} else if (!Zotero_DownloadOverlay) {
+		} else if (!window.Zotero_DownloadOverlay) {
 			// Don't enable if Zotero is installed. Zotero's modeChanged()
 			// function was called before this function and already
 			// set disabled to the correct value.
@@ -69,7 +69,7 @@ var Dontprint_DownloadOverlay = new function() {
 			);
 			
 			// Hook in event listener for mode change
-			if (Zotero_DownloadOverlay) {
+			if (window.Zotero_DownloadOverlay) {
 				let oldModeChanged = Zotero_DownloadOverlay.modeChanged;
 				Zotero_DownloadOverlay.modeChanged = function() {
 					oldModeChanged.apply(Zotero_DownloadOverlay, arguments);
@@ -81,7 +81,7 @@ var Dontprint_DownloadOverlay = new function() {
 			}
 		}
 		
-		if (Zotero_DownloadOverlay) {
+		if (window.Zotero_DownloadOverlay) {
 			Zotero_DownloadOverlay.init.apply(Zotero_DownloadOverlay, arguments);
 		}
 	};
