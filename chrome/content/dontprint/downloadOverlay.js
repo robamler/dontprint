@@ -34,13 +34,18 @@ var Dontprint_DownloadOverlay = new function() {
 	this.modeChanged = function() {
 		let dontprintSelected = document.getElementById("dontprint-radio").selected;
 		document.getElementById("dontprint-title").disabled = !dontprintSelected;
-		document.getElementById("rememberChoice").disabled = dontprintSelected;
 		
 		if (dontprintSelected) {
+			document.getElementById("rememberChoice").disabled = true;
 			document.getElementById("rememberChoice").checked = false;
 			let title = document.getElementById("dontprint-title").value;
 			document.getElementById("dontprint-title").setSelectionRange(0, title.length);
 			document.getElementById("dontprint-title").focus();
+		} else if (!Zotero_DownloadOverlay) {
+			// Don't enable if Zotero is installed. Zotero's modeChanged()
+			// function was called before this function and already
+			// set disabled to the correct value.
+			document.getElementById("rememberChoice").disabled = false;
 		}
 	};
 	
@@ -49,12 +54,12 @@ var Dontprint_DownloadOverlay = new function() {
 	 */
 	this.init = function() {
 		if (dialog.mLauncher.MIMEInfo.MIMEType.toLowerCase() === "application/pdf") {
-			document.getElementById("dontprint-container").hidden = false;
 			let filename = decodeURIComponent(dialog.mLauncher.source.path.match(/([^/]*?)(\.pdf)?([?#].*)?$/i)[1]);
 			if (!filename) {
 				filename = "Untitled document";
 			}
 			document.getElementById("dontprint-title").value = filename;
+			document.getElementById("dontprint-container").hidden = false;
 			
 			// Hook in event listener to ondialogaccept (this is adapted from Zotero)
 			document.documentElement.setAttribute("ondialogaccept",
@@ -64,9 +69,28 @@ var Dontprint_DownloadOverlay = new function() {
 			);
 			
 			// Hook in event listener for mode change
-			document.getElementById("mode").addEventListener("command", Dontprint_DownloadOverlay.modeChanged, false);
+			if (Zotero_DownloadOverlay) {
+				let oldModeChanged = Zotero_DownloadOverlay.modeChanged;
+				Zotero_DownloadOverlay.modeChanged = function() {
+					oldModeChanged.apply(Zotero_DownloadOverlay, arguments);
+					Dontprint_DownloadOverlay.modeChanged();
+				}
+				// The event listener will be added in Zotero's init() function.
+			} else {
+				document.getElementById("mode").addEventListener("command", Dontprint_DownloadOverlay.modeChanged, false);
+			}
+		}
+		
+		if (Zotero_DownloadOverlay) {
+			Zotero_DownloadOverlay.init.apply(Zotero_DownloadOverlay, arguments);
 		}
 	};
 }
+
+try {
+	// Make sure our overlay is initialized before Zotero's.
+	// Zotero_DownloadOverlay.init() will be called from our init() function.
+	window.removeEventListener("load", Zotero_DownloadOverlay.init, false);
+} catch (e) {}
 
 window.addEventListener("load", Dontprint_DownloadOverlay.init, false);
