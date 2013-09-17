@@ -952,9 +952,12 @@ function Dontprint() {
 				.getMostRecentWindow("navigator:browser");
 			
 			// Is the minified menu visible? (usually on Windows)
-			let atb = win.document.getElementById("appmenu-toolbar-button");
-			if (!atb.hidden) {
-				return atb.label;
+			let titlebar = win.document.getElementById("titlebar");
+			if (titlebar && !titlebar.hidden) {
+				let appmenubtn = win.document.getElementById("appmenu-button");
+				if (appmenubtn && !appmenubtn.hidden) {
+					return appmenubtn.label;
+				}
 			}
 			
 			// Is the traditional tools menu visible?
