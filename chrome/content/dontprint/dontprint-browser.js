@@ -6,6 +6,7 @@ DontprintBrowser = (function() {
 	var idleAnimationTimer = null;
 	var showDontprintIcon = false;
 	var alreadyProcessing = false;
+	var isInPrivateBrowsingMode = false;
 	
 	
 	// PUBLIC FUNCTIONS ===========================================	
@@ -13,6 +14,12 @@ DontprintBrowser = (function() {
 	function init() {
 		Dontprint = Components.classes['@robamler.github.com/dontprint;1']
 					.getService().wrappedJSObject;
+		
+		try {
+			// Firefox 20+
+			Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
+			isInPrivateBrowsingMode = PrivateBrowsingUtils.isWindowPrivate(gBrowser.selectedBrowser.contentWindow);
+		} catch(e) { }
 		
 		dontprintThisPageImg = document.getElementById("dontprint-status-image");
 		dontprintProgressImg = document.getElementById("dontprint-progress-image");
@@ -194,6 +201,10 @@ DontprintBrowser = (function() {
 	
 	function updateDontprintIconVisibility() {
 		showDontprintIcon = false;
+		
+		if (isInPrivateBrowsingMode) {
+			return;
+		}
 		
 		// First detect if a PDF document is displayed.
 		try {
