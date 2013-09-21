@@ -1058,7 +1058,7 @@ function Dontprint() {
 		updateJobState(job, "authorizing");
 		
 		let url = buildURL(
-			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
+			"https://script.google.com/macros/s/AKfycbzb2OCt9J6VrrJYAK4-W7h8VRMtQNJlZocSHm9K96mGYZSViUff/exec",
 			{authorize: (new Date()).getTime()}  // circumvent cache
 		);
 		
@@ -1179,7 +1179,7 @@ function Dontprint() {
 		updateJobState(job, "uploading");
 		
 		var url = buildURL(
-			"https://script.google.com/macros/s/AKfycbwHzmRW7Ki7BYoPAdsC5o1sPaimzbr7jMW06OWouEQS-AtQMfo/exec",
+			"https://script.google.com/macros/s/AKfycbzb2OCt9J6VrrJYAK4-W7h8VRMtQNJlZocSHm9K96mGYZSViUff/exec",
 			{
 				filename:		job.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf",
 				recipientEmail:	getRecipientEmail(),
