@@ -1,0 +1,22 @@
+html,body {font-family:"Trebuchet MS",Helvetica,sans-serif;background-color:#faf9f7;margin:0;padding:0;text-align:center;height:100%;font-size:14pt}
+#headercontainer {position:fixed; top:0; left:0; right:0; z-index:100; background-color:#f2ece4; box-shadow:0 0 0.2em 0.2em #efe9df}
+#header {max-width:45em; margin:auto; text-align:left; white-space:nowrap}
+#footercontainer {position:relative; bottom:0; left:0; right:0; z-index:1; background-color:#f2ece4; box-shadow:0 0 0.2em 0.2em #efe9df; padding:0.6em}
+#footer {max-width:58em; margin:auto; text-align:center; color:#524737; font-size:80%}
+.footeritem {margin-left:1.5em; padding-left:1.7em; border-left:1px solid #e3ddd6}
+#trademarks {margin:1em 0; font-size:90%}
+#header > a, #activepage {vertical-align:middle; color:#524737; font-weight:bold; margin-left:3em}
+#header > a:hover {color:#000000}
+a#homelink {display:inline-block; width:140px; height:40px; background-image:url(dontprint.png); background-repeat:no-repeat; margin:7px; opacity:0.7; margin-left:0px}
+#homelink:hover {opacity:1}
+#activepage {color:#000000; text-shadow:0 0 2px #ffffff}
+#outerwebsitecontainer {position:relative;max-width:45em;background-color:#ffffff;margin:0 auto;text-align:left;padding:0;min-height:100%;box-shadow:0 0 2em 3em #ffffff}
+#websitecontainer {padding:2em 1em 3em 1em; margin-top:60px}
+a.anchor {display:block; position:relative; top:-60px; visibility:hidden;}
+h1 {margin:0 0 0.8em 0;padding:0}
+h2 {padding:1.2em 4em 0.5em 4em;margin:1.2em -4em 0 -4em;border-top:solid 5px #faf9f7}
+a {color:#201a8b;text-decoration:none}
+a:hover {text-decoration:underline}
+a:visited {color:#551a8b}
+p {margin:1.3ex 0}
+li {margin-bottom:1ex}

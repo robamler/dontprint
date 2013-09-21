@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RDF:RDF xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+	<RDF:Description about="urn:mozilla:extension:dontprint@robamler.github.com">
+		<em:updates>
+			<RDF:Seq>
+				<RDF:li>
+					<RDF:Description>
+						<em:version>0.2beta1</em:version>
+						<em:targetApplication>
+							<RDF:Description>
+								<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
+								<em:minVersion>19.0</em:minVersion>
+								<em:maxVersion>27.*</em:maxVersion>
+								<em:updateLink>http://robamler.github.com/dontprint/download/dontprint-beta.xpi</em:updateLink>
+								<em:updateHash>sha512:d1ddb69670b197d46329fe9c2759b39fd364a47e03a309da1430700cd450b758526cb5012782957d638b68012c00b1560b2724e202cf8acdc58443c13dc3a7b4</em:updateHash>
+								<em:updateInfoURL>http://robamler.github.com/dontprint/changelogs/v0.2beta1.xhtml</em:updateInfoURL>
+							</RDF:Description>
+						</em:targetApplication>
+					</RDF:Description>
+				</RDF:li>
+			</RDF:Seq>
+		</em:updates>
+		<em:signature>
+			MIGTMA0GCSqGSIb3DQEBDQUAA4GBAFhSK/sGrFTCt5BYia+JYb89Al2cSS/bndgQ66a
+			LjCw+n/3pNjRsYxGLaI9fgie5a5RATekLd/irhe4ARJthYx8ZBsOn7FcPXEmyOmCwSx
+			KSmJlPCEYSVUjdntpBzdvBMUlnkugT41RB82GVXstptEG+GeOnFjDltCHV9qcRTyOy
+		</em:signature>
+	</RDF:Description>
+</RDF:RDF>
