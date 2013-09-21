@@ -50,7 +50,7 @@ li{padding:0.3em 0}
 </svg>
 <h2 id="step1header">Step 1: Download k2pdfopt</h2>
 <div id="step1body" class="step-description">
-Dontprint automatically rearranges the layout of articles so that you can read them comfortably on your Kindle. This is done with a program called <i>k2pdfopt</i> developed by William Menninger.
+Dontprint automatically optimizes the layout of articles so that you can read them comfortably on your e-reader. This is done with a program called <i>k2pdfopt</i> developed by William Menninger.
 
 <table class="choice">
 <tr>
@@ -88,7 +88,7 @@ Dontprint automatically rearranges the layout of articles so that you can read t
 
 
 <div id="step2">
-<h2 id="step2header">Step 2: Select your Kindle model</h2>
+<h2 id="step2header">Step 2: Select your e-reader model</h2>
 
 <div id="step2body">
 <div id="questions-container"></div>
@@ -108,18 +108,20 @@ Dontprint automatically rearranges the layout of articles so that you can read t
 <div id="step3">
 <h2 id="step3header">Step 3: Set up e-mail addresses</h2>
 
-<img class="screenshot" src="amazon-screenshot.png" align="right">
 <div class="hint">
-Dontprint sends articles by e-mail directly to your Kindle. To use Dontprint, you need an e-mail address that ends in "@gmail.com" (<a href="TODO" target="_blank">why?</a>). You don't even have to use your Gmail address yourself&mdash;Dontprint just uses it behind the scenes to send e-mails. Dontprint takes your privacy serious and requires only very limited access to your Gmail account (<a href="TODO" target="_blank">more information on privacy</a>).
+Dontprint sends articles by e-mail directly to your e-reader. To use Dontprint, you need an e-mail address that ends in "@gmail.com" (<a href="http://robamler.github.com/dontprint/faq/index.html#q-setup-whygmail" target="_blank">why?</a>).
+Dontprint takes your privacy serious and gains only very limited access to your Gmail account (<a href="http://robamler.github.com/dontprint/faq/index.html#q-privacy-gmailaccess" target="_blank">more information on privacy</a>).
 </div>
 
-<ul>
+<ol>
 <li>If you don't already have a Gmail account, <a href="https://accounts.google.com/SignUp?service=mail" target="_blank">create one for free</a>.</li>
 <li>
-Go to "<a href="http://website-g7g.amazon.co.uk/myk#pdocSettings" target="_blank">Manage Your Kindle</a>" on amazon.com. Make sure that your Gmail address is listed in the section "<i>Approved Personal Document E-mail List</i>" (see above image). If it's not in the list, click "<i>Add a new approved e-mail address</i>".</li>
-<li>Tell Dontprint your Kindle's e-mail address<span> (<a href="#" id="kindle-email-question">what's that?</a>)</span>:
+If your e-reader is an Amazon Kindle you need to allow Dontprint to send documents to it.
+<div class="hint">Go to "<a href="http://website-g7g.amazon.co.uk/myk#pdocSettings" target="_blank">Manage Your Kindle</a>" on amazon.com and add your "...@gmail.com" address to the "<i>Approved Personal Document E-mail List</i>" (see image below; <a href="http://robamler.github.com/dontprint/faq/index.html#q-setup-approvedemail" target="_blank">help</a>).</div>
+<img class="screenshot" style="margin-top:2ex;margin-bottom:2ex;display:block" src="amazon-screenshot.png"></li>
+<li>Tell Dontprint your e-reader's e-mail address<span> (<a href="#" id="kindle-email-question">what's that?</a>)</span>:
 <div id="kindle-email-help" class="hint">
-Dontprint transfers documents wirelessly to your Kindle by sending them to your Kindle's e-mail address. You find the e-mail address that is tied to your Kindle in the section "<i>Send-to-Kindle E-Mail Settings</i>" on the "<a href="http://website-g7g.amazon.co.uk/myk#pdocSettings" target="_blank">Manage Your Kindle</a>" page (see image below).
+Dontprint transfers documents wirelessly to your e-reader by e-mail. If your e-reader is an Amazon Kindle you find the e-mail address that is tied to your Kindle in the section "<i>Send-to-Kindle E-Mail Settings</i>" on the "<a href="http://website-g7g.amazon.co.uk/myk#pdocSettings" target="_blank">Manage Your Kindle</a>" page (see image below; <a href="http://robamler.github.com/dontprint/faq/index.html#q-setup-ereaderaddress" target="_blank">further help</a>). If your e-reader is not from Amazon then please consult the manual to find out if it can receive documents by e-mail.
 <img src="amazon-screenshot2.png" class="screenshot">
 </div>
 <div><input type="text" required id="email-prefix" pattern="[^@ &quot;']+"><select id="email-suffix">
@@ -138,7 +140,7 @@ Full e-mail address: <input type="email" required id="email-other">
 <div id="test-email-waiting" class="hint">Dontprint is sending a small test document to <span id="test-email-address"></span>. Please wait...</div>
 <div id="test-email-done" class="hint">Done sending test document. <a href="#" id="test-email-showresult">Show details.</a></div>
 </li>
-</ul>
+</ol>
 
 <div class="next">
 <input type="submit" value="Accept and finish" id="acceptstep3">

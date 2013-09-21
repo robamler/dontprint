@@ -382,7 +382,7 @@ function saveStep2Prefs() {
 		(suffix!=="other" && (prefix==="" || prefix.match(/[@ "']/))) ||
 		(suffix==="other" && !$("#email-other").get(0).validity.valid)
 	) {
-		alert("Please enter a valid Kindle e-mail address in the text box.");
+		alert("Please enter a valid e-mail address in the text box.");
 		return false;
 	}
 	
