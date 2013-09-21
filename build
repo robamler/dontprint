@@ -1,0 +1,15 @@
+#!/bin/bash
+
+INPUTFILES='install.rdf chrome.manifest icon.png defaults modules components chrome COPYING'
+OUTPUTFILE='dontprint.xpi'
+
+PROGNAME=$(basename $0)
+
+if [ -e $OUTPUTFILE ]; then
+    echo "${PROGNAME}: File $OUTPUTFILE already exists." 1>&2
+    exit 1
+fi
+
+zip -r $OUTPUTFILE $INPUTFILES
+
+echo "${PROGNAME}: done; output in $OUTPUTFILE"

@@ -973,9 +973,6 @@ function Dontprint() {
 	
 	
 	function convertDocument(job) {
-		// TODO: create preferences frontend to set:
-		// * extensions.dontprint.k2pdfoptPath
-		
 		updateJobState(job, "converting");
 		
 		let exec = getK2pdfopt();

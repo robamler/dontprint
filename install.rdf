@@ -1,25 +1,24 @@
 <?xml version="1.0"?>
-<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-		xmlns:em="http://www.mozilla.org/2004/em-rdf#">
-	
-	<Description about="urn:mozilla:install-manifest">
-		<em:id>dontprint@robamler.github.com</em:id>
-		<em:name>Dontprint (paperless printer)</em:name>
-		<em:version>0.2</em:version>
-		<em:description>Send scientific articles from journal websites to your Amazon Kindle with a single click.</em:description>
-		<em:creator>Robert Bamler</em:creator>
-		<em:homepageURL>https://github.com/robamler/dontprint</em:homepageURL>
-		<em:updateURL></em:updateURL> <!-- TODO -->
-		<em:type>2</em:type> <!-- type=extension -->
-		<em:optionsURL>chrome://dontprint/content/options/options.xul</em:optionsURL>
-		
-		<!-- Requires Firefox (Zotero Standalone not yet supported) -->
+<RDF:RDF xmlns:em="http://www.mozilla.org/2004/em-rdf#" xmlns:NC="http://home.netscape.com/NC-rdf#" xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+	<RDF:Description
+		RDF:about="urn:mozilla:install-manifest"
+		em:id="dontprint@robamler.github.com"
+		em:type="2"
+		em:name="Dontprint"
+		em:version="0.2beta1"
+		em:description="Send scientific articles to your e-reader in an optimized layout."
+		em:creator="Robert Bamler"
+		em:homepageURL="http://robamler.github.com/dontprint/"
+		em:updateURL="http://robamler.github.com/dontprint/update.rdf"
+		em:optionsURL="chrome://dontprint/content/options/options.xul"
+		em:updateKey="MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC12m8i/dvwEx7DO+R1Yl7m4W8LAiAXCKPb6wsSDtpiOwBeMTiAIt5l2ZY603FdQsVvyzlcxz5dR+q7KUKlql7D4krehRv7ZP/Rzmum3cwVtAx46C8RaKrkn7ymP2gaE9bDO1JbIVpaWgGrRemgOmFnWo1FJz1qQoCb35MkSRRvmQIDAQAB"
+	>
 		<em:targetApplication>
-			<Description>
+			<RDF:Description>
 				<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
-				<em:minVersion>3.6</em:minVersion>
-				<em:maxVersion>12.*</em:maxVersion>
-			</Description>
+				<em:minVersion>19.0</em:minVersion>
+				<em:maxVersion>27.*</em:maxVersion>
+			</RDF:Description>
 		</em:targetApplication>
-	</Description>
-</RDF>
+	</RDF:Description>
+</RDF:RDF>

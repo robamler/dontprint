@@ -19,7 +19,7 @@
 			<preference id="ccEmailsEnabled_symbol" name="extensions.dontprint.ccEmailsEnabled" type="bool"/>
 			<preference id="ccEmails_symbol" name="extensions.dontprint.ccEmails" type="string"/>
 		</preferences>
-		<description>Dontprint sends articles to your Kindle by e-mail. If you don't know your Kindle's e-mail address, <label class="text-link" href="TODO">get help here</label>.</description>
+		<description>Dontprint sends articles to your Kindle by e-mail. If you don't know your Kindle's e-mail address, <label class="text-link" href="http://robamler.github.com/dontprint/faq/index.html#q-setup-ereaderaddress">get help here</label>.</description>
 		<grid>
 			<columns>
 				<column/>
