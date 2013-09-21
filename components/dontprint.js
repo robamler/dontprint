@@ -741,7 +741,7 @@ function Dontprint() {
 			if (shortnameresult.length === 1) {
 				sqlresult = shortnameresult;
 			}
-		} else if (shortnameresult.legnth === 0) {
+		} else if (shortnameresult.length === 0) {
 			sqlresult = longnameresult;
 		} else {
 			// found match for both longname and shortname
