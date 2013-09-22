@@ -4,10 +4,10 @@
 <meta http-equiv="content-type" content="text/html; charset=utf-8">
 <title>Download Dontprint</title>
 <script type="text/javascript">
-if (navigator.userAgent.match(/\bFirefox\b/)) {
-	setTimeout(function() {
-		location.href = "dontprint-beta.xpi";
-	}, 0);
+function installDontprint() {
+	if (navigator.userAgent.match(/\bFirefox\b/)) {
+			location.href = "dontprint-beta.xpi";
+	}
 }
 </script>
 <link rel="shortcut icon" href="../favicon.png">
@@ -20,7 +20,7 @@ if (navigator.userAgent.match(/\bFirefox\b/)) {
 </style>
 <meta name="robots" content="index">
 </head>
-<body>
+<body onload="installDontprint()">
 
 <div id="headercontainer"><div id="header">
 <a id="homelink" href="../index.html" title="go to main page"></a>
