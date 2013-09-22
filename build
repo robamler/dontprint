@@ -1,15 +1,49 @@
 #!/bin/bash
 
-INPUTFILES='install.rdf chrome.manifest icon.png defaults modules components chrome COPYING'
+INPUTFILES='install.rdf chrome.manifest icon.png defaults modules components chrome translators.zip translators.index deleted.txt COPYING'
 OUTPUTFILE='dontprint.xpi'
 
 PROGNAME=$(basename $0)
+PROGDIR=$(cd $(dirname $0); pwd)
 
 if [ -e $OUTPUTFILE ]; then
     echo "${PROGNAME}: File $OUTPUTFILE already exists." 1>&2
     exit 1
 fi
 
+if [ ! -d translators ]; then
+    echo "${PROGNAME}: Could not find translators" 1>&2
+    exit 1
+fi
+
+echo $PROGDIR
+
+# Build translators.zip and translators.index
+# (This is adapted from the file "build_xpi_4.0" in https://github.com/zotero/zotero-xpi-build.)
+rm translators.zip translators.index
+cd translators
+mkdir output
+mv deleted.txt $PROGDIR
+counter=0;
+for file in *.js; do
+	newfile=$counter.js;
+	id=`grep -m 1 '"translatorID"\s*:\s*"' "$file" | sed -r 's/.*"translatorID"\s*:\s*"(.*)".*/\1/'`
+	label=`grep -m 1 '"label"\s*:\s*"' "$file" | sed -r 's/.*"label"\s*:\s*"(.*)".*/\1/'`
+	mtime=`grep -m 1 '"lastUpdated"\s*:\s*"' "$file" | sed -r 's/.*"lastUpdated"\s*:\s*"(.*)".*/\1/'`
+	echo $newfile,$id,$label,$mtime >> $PROGDIR/translators.index
+	cp "$file" output/$newfile;
+	counter=$(($counter+1))
+done;
+cd output
+zip $PROGDIR/translators.zip *
+cd $PROGDIR
+rm -rf translators/output
+
+# create package
 zip -r $OUTPUTFILE $INPUTFILES
+
+# clean up
+mv deleted.txt translators
+rm translators.zip translators.index
 
 echo "${PROGNAME}: done; output in $OUTPUTFILE"
