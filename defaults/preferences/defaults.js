@@ -1,5 +1,9 @@
+pref("extensions.dontprint.transferMethod", "email");
 pref("extensions.dontprint.ccEmails", "");
 pref("extensions.dontprint.ccEmailsEnabled", false);
+pref("extensions.dontprint.destDir", "");
+pref("extensions.dontprint.postTransferCommandEnabled", false);
+pref("extensions.dontprint.postTransferCommand", "");
 pref("extensions.dontprint.k2pdfoptPath", "");
 pref("extensions.dontprint.k2pdfoptPlatform", "unknown");
 pref("extensions.dontprint.k2pdfoptAdditionalParams", "");
@@ -14,6 +18,7 @@ pref("extensions.dontprint.uploadInBackground", false);
 pref("extensions.dontprint.autoShowProgress", true);
 pref("extensions.dontprint.neverReportJournalSettings", false);
 
+pref("services.sync.prefs.sync.extensions.dontprint.transferMethod", true);
 pref("services.sync.prefs.sync.extensions.dontprint.ccEmails", true);
 pref("services.sync.prefs.sync.extensions.dontprint.ccEmailsEnabled", true);
 pref("services.sync.prefs.sync.extensions.dontprint.k2pdfoptAdditionalParams", true);

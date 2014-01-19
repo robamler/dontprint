@@ -11,49 +11,85 @@
 	buttons="accept"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
-	<prefpane id="dontprint-prefpane-email" label="E-mail" image="email.png">
+	<prefpane id="dontprint-prefpane-email" label="Transfer" image="transfer.png">
 		<preferences>
+			<preference id="transferMethod_symbol" name="extensions.dontprint.transferMethod" type="string"/>
 			<preference id="emailPrefix_symbol" name="extensions.dontprint.recipientEmailPrefix" type="string"/>
 			<preference id="emailSuffix_symbol" name="extensions.dontprint.recipientEmailSuffix" type="string"/>
 			<preference id="emailOther_symbol" name="extensions.dontprint.recipientEmailOther" type="string"/>
 			<preference id="ccEmailsEnabled_symbol" name="extensions.dontprint.ccEmailsEnabled" type="bool"/>
 			<preference id="ccEmails_symbol" name="extensions.dontprint.ccEmails" type="string"/>
+			<preference id="destDir_symbol" name="extensions.dontprint.destDir" type="string"/>
+			<preference id="postTransferCommandEnabled_symbol" name="extensions.dontprint.postTransferCommandEnabled" type="bool"/>
+			<preference id="postTransferCommand_symbol" name="extensions.dontprint.postTransferCommand" type="string"/>
 		</preferences>
-		<description>Dontprint sends articles to your Kindle by e-mail. If you don't know your Kindle's e-mail address, <label class="text-link" href="http://robamler.github.com/dontprint/faq/index.html#q-setup-ereaderaddress">get help here</label>.</description>
-		<grid>
-			<columns>
-				<column/>
-				<column flex="1"/>
-			</columns>
-			<rows>
-				<row>
-					<label control="emailPrefix_control" value="Your Kindle's e-mail address:"/>
-					<hbox>
-						<textbox flex="1" preference="emailPrefix_symbol" id="emailPrefix_control" style="text-align:right"/>
-						<menulist id="emailSuffix_control" preference="emailSuffix_symbol" oncommand="emailSuffixChange()">
-							<menupopup>
-								<menuitem value="@free.kindle.com" label="@free.kindle.com   (Wi-Fi only, no charges)"/>
-								<menuitem value="@kindle.com" label="@kindle.com   (Wi-Fi or 3G, charges apply)"/>
-								<menuitem value="@kindle.cn" label="@kindle.cn   (China; Wi-Fi or 3G, charges apply)"/>
-								<menuitem value="other" label="other"/>
-							</menupopup>
-						</menulist>
-					</hbox>
-				</row>
-				<row id="otherEmailRow">
-					<spacer/>
-					<textbox flex="1" id="otherEmail_control" preference="emailOther_symbol"/>
-				</row>
-				<row>
-					<checkbox label="Send a copy to:" id="ccEmails_switch" preference="ccEmailsEnabled_symbol" oncommand="ccEmailsCheckboxChange()"/>
-					<textbox flex="1" id="ccEmails_control" preference="ccEmails_symbol"/>
-				</row>
-			</rows>
-		</grid>
-		<description>Dontprint sends e-mails to your Kindle from your Gmail account. It is important that you add your Gmail address (something like "<label style="font-style:italic;border:none;margin:0">yourname</label>@gmail.com") to the list of approved sender addresses on Amazon's "<label class="text-link" href="http://website-g7g.amazon.co.uk/myk#pdocSettings">Manage Your Kindle</label>" page.</description>
-		<hbox>
-			<button id="sendTestPageButton" label="Test my e-mail settings..." oncommand="sendTestPage()"/>
-		</hbox>
+		<label>Choose how Dontprint should transfer documents to your e-reader.</label>
+		<radiogroup id="transferMethodSelect" preference="transferMethod_symbol">
+			<radio value="email" label="Send Documents via e-mail (recommended choice for Amazon Kindle)" style="font-weight:bold;margin-top:0.5em" oncommand="updateTransferTab('otherEmail_control,emailPrefix_control')"/>
+			<vbox style="margin-left:1.5em">
+				<label id="emailExplanationLabel">If you don't know your e-reader's e-mail address, <label id="emailExplanationLink" class="text-link" href="http://robamler.github.com/dontprint/faq/index.html#q-setup-ereaderaddress">get help here</label>.</label>
+				<grid>
+					<columns>
+						<column/>
+						<column flex="1"/>
+					</columns>
+					<rows>
+						<row>
+							<label id="emailPrefixLabel" control="emailPrefix_control" value="Your e-reader's e-mail address:"/>
+							<hbox>
+								<textbox flex="1" preference="emailPrefix_symbol" id="emailPrefix_control" style="text-align:right"/>
+								<menulist id="emailSuffix_control" preference="emailSuffix_symbol" oncommand="updateTransferTab('otherEmail_control,emailPrefix_control')">
+									<menupopup>
+										<menuitem value="@free.kindle.com" label="@free.kindle.com   (Wi-Fi only, no charges)"/>
+										<menuitem value="@kindle.com" label="@kindle.com   (Wi-Fi or 3G, charges apply)"/>
+										<menuitem value="@kindle.cn" label="@kindle.cn   (China; Wi-Fi or 3G, charges apply)"/>
+										<menuitem value="other" label="other"/>
+									</menupopup>
+								</menulist>
+							</hbox>
+						</row>
+						<row id="otherEmailRow">
+							<spacer/>
+							<textbox flex="1" id="otherEmail_control" preference="emailOther_symbol"/>
+						</row>
+						<row>
+							<checkbox label="Send a copy to:" id="ccEmails_switch" preference="ccEmailsEnabled_symbol" oncommand="updateTransferTab('ccEmails_control')"/>
+							<textbox flex="1" id="ccEmails_control" preference="ccEmails_symbol"/>
+						</row>
+					</rows>
+				</grid>
+				<description disabled="true">Dontprint uses your Gmail account to send the e-mails. It is important that you configure your e-reader so that it accepts e-mails sent from your Gmail address (something like "<label style="font-style:italic;border:none;margin:0">yourname</label>@gmail.com"). If your e-reader is an Amazon Kindle, this can be done by adding your Gmail address to the list of approved sender addresses on Amazon's "<label id="emailDescriptionLink" class="text-link" href="http://website-g7g.amazon.co.uk/myk#pdocSettings">Manage Your Kindle</label>" page.</description>
+				<hbox>
+					<button id="sendTestPageButton" label="Test my e-mail settings..." oncommand="sendTestPage()"/>
+				</hbox>
+			</vbox>
+			<radio value="directory" label="Save Documents to a directory (choose this option if your e-reader does not support e-mail transfer)" style="font-weight:bold;margin-top:2em" oncommand="updateTransferTab('destDirChooser')"/>
+			<vbox style="margin-left:1.5em">
+				<grid>
+					<columns>
+						<column/>
+						<column flex="1"/>
+					</columns>
+					<rows>
+						<row>
+							<label id="destDirLabel" control="destDir_control" value="Save to directory:"/>
+							<hbox>
+								<textbox id="destDir_control" preference="destDir_symbol" flex="1"/>
+								<button id="destDirChooser" label="Choose..." oncommand="chooseDestDir()"/>
+							</hbox>
+						</row>
+						<row>
+							<checkbox label="Execute command after saving the file:" preference="postTransferCommandEnabled_symbol" id="postTransferCommand_switch" oncommand="updateTransferTab('postTransferCommand_control')"/>
+							<textbox id="postTransferCommand_control" preference="postTransferCommand_symbol"/>
+						</row>
+						<row id="otherEmailRow">
+							<spacer/>
+							<label id="postTransferCommandLabel">(You can use %u to refer to the file path of the PDF file.)</label>
+						</row>
+					</rows>
+				</grid>
+			</vbox>
+		</radiogroup>
 	</prefpane>
 	<prefpane id="dontprint-prefpane-device" label="Device" image="device.png">
 		<iframe xmlns="http://www.w3.org/1999/xhtml" src="options-device.html" id="deviceIframe" style="width:100%;height:400px;border:0" marginwidth="0" marginheight="0" scrolling="no"/>
@@ -136,8 +172,8 @@
 		</preferences>
 		<groupbox style="margin-bottom:4ex">
 			<caption>Privacy settings</caption>
-			<description>When you dontprint an article from a journal you may sometimes have to set the page margins manually because Dontprint does not yet know the correct margins for this journal. Since this can be annoying, Dontprint provides to you the option to report the selected margins to its developer. Future versions of Dontprint will then recognize this journal automatically.</description>
-			<description>Dontprint will <label style="font-weight:bold;border:none;margin:0">not</label> send any user-specific data (such as e-mail addresses or user names). You can inspect the data before it is being sent and reject the transmission for each case individually. If you nevertheless prefer to never report any journal margins, check the box below.</description>
+			<description>When you dontprint an article from a journal you may sometimes have to set the page margins manually because Dontprint does not yet know the correct margins for that journal. Since this can be annoying, Dontprint provides to you the option to report the selected margins to its developer. Future versions of Dontprint will then recognize this journal automatically.</description>
+			<description>Dontprint will <label style="font-weight:bold;border:none;margin:0">not</label> send any user-specific data (such as e-mail addresses or user names). You can inspect the data before it is being sent and reject the transmission for each case individually. If you instead prefer to <label style="font-style:italic;border:none;margin:0">never</label> report any journal margins, check the box below.</description>
 			<checkbox label="Don't help to improve future versions of Dontprint and never anonymously send any page margins" preference="neverReportJournalSettings_symbol"/>
 		</groupbox>
 		<groupbox>

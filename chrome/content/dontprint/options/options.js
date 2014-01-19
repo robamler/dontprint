@@ -30,8 +30,7 @@ if (platform.substr(0,7) === "unknown") {
 
 
 function onLoad() {
-	emailSuffixChange();
-	ccEmailsCheckboxChange();
+	updateTransferTab();
 	getK2pdfoptVersion();
 }
 
@@ -53,35 +52,7 @@ function onUnload() {
 
 
 
-// E-MAIL TAB =====================================================
-
-function emailSuffixChange() {
-	let other = document.getElementById("emailSuffix_control").value === "other";
-	document.getElementById("emailPrefix_control").disabled = other;
-	document.getElementById("otherEmailRow").style.display = other ? "" : "none";
-	
-	if (other) {
-		window.sizeToContent();
-		if (!document.getElementById("otherEmail_control").value) {
-			let startval = document.getElementById("emailPrefix_control").value;
-			if (startval) {
-				document.getElementById("otherEmail_control").value = startval + "@";
-				document.getElementById("otherEmail_control").setSelectionRange(startval.length+1, startval.length+1);
-			}
-		}
-		document.getElementById("otherEmail_control").focus();
-	}
-}
-
-
-function ccEmailsCheckboxChange() {
-	var checked = document.getElementById("ccEmails_switch").checked;
-	document.getElementById("ccEmails_control").disabled = !checked;
-	if (checked) {
-		document.getElementById("ccEmails_control").focus();
-	}
-}
-
+// TRANSFER TAB ===================================================
 
 function sendTestPage() {
 	var response = confirm(
@@ -94,6 +65,94 @@ function sendTestPage() {
 		Dontprint.sendTestEmail(function() {
 			btn.label = "Document sent.";
 		});
+	}
+}
+
+function updateTransferTab(focus) {
+	let tmethod = document.getElementById("transferMethodSelect").selectedIndex;
+	let emailtransfer = tmethod === 0;
+	let directorytransfer = tmethod === 1;
+	
+	// Enable/disable controls
+	// Always disable hidden elements so that setting focus works propperly
+	let othersuffix = document.getElementById("emailSuffix_control").value === "other";
+	let ccChecked = document.getElementById("ccEmails_switch").checked;
+	let postTransferCommandChecked = document.getElementById("postTransferCommand_switch").checked;
+	document.getElementById("emailExplanationLabel").disabled = !emailtransfer;
+	document.getElementById("emailExplanationLink").disabled = !emailtransfer;
+	document.getElementById("emailPrefixLabel").disabled = !emailtransfer;
+	document.getElementById("emailPrefix_control").disabled = othersuffix || !emailtransfer;
+	document.getElementById("emailSuffix_control").disabled = !emailtransfer;
+	document.getElementById("otherEmail_control").disabled = !othersuffix || !emailtransfer;
+	document.getElementById("ccEmails_switch").disabled = !emailtransfer;
+	document.getElementById("ccEmails_control").disabled = !ccChecked || !emailtransfer;
+	// Disabling a <description> element unfortunately shows no visible effect
+	document.getElementById("sendTestPageButton").disabled = !emailtransfer;
+	document.getElementById("destDirLabel").disabled = !directorytransfer;
+	document.getElementById("destDir_control").disabled = !directorytransfer;
+	document.getElementById("destDirChooser").disabled = !directorytransfer;
+	document.getElementById("postTransferCommand_switch").disabled = !directorytransfer;
+	document.getElementById("postTransferCommand_control").disabled = !postTransferCommandChecked || !directorytransfer;
+	document.getElementById("postTransferCommandLabel").disabled = !directorytransfer;
+
+	// Display/hide controls and set default values;
+	document.getElementById("otherEmailRow").style.display = othersuffix ? "" : "none";
+	if (othersuffix) {
+		window.sizeToContent();
+	}
+	
+	// Set Focus
+	let focusedElement = undefined;
+	if (focus !== undefined) {
+		let focusarr = focus.split(',');
+		for (let i=0; i<focusarr.length; i++) {
+			let el = document.getElementById(focusarr[i]);
+			if (!el.disabled) {
+				focusedElement = focusarr[i];
+				document.getElementById(focusedElement).focus();
+				break;
+			}
+		}
+	}
+	
+	// Give a hint for the format required by "otherEmail_control" and set cursor position
+	if (focusedElement === "otherEmail_control" && !document.getElementById("otherEmail_control").value) {
+		let startval = document.getElementById("emailPrefix_control").value;
+		if (startval) {
+			document.getElementById("otherEmail_control").value = startval + "@";
+			document.getElementById("otherEmail_control").setSelectionRange(startval.length+1, startval.length+1);
+		}
+	}
+	
+	// Use the user's desktop directory as default destination directory
+	if (document.getElementById("destDir_control").value === "") {
+		let path = Components.classes["@mozilla.org/file/directory_service;1"].
+					getService(Components.interfaces.nsIProperties).
+					get("Desk", Components.interfaces.nsIFile).
+					path;
+		document.getElementById("destDir_control").value = path;
+		// The preference isn't updated automatically when the corresponding
+		// control is set programatically. We have to update it manually.
+		document.getElementById("destDir_symbol").value = path;
+	}
+}
+
+function chooseDestDir() {
+	const nsIFilePicker = Components.interfaces.nsIFilePicker;
+	const nsILocalFile = Components.interfaces.nsILocalFile;
+	let fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+	fp.init(window, "Select directory to save converted PDF files", nsIFilePicker.modeGetFolder);
+	try {
+		let f = Components.classes["@mozilla.org/file/local;1"].createInstance(nsILocalFile);
+		f.initWithPath(document.getElementById("destDir_control").value);
+		fp.displayDirectory = f;
+	} catch (e) {}
+	let rv = fp.show();
+	if (rv == nsIFilePicker.returnOK || rv == nsIFilePicker.returnReplace) {
+		document.getElementById("destDir_control").value = fp.file.path;
+		// The preference isn't updated automatically when the corresponding
+		// control is set programatically. We have to update it manually.
+		document.getElementById("destDir_symbol").value = fp.file.path;
 	}
 }
 
