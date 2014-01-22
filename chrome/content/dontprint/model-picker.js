@@ -20,13 +20,21 @@ ModelPicker = {
 			// order of entries in questions['START'].filter defines order of appearance
 			filter:	['other', 'paperwhite', 'touch', 'generation4', 'keyboard', 'dx', 'generation2', 'generation1', 'fire-1or2', 'fire-hd-7inch', 'fire-hd-8p9inch'],
 			answers: [
-				{label: 'models with a black/white display',	next: 'keyboard'},
-				{label: 'models with a color display',			next: 'displaysize'}
+				{label: 'Amazon Kindle', next: 'kindle'},
+				{label: 'Other e-reader brand', model: 'other'}
+			]
+		},
+		'kindle': {
+			label:	'Display:',
+			filter:	['paperwhite', 'touch', 'generation4', 'keyboard', 'dx', 'generation2', 'generation1', 'fire-1or2', 'fire-hd-7inch', 'fire-hd-8p9inch'],
+			answers: [
+				{label: 'black/white display',	next: 'keyboard'},
+				{label: 'color display',		next: 'displaysize'}
 			]
 		},
 		'displaysize': {
 			label:	'',
-			filter:	['fire-1or2', 'fire-hd-7inch', 'fire-hd-8p9inch', 'other'],
+			filter:	['fire-1or2', 'fire-hd-7inch', 'fire-hd-8p9inch'],
 			selectHeader: 'Select the display size',
 			answers: [
 				{label: '7 inch (18 cm) diagonal, 1024x600 pixels (Kindle Fire)', model: 'fire-1or2'},
@@ -36,7 +44,7 @@ ModelPicker = {
 		},
 		'keyboard': {
 			label:	'Keyboard:',
-			filter:	['paperwhite', 'touch', 'generation4', 'keyboard', 'dx', 'generation2', 'generation1', 'other'],
+			filter:	['paperwhite', 'touch', 'generation4', 'keyboard', 'dx', 'generation2', 'generation1'],
 			answers: [
 				{label: 'full alphabetic keyboard',			next: 'keys'},
 				{label: 'no or only few mechanical keys',	next: 'touch'}
@@ -44,7 +52,7 @@ ModelPicker = {
 		},
 		'keys': {
 			label:	'',
-			filter:	['keyboard', 'dx', 'generation2', 'generation1', 'other'],
+			filter:	['keyboard', 'dx', 'generation2', 'generation1'],
 			selectHeader: 'Select the option that best describes the keyboard',
 			answers: [
 				{label: '5 rows of circular keys', model: 'generation2'},
@@ -55,7 +63,7 @@ ModelPicker = {
 		},
 		'touch': {
 			label:	'Touch:',
-			filter:	['paperwhite', 'touch', 'generation4', 'other'],
+			filter:	['paperwhite', 'touch', 'generation4'],
 			answers: [
 				{label: 'display is touch sensitive',				next: 'light'},
 				{label: 'display is <i>not</i> touch sensitive',	model: 'generation4'},
@@ -63,7 +71,7 @@ ModelPicker = {
 		},
 		'light': {
 			label:	'Backlight:',
-			filter:	['paperwhite', 'touch', 'other'],
+			filter:	['paperwhite', 'touch'],
 			answers: [
 				{label: 'display has a backlight',					model: 'paperwhite'},
 				{label: 'display does <i>not</i> have a backlight',	model: 'touch'},

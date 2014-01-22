@@ -10,7 +10,7 @@
 .filtername{font-weight:bold; white-space:nowrap; display:inline-block; min-width:5.5em}
 .filteroptions{position:relative; display:inline-block}
 .filteroptions > label, .filteroptions > input[type="radio"]{font-weight:normal; cursor:pointer}
-.filteroptions > input[type="radio"], .filteroptions > select{margin-left:1em;}
+.filteroptions > input[type="radio"], .filteroptions > select{margin-left:2em;}
 .selectheader{font-weight:bold}
 #questions-container{border:1px solid #ccc;}
 .filter{padding:.5ex; opacity:0.6; display:none}
