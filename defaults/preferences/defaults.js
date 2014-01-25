@@ -1,4 +1,4 @@
-pref("extensions.dontprint.transferMethod", "email");
+pref("extensions.dontprint.transferMethod", "");
 pref("extensions.dontprint.ccEmails", "");
 pref("extensions.dontprint.ccEmailsEnabled", false);
 pref("extensions.dontprint.destDir", "");

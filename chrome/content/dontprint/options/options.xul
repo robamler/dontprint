@@ -84,7 +84,7 @@
 						</row>
 						<row id="otherEmailRow">
 							<spacer/>
-							<label id="postTransferCommandLabel">(You can use %u to refer to the file path of the PDF file.)</label>
+							<label id="postTransferCommandLabel">(You can use %u to refer to the file path of the new PDF file.)</label>
 						</row>
 					</rows>
 				</grid>

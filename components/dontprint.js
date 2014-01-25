@@ -154,7 +154,11 @@ function Dontprint() {
 	
 	function validatePreferences() {
 		let platform = prefs.getCharPref("k2pdfoptPlatform");
-		if (platform==="unknown" || !getRecipientEmail() || !prefs.getCharPref("kindleModel")) {
+		let transferMethod = prefs.getCharPref("transferMethod");
+		if (
+			platform==="unknown" || !prefs.getCharPref("kindleModel") || !transferMethod
+			|| (transferMethod==="directory" && !prefs.getCharPref("destDir"))
+		) {
 			let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 				.getService(Components.interfaces.nsIWindowMediator)
 				.getMostRecentWindow("navigator:browser").gBrowser;

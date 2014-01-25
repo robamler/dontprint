@@ -8,16 +8,22 @@
 <link rel="stylesheet" type="text/css" href="../model-picker.css">
 <style type="text/css">
 .choice{margin:1em 0em 1em 1em}
+.choice > tbody > tr > td {vertical-align:top}
 .hint{margin:0.1em 0 1em 0; color:#333; font-size:90%}
 #platform{font-style:italic}
 label{font-weight:bold}
 .next{text-align:center}
 .next>input{font-weight:bold}
-#k2pdfopt-nodownload-hint, #step2, #step3, #congrats, #select-platform, #download-progress, #warning-charges, #kindle-email-help{display:none}
+#k2pdfopt-nodownload-hint, #step2, #step3, #congrats, #select-platform, #download-progress, #warning-charges, #kindle-email-help, #transferMethodEmailContainer, #transferMethodDirectoryContainer{display:none}
 #download-progress{float:right; margin-top:1em; font-size:150%;}
 .screenshot{display:block;margin:0.4em 0 1em 1em; box-shadow:1px 2px 10px 2px #ACB2AA;}
 li{padding:0.3em 0}
 #detect-screenshot{margin:0 auto 3ex auto;display:block}
+#destDirContainer{width:35em;display:-moz-box}
+#destDirInput, #postTransferCommandInput{-moz-box-flex:1}
+#postTransferCommandGroup{margin-left:1.5em}
+#postTransferContainer{width:33.5em;display:-moz-box}
+#postTransferCommandSwitch{margin-top:2ex}
 #test-email{display:block;margin:0.5em 0 1em 0}
 #email-prefix{text-align:right;width:12em}
 #email-other-container{margin-top:0.4ex; display:none}
@@ -106,10 +112,20 @@ Dontprint automatically optimizes the layout of articles so that you can read th
 
 
 <div id="step3">
-<h2 id="step3header">Step 3: Set up e-mail addresses</h2>
+<h2 id="step3header">Step 3: Set up document transfer</h2>
 
-<div class="hint">
-Dontprint sends articles by e-mail directly to your e-reader. To use Dontprint, you need an e-mail address that ends in "@gmail.com" (<a href="http://robamler.github.com/dontprint/faq/index.html#q-setup-whygmail" target="_blank">why?</a>).
+<div class="hint">Choose how Dontprint should transfer documents to your e-reader.</div>
+
+<table class="choice">
+<tr>
+	<td><input type="radio" name="transferMethodChoice" value="email" id="transferMethodEmail"></td>
+	<td><label for="transferMethodEmail">Send Documents via e-mail (recommended choice for Amazon Kindle)</label></td>
+</tr>
+<tr>
+	<td></td>
+	<td><div id="transferMethodEmailContainer" class="hint">
+		<div class="hint">
+Dontprint can send articles by e-mail directly to your e-reader. To use this feature, you need an e-mail address that ends in "@gmail.com" (<a href="http://robamler.github.com/dontprint/faq/index.html#q-setup-whygmail" target="_blank">why?</a>).
 Dontprint takes your privacy serious and gains only very limited access to your Gmail account (<a href="http://robamler.github.com/dontprint/faq/index.html#q-privacy-gmailaccess" target="_blank">more information on privacy</a>).
 </div>
 
@@ -141,9 +157,29 @@ Full e-mail address: <input type="email" required id="email-other">
 <div id="test-email-done" class="hint">Done sending test document. <a href="#" id="test-email-showresult">Show details.</a></div>
 </li>
 </ol>
+	</div></td>
+</tr>
+<tr>
+	<td><input type="radio" name="transferMethodChoice" value="directory" id="transferMethodDirectory"></td>
+	<td><label for="transferMethodDirectory">Save Documents to a directory (for e-readers that don't support e-mail transfer)</label></td>
+</tr>
+<tr>
+	<td></td>
+	<td><div class="hint" id="transferMethodDirectoryContainer">
+		<div>Select a directory where the converted PDF files should be saved:</div>
+		<div id="destDirContainer"><input type="text" id="destDirInput"><input type="button" id="destDirChooser" value="Choose..."></div>
+		<div><input type="checkbox" id="postTransferCommandSwitch"><label for="postTransferCommandSwitch" style="font-weight:normal">Execute a command after saving the file:</label></div>
+		<div id="postTransferCommandGroup">
+		<div id="postTransferContainer"><input type="text" id="postTransferCommandInput" disabled=""></div>
+		<div>(You can use <i>%u</i> to refer to the file path of the new PDF file.)</div>
+		</div>
+	</div></td>
+</tr>
+</table>
+
 
 <div class="next">
-<input type="submit" value="Accept and finish" id="acceptstep3">
+<input type="submit" value="Accept and finish" id="acceptstep3" disabled="">
 </div>
 </div>
 </div>

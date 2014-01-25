@@ -123,7 +123,11 @@ function skipStep1() {
 		$("#step2body").hide();
 		$("#step2header").text($("#step2header").text() + " (done)").css('opacity', .4);
 		
-		if (Dontprint.getRecipientEmail()) {
+		var transferMethod = prefs.getCharPref("transferMethod");
+		if (
+			transferMethod==="email" ||
+			(transferMethod==="directory" && prefs.getCharPref("destDir"))
+		) {
 			$('#steps').hide();
 			$('#congrats').show();
 		}
@@ -266,13 +270,28 @@ $("#acceptstep2").click(function() {
 
 function goToStep3() {
 	// check if step 3 is already completed due to sync
-	if (Dontprint.getRecipientEmail()) {
+	// (only possible if transferMethod==="email")
+	if (prefs.getCharPref("transferMethod")==="email") {
 		$("#steps").slideUp();
 		$("#congrats").slideDown();
 	} else {
 		$("#step3").slideDown();
 	}
 }
+
+$("#transferMethodEmail,#transferMethodDirectory").prop("checked", false);
+$("#transferMethodEmail").click(function() {
+	$("#transferMethodEmailContainer").slideDown();
+	$("#transferMethodDirectoryContainer").slideUp();
+	$("#acceptstep3").removeAttr("disabled");
+});
+$("#transferMethodDirectory").click(function() {
+	$("#transferMethodEmailContainer").slideUp();
+	$("#transferMethodDirectoryContainer").slideDown();
+	$("#acceptstep3").removeAttr("disabled");
+});
+$("#acceptstep3").prop("disabled", true);
+
 
 $("#email-suffix").change(emailSuffixChange);
 
@@ -314,7 +333,44 @@ $("#email-prefix").on("input", function() {
 $("#kindle-email-question").click(function() {
 	$("#kindle-email-help").slideDown();
 	$(this).parent().fadeOut();
+	return false;  // makes sure location.hash won't be changed
 });
+
+
+// Use the user's desktop directory as default destination directory
+$("#destDirInput").val(Components.classes["@mozilla.org/file/directory_service;1"].
+	getService(Components.interfaces.nsIProperties).
+	get("Desk", Components.interfaces.nsIFile).
+	path
+);
+
+$("#postTransferCommandSwitch").click(function() {
+	var enabled = $(this).prop("checked");
+	$("#postTransferCommandInput").prop("disabled", !enabled);
+	if (enabled) {
+		$("#postTransferCommandInput").focus();
+	}
+});
+$("#postTransferCommandSwitch").prop("checked", false);
+$("#postTransferCommandInput").prop("disabled", true);
+
+
+$("#destDirChooser").click(function() {
+	const nsIFilePicker = Components.interfaces.nsIFilePicker;
+	const nsILocalFile = Components.interfaces.nsILocalFile;
+	var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+	fp.init(window, "Select directory to save converted PDF files", nsIFilePicker.modeGetFolder);
+	try {
+		var f = Components.classes["@mozilla.org/file/local;1"].createInstance(nsILocalFile);
+		f.initWithPath($("#destDirInput").val());
+		fp.displayDirectory = f;
+	} catch (e) {}
+	var rv = fp.show();
+	if (rv == nsIFilePicker.returnOK || rv == nsIFilePicker.returnReplace) {
+		$("#destDirInput").val(fp.file.path);
+	}
+});
+
 
 function updateProgressBar(progress) {
 	var angle = 2*Math.PI*progress;
@@ -330,7 +386,7 @@ function updateProgressBar(progress) {
 }
 
 $("#acceptstep3").click(function() {
-	if (!saveStep2Prefs()) {
+	if (!saveStep3Prefs()) {
 		return false;
 	}
 	
@@ -343,7 +399,7 @@ $("#acceptcongrats").click(function() {
 });
 
 $("#test-email").click(function() {
-	if (!saveStep2Prefs()) {
+	if (!saveStep3Prefs()) {
 		return false;
 	}
 	Dontprint.sendTestEmail(testEmailCallback);
@@ -374,21 +430,52 @@ function testEmailCallback(newtab) {
 }
 
 
-function saveStep2Prefs() {
-	var prefix = $("#email-prefix").val();
-	var suffix = $("#email-suffix").val();
-	var other = $("#email-other").val();
-	if (
-		(suffix!=="other" && (prefix==="" || prefix.match(/[@ "']/))) ||
-		(suffix==="other" && !$("#email-other").get(0).validity.valid)
-	) {
-		alert("Please enter a valid e-mail address in the text box.");
-		return false;
+function saveStep3Prefs() {
+	var transferMethod = $("input[name='transferMethodChoice']:checked").val();
+	
+	switch (transferMethod) {
+		case "email":
+			var prefix = $("#email-prefix").val();
+			var suffix = $("#email-suffix").val();
+			var other = $("#email-other").val();
+			if (
+				(suffix!=="other" && (prefix==="" || prefix.match(/[@ "']/))) ||
+				(suffix==="other" && !$("#email-other").get(0).validity.valid)
+			) {
+				alert("Please enter a valid e-mail address in the text box.");
+				return false;
+			}
+			
+			prefs.setCharPref("recipientEmailPrefix", prefix);
+			prefs.setCharPref("recipientEmailSuffix", suffix);
+			prefs.setCharPref("recipientEmailOther", other);
+			break;
+		
+		case "directory":
+			var destDir = $("#destDirInput").val().trim();
+			var enabled = $("#postTransferCommandSwitch").prop("checked");
+			var comm = $("#postTransferCommandInput").val().trim();
+			if (destDir==="") {
+				alert("Please choose a destination directory where the PDF files will be saved.");
+				$("#destDirInput").focus();
+				return false;
+			}
+			if (enabled && comm==="") {
+				alert("Please enter a command or uncheck the box to execute a command.");
+				$("#postTransferCommandInput").focus();
+				return false;
+			}
+			prefs.setCharPref("destDir", destDir);
+			prefs.setBoolPref("postTransferCommandEnabled", enabled);
+			prefs.setCharPref("postTransferCommand", comm);
+			break;
+		
+		default:
+			alert("Please choose whether you want to transfer PDF documents by e-mail or to save them to a directory of your choice");
+			return false;
 	}
 	
-	prefs.setCharPref("recipientEmailPrefix", prefix);
-	prefs.setCharPref("recipientEmailSuffix", suffix);
-	prefs.setCharPref("recipientEmailOther", other);
+	prefs.setCharPref("transferMethod", transferMethod);
 	return true;
 }
 
