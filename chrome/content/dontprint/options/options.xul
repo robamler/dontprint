@@ -84,7 +84,9 @@
 						</row>
 						<row id="otherEmailRow">
 							<spacer/>
-							<label id="postTransferCommandLabel">(You can use %u to refer to the file path of the new PDF file.)</label>
+							<vbox>
+								<label id="postTransferCommandLabel">(Use an absolute path of an executable file, optionally followed by arguments. You can use %u to refer to the file path of the new PDF file.)</label>
+							</vbox>
 						</row>
 					</rows>
 				</grid>

@@ -524,9 +524,21 @@ function Dontprint() {
 					yield convertDocument(job);
 				}
 				
-				newtab = yield authorizeSendmail(job);
-				yield connectToSendmailTab(job, newtab.tabBrowser);
-				yield sendEmail(job, newtab.tabBrowser);
+				switch (prefs.getCharPref("transferMethod")) {
+					case "email":
+						newtab = yield authorizeSendmail(job);
+						yield connectToSendmailTab(job, newtab.tabBrowser);
+						yield sendEmail(job, newtab.tabBrowser);
+						break;
+					
+					case "directory":
+						yield moveFileToDestDir(job);
+						yield callPostTransferCommand(job);
+						break;
+					
+					default:
+						throw 'The settings for Dontprint are inconsistent. Please choose "Tools --> Dontprint --> Configure Dontprint" from the menu and review the settings on the "Transfer" tab.';
+				}
 			} catch (e) {
 				job.result = {
 					error: true,
@@ -1273,10 +1285,90 @@ function Dontprint() {
 	}
 	
 	
+	function moveFileToDestDir(job) {
+		updateJobState(job, "moving");
+		let origFile = Components.classes["@mozilla.org/file/local;1"]
+					.createInstance(Components.interfaces.nsIFile);
+		origFile.initWithPath(job.convertedFilePath);
+		
+		if (!origFile.exists()) {
+			throw origFile.path + " does not exist";
+		}
+		
+		let destFile = Components.classes["@mozilla.org/file/local;1"]
+					.createInstance(Components.interfaces.nsILocalFile);
+		try {
+			destFile.initWithPath(prefs.getCharPref("destDir"));
+		} catch (e) {
+			throw 'The destination directory "' + prefs.getCharPref("destDir") + '" is not an absolute file path. Please go to the Dontprint options and provide the correct destination directory.';
+		}
+		
+		if (!destFile.exists()) {
+			throw 'The destination directory "' + destFile.path + '" does not exist. Maybe your device is not connected or it needs to be accessed under a different path.';
+		}
+		
+		// Don't allow the '.' char in the file name because files starting with
+		// a '.' are usually hidden on unix systems, which would be confusing.
+		destFile.append(job.title.replace(/[^a-zA-Z0-9 \-_,]+/g, "_") + ".pdf");
+		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0775); // octal value --> don't remove leading zero!
+		
+		try {
+			// TODO: moving the file should really be done asynchronously
+			// but I couldn't find out how to do that.
+			origFile.moveTo(destFile.parent, destFile.leafName);
+		} catch (e) {
+			throw 'Unable to move the resulting PDF file to the destination directory "' + destFile.parent.path + '". Maybe your device is not connected or it needs to be accessed under a different path.';
+		}
+		
+		job.result = {
+			destDir: destFile.parent.path,
+			fileName: destFile.leafName,
+			filePath: destFile.path
+		};
+	}
+	
+	
+	function callPostTransferCommand(job) {
+		updateJobState(job, "postTransferCommand");
+		
+		if (prefs.getBoolPref("postTransferCommandEnabled")) {
+			let args = prefs.getCharPref("postTransferCommand").trim().split(/\s+/);
+			let cmd = args.shift();
+			
+			for (let i=0; i<args.length; i++) {
+				args[i] = args[i].replace(/%u/g, job.result.filePath);
+			}
+			
+			job.result.command = cmd + " " + args.join(" ");
+			
+			let file = Components.classes["@mozilla.org/file/local;1"]
+						.createInstance(Components.interfaces.nsIFile);
+			try {
+				file.initWithPath(cmd);
+			} catch (e) {
+				throw 'The Post-process command "' + cmd + '" is not an absolute file path.';
+			}
+			
+			let process = Components.classes["@mozilla.org/process/util;1"]
+									.createInstance(Components.interfaces.nsIProcess);
+			process.init(file);
+			let deferred = Promise.defer();
+			process.runAsync(args, args.length, {observe: deferred.resolve});
+			let timeout = setTimeout(function() {
+				deferred.reject("The post-transfer command is taking suspiciously long. It's still running but you may want to check if it's doing what you expect it to do.");
+			}, 300000); // 5 minutes
+			
+			yield deferred.promise;
+			clearTimeout(timeout);
+		}
+	}
+	
+	
 	function displayResult(job, newtab) {
 		job.result.errorOperation = job.state;
 		updateJobState(job, job.result.error ? "error" : "success");
-		var url = "chrome://dontprint/content/sendmail/" + job.state + ".html#" + job.id;
+		let transferMethod = prefs.getCharPref("transferMethod")==="email" ? "sendmail" : "savetodir";
+		let url = "chrome://dontprint/content/" + transferMethod + "/" + job.state + ".html#" + job.id;
 		deferred = Promise.defer();
 		job.resultPageCallback = deferred.resolve;
 		
@@ -1285,7 +1377,10 @@ function Dontprint() {
 			let gBrowser = Components.classes["@mozilla.org/appshell/window-mediator;1"]
 				.getService(Components.interfaces.nsIWindowMediator)
 				.getMostRecentWindow("navigator:browser").gBrowser;
-			let tab = gBrowser.loadOneTab(url, {inBackground: !job.result.error});
+			let tab = gBrowser.loadOneTab(
+				url,
+				{inBackground: !job.result.error && prefs.getBoolPref("uploadInBackground")}
+			);
 			newtab = {gBrowser:gBrowser, tab: tab};
 		} else {
 			// reuse existing tab
