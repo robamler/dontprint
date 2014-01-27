@@ -1,17 +1,22 @@
 #!/bin/bash
 
-# This script installs the development ("testing") version of Dontprint
-# on a linux machine. This script assumes that your Firefox profile is
-# called "default". Run this script with normal privileges (i.e., *not*
-# as root)
+# This script installs Dontprint from source on a linux or mac machine.
+# It assumes that your Firefox profile is called "default". Run this
+# script with normal privileges (i.e., NOT as root)
+#
+# WARNING: The current source code in the git repository can be unstable
+# at any time. It is not recommended to use installations from source
+# in a production environment. Consider instead downloading a packaged
+# version from http://robamler.github.io/dontprint/.
+#
+# IMPORTANT: Uninstall any packaged versions of Dontprint and restart
+# Firefox before you run this script!
+
 
 echo 'Dontprint: Installing Dontprint into the "default" profile of Firefox...'
 
 # cd to the top level directory of the Dontprint source code
 cd "`dirname "${BASH_SOURCE[0]}"`"
-
-echo 'Dontprint: Switching to branch "testing"...'
-git checkout testing
 
 echo 'Dontprint: Fetching dependencies. This may take some time...'
 git submodule init
