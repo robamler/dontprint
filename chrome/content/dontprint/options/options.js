@@ -56,7 +56,7 @@ function onUnload() {
 
 function sendTestPage() {
 	var response = confirm(
-		"Dontprint can send a small document to your Kindle to test your e-mail settings. Would you like to send this document now?"
+		"Dontprint can send a small document to your e-reader to test your e-mail settings. Would you like to send this document now?"
 	);
 	if (response) {
 		var btn = document.getElementById("sendTestPageButton");

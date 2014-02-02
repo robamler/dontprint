@@ -97,7 +97,7 @@
 		<iframe xmlns="http://www.w3.org/1999/xhtml" src="options-device.html" id="deviceIframe" style="width:100%;height:400px;border:0" marginwidth="0" marginheight="0" scrolling="no"/>
 	</prefpane>
 	<prefpane id="dontprint-prefpane-margins" label="Margins" image="margins.png" style="height:100%" onpaneload="marginsPaneLoad();">
-		<description>When Dontprint optimizes the layout of an article for your Kindle, it cuts off repeating headers and footers because they would otherwise appear at random positions in the converted document. You can fine-tune this behaviour below.</description>
+		<description>When Dontprint optimizes the layout of an article for your e-reader, it cuts off repeating headers and footers because they would otherwise appear at random positions in the converted document. You can fine-tune this behaviour below.</description>
 		<hbox flex="1" align="stretch">
 			<vbox flex="1">
 				<listbox id="journal-list" flex="1" onselect="journalFilterSelect();">
@@ -180,7 +180,7 @@
 		</groupbox>
 		<groupbox>
 			<caption>Third party software</caption>
-			<description>Dontprint uses a program called "k2pdfopt" to optimize the layout of articles before sending them to your Kindle. For more information about k2pdfopt, visit <label class="text-link" href="http://www.willus.com/k2pdfopt/">willus.com</label>.</description>
+			<description>Dontprint uses a program called "k2pdfopt" to optimize the layout of articles before sending them to your e-reader. For more information about k2pdfopt, visit <label class="text-link" href="http://www.willus.com/k2pdfopt/">willus.com</label>.</description>
 			
 			<grid>
 				<columns>

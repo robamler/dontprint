@@ -3,7 +3,7 @@
 <!ENTITY dontprint.showProgressMenuItemLabel		"Show currently running Dontprint jobs...">
 <!ENTITY dontprint.configureMenuItemLabel			"Configure Dontprint...">
 <!ENTITY dontprint.progressimglabel					"Dontprint is processing this document (click icon for detailed progress information).">
-<!ENTITY dontprint.preferences.title				"Dontprint plugin for Zotero - Settings">
+<!ENTITY dontprint.preferences.title				"Dontprint settings">
 <!ENTITY dontprint.preferences.general				"General settings">
 <!ENTITY dontprint.preferences.device				"Device settings">
 <!ENTITY dontprint.preferences.advanced				"Advanced settings">

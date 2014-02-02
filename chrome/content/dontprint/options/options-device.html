@@ -185,7 +185,7 @@ window.screenSettingsChange = screenSettingsChange; // export function
 
 $('#sendTestEmailButton').click(function() {
 	var response = confirm(
-		"Dontprint can send a document to your Kindle that will assist you in finding the correct document size for your Kindle model. Would you like to send this document now?"
+		"Dontprint can transfer a small document to your e-reader that will assist you in finding the correct document size for your specific e-reader model. Would you like to send this document now?"
 	);
 	if (response) {
 		this.disabled = true;
@@ -201,7 +201,7 @@ $('#sendTestEmailButton').click(function() {
 $('#sendScreenSettingsDetails').click(function() {
 	alert(
 		"If you check this box, Dontprint will send the following data to its developer:" +
-		"\n - Kindle model: " + ModelPicker.models[ModelPicker.selection].label +
+		"\n - e-reader model: " + ModelPicker.models[ModelPicker.selection].label +
 		"\n - width: " + $('#widthinput').val() +
 		"\n - height: " + $('#heightinput').val() + 
 		"\n - pixels per inch: " + $('#ppiinput').val() +
