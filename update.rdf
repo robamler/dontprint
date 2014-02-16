@@ -2,10 +2,6 @@
 <RDF:RDF xmlns:em="http://www.mozilla.org/2004/em-rdf#"
          xmlns:NC="http://home.netscape.com/NC-rdf#"
          xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-  <RDF:Description RDF:about="urn:mozilla:extension:dontprint@robamler.github.com"
-                   em:signature="MIGTMA0GCSqGSIb3DQEBDQUAA4GBAJfmB87r8E/OQPB0TxsK/JqblE9e0mXBgZe7rhaunAElGdPcYkRvOsRzeAbxn4MTYqD93YF1k/qjw3y1MW6RnjKYXud5V9jrmIQfOOO3dmrwGhG6PhA3w/2fDFlAusX2B35kncQ4m/NQ7mbQVcFsAPfpyfxbHDhmqqGz+o3KyPPF">
-    <em:updates RDF:resource="rdf:#$bDzNw3"/>
-  </RDF:Description>
   <RDF:Description RDF:about="rdf:#$fDzNw3"
                    em:id="{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
                    em:minVersion="19.0"
@@ -13,11 +9,15 @@
                    em:updateLink="http://robamler.github.com/dontprint/download/dontprint-beta.xpi"
                    em:updateHash="sha512:5594f7f464da1f3bd1df95aafa6a70fe8a42d6dbcdc788b2a890f66409ccd29412916c43ba72f7734404bc2b1a2b65a4a1b78c2aa6fd1e5bf86b4fc75f3d573f"
                    em:updateInfoURL="http://robamler.github.com/dontprint/changelogs/v0.2beta3.xhtml" />
-  <RDF:Description RDF:about="rdf:#$cDzNw3"
-                   em:version="0.2beta3">
-    <em:targetApplication RDF:resource="rdf:#$fDzNw3"/>
+  <RDF:Description RDF:about="urn:mozilla:extension:dontprint@robamler.github.com"
+                   em:signature="MIGTMA0GCSqGSIb3DQEBDQUAA4GBAAuT3nTFYvTcdeSXZ2VhUFkdZ2xVZHblxIwydh5QbVrMzc4+HCSuUTMrCINWtjO1JVGDMKFtwu/s/uF2uT7KjWCBhGfA/Exeqeu3MUdI32TPmwX0cu5zsO8ToxBHNgpTAtpiQ/bDW0gVp6nfNuh2E/RKBCGiTB0mEEUYQ3mly1RH">
+    <em:updates RDF:resource="rdf:#$bDzNw3"/>
   </RDF:Description>
   <RDF:Seq RDF:about="rdf:#$bDzNw3">
     <RDF:li RDF:resource="rdf:#$cDzNw3"/>
   </RDF:Seq>
+  <RDF:Description RDF:about="rdf:#$cDzNw3"
+                   em:version="0.2beta3">
+    <em:targetApplication RDF:resource="rdf:#$fDzNw3"/>
+  </RDF:Description>
 </RDF:RDF>
