@@ -1,5 +1,5 @@
 function Dontprint() {
-	const DATABASE_VERSION = 20130824;
+	const DATABASE_VERSION = 20140216;
 	var k2pdfoptTestTimeout;
 	var databasePath = null;
 	var zoteroInstalled = false;
@@ -89,30 +89,11 @@ function Dontprint() {
 	
 	
 	function updateDatabase(conn) {
-		yield conn.execute(
-			"CREATE TABLE IF NOT EXISTS journals (" +
-				"id INTEGER PRIMARY KEY ASC ON CONFLICT REPLACE," +
-				"priority INTEGER," +
-				"lastModified TEXT DEFAULT CURRENT_TIMESTAMP," +
-				"enabled INTEGER," +
-				"longname TEXT," +
-				"shortname TEXT," +
-				"minDate INTEGER," +
-				"maxDate INTEGER," +
-				"m1 TEXT," +
-				"m2 TEXT," +
-				"m3 TEXT," +
-				"m4 TEXT," +
-				"coverpage INTEGER," +
-				"k2pdfoptParams TEXT" +
-			")"
-		);
-		yield conn.execute("CREATE TABLE IF NOT EXISTS deletedBuiltinJournals (id INTEGER PRIMARY KEY ON CONFLICT IGNORE)");
-		yield conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY ON CONFLICT REPLACE, value TEXT)");
-		yield conn.execute("INSERT INTO settings VALUES ('dbversion', ?)", [DATABASE_VERSION]);
-		
-		// TODO: copy builtin journals; then run the following sql statement:
-		// UPDATE journals SET enabled=0, priority=priority & ~2097152 WHERE id IN (SELECT id FROM deletedBuiltinJournals)
+		let context = {}
+		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+						.getService(Components.interfaces.mozIJSSubScriptLoader);
+		loader.loadSubScript("chrome://dontprint/content/updateDatabase.js", context, "UTF-8");
+		yield context.updateDatabase(conn, DATABASE_VERSION);
 	}
 	
 	
