@@ -1,29 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<RDF:RDF xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:em="http://www.mozilla.org/2004/em-rdf#">
-	<RDF:Description about="urn:mozilla:extension:dontprint@robamler.github.com">
-		<em:updates>
-			<RDF:Seq>
-				<RDF:li>
-					<RDF:Description>
-						<em:version>0.2beta2</em:version>
-						<em:targetApplication>
-							<RDF:Description>
-								<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
-								<em:minVersion>19.0</em:minVersion>
-								<em:maxVersion>27.*</em:maxVersion>
-								<em:updateLink>http://robamler.github.com/dontprint/download/dontprint-beta.xpi</em:updateLink>
-								<em:updateHash>sha512:9ee13a550f96da82b127fcbf04e473e4b11a06fda093f0db499882913aebcc455f3611ba7601d7333373428a650c84d9d606891d49ab6ae2b204b47cde41e4c2</em:updateHash>
-								<em:updateInfoURL>http://robamler.github.com/dontprint/changelogs/v0.2beta2.xhtml</em:updateInfoURL>
-							</RDF:Description>
-						</em:targetApplication>
-					</RDF:Description>
-				</RDF:li>
-			</RDF:Seq>
-		</em:updates>
-		<em:signature>
-			MIGTMA0GCSqGSIb3DQEBDQUAA4GBAC+mPIk8Fbt4lYnrWYlbpms1lj+ihkKfAaKcsab
-			25KMp6RT7qasThiTcicx94Ga7YEMj/IK6NCHOe2JehhyHP+8ajS3K8JaBiv+tG60are
-			I6JTK2WO/BATWxWxcKmP7IdEq/fNhnR4+DKUhNqNV+MUPm7LBd/CttX0p8dcs5YJT0
-		</em:signature>
-	</RDF:Description>
+<?xml version="1.0"?>
+<RDF:RDF xmlns:em="http://www.mozilla.org/2004/em-rdf#"
+         xmlns:NC="http://home.netscape.com/NC-rdf#"
+         xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <RDF:Description RDF:about="urn:mozilla:extension:dontprint@robamler.github.com"
+                   em:signature="MIGTMA0GCSqGSIb3DQEBDQUAA4GBAJfmB87r8E/OQPB0TxsK/JqblE9e0mXBgZe7rhaunAElGdPcYkRvOsRzeAbxn4MTYqD93YF1k/qjw3y1MW6RnjKYXud5V9jrmIQfOOO3dmrwGhG6PhA3w/2fDFlAusX2B35kncQ4m/NQ7mbQVcFsAPfpyfxbHDhmqqGz+o3KyPPF">
+    <em:updates RDF:resource="rdf:#$bDzNw3"/>
+  </RDF:Description>
+  <RDF:Description RDF:about="rdf:#$fDzNw3"
+                   em:id="{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
+                   em:minVersion="19.0"
+                   em:maxVersion="29.*"
+                   em:updateLink="http://robamler.github.com/dontprint/download/dontprint-beta.xpi"
+                   em:updateHash="sha512:9ee13a550f96da82b127fcbf04e473e4b11a06fda093f0db499882913aebcc455f3611ba7601d7333373428a650c84d9d606891d49ab6ae2b204b47cde41e4c2"
+                   em:updateInfoURL="http://robamler.github.com/dontprint/changelogs/v0.2beta3.xhtml" />
+  <RDF:Description RDF:about="rdf:#$cDzNw3"
+                   em:version="0.2beta3">
+    <em:targetApplication RDF:resource="rdf:#$fDzNw3"/>
+  </RDF:Description>
+  <RDF:Seq RDF:about="rdf:#$bDzNw3">
+    <RDF:li RDF:resource="rdf:#$cDzNw3"/>
+  </RDF:Seq>
 </RDF:RDF>

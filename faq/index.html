@@ -88,9 +88,12 @@ In case you're interested in the details: Dontprint internally uses a third-part
 <a class="anchor" id="q-about-compatiblereader"></a>
 <a class="q" id="h-about-compatiblereader" href="#">Will Dontprint work with my e-reader?</a>
 <div class="answer">
-At the moment, Dontprint is compatible with all e-readers that can display PDF documents and receive documents by e-mail.
-This includes most (if not all) models of the Amazon Kindle and also many other e-readers.
-Future versions of Dontprint will also offer alternative options (other than e-mail) to transfer documents, such as transferring over a USB connection.
+Dontprint generates documents in the PDF format.
+So if your e-reader can display PDF documents than you can use Dontprint.
+This should cover almost all e-reader models.
+If your e-reader is an Amazon Kindle than you can even configure Dontprint to send the optimized documents automatically to your Kindle's e-mail address.
+Alternatively, you can also choose to transfer documents manually via USB.
+This works with almost all e-readers.
 The developer of Dontprint is not affiliated with any e-reader manufacturer or retailer.
 </div>
 
@@ -142,20 +145,22 @@ Click the link "Download for free" on the very top of this page.
 </div>
 
 <a class="anchor" id="q-setup-whygmail"></a>
-<a class="q" id="h-setup-whygmail" href="#">Why do I need a Gmail account to use Dontprint?</a>
+<a class="q" id="h-setup-whygmail" href="#">Why do I need a Gmail account if I want to use the e-mail sending feature of Dontprint?</a>
 <div class="answer">
-Dontprint sends documents to your e-reader by e-mail attachment.
-These e-mails are sent from your Gmail account.
+If you want and if your e-reader supports it, you can configure Dontprint to send documents to your e-reader by e-mail attachment.
+This is an optional feature that you have to turn on explicitly if you want to use it.
+The e-mails are sent from your Gmail account.
 Dontprint takes your privacy serious and does <em>not</em> gain access to your e-mail inbox.
 It requires you to grant access <em>only for sending</em> e-mails from your account.
-See also: "<a href="#q-privacy-gmailaccess">Which level of access does Dontprint have to my Gmail account?</a>".
-Dontprint uses your Gmail account only to send e-mails <a href="#q-privacy-abuse">to your e-reader</a> and only <a href="#q-privacy-spam">upon your explicit request</a>.
+Dontprint uses your Gmail account to send e-mails <a href="#q-privacy-abuse">only to your e-reader</a> and <a href="#q-privacy-spam">only upon your explicit request</a>.
+See also: "<a href="#q-privacy-gmailaccess">Which level of access does Dontprint have to my Gmail account if I use the e-mail sending feature?</a>".
 <p>
 Using your Gmail account to send e-mails has <strong>two advantages:</strong>
 First, it eliminates server costs, thereby allowing Dontprint to stay free of charge.
 Second, it keeps <em>you</em> in control of all e-mails that are sent to your e-reader because you can <a href="#q-privacy-revoke">revoke the permission to send e-mails from your Gmail account</a> at any time.
 <p>
-<strong>If you do not have a Gmail account</strong> you can easily <a href="https://accounts.google.com/SignUp?service=mail" target="_blank">set one up for free</a> to use with Dontprint.
+<strong>If you do not have a Gmail account</strong> you can just turn of the e-mail sending feature of Dontprint and transfer the documents to your e-reader manually.
+Or you can create a new Gmail account for free to use with Dontprint.
 You will receive instructions when you run Dontprint for the first time.
 Please note that you don't even have to ever use this Gmail account yourself.
 It is just used by Dontprint behind the scenes in order to send e-mails.
@@ -166,9 +171,9 @@ The developer of Dontprint is not affiliated with Google.
 <a class="anchor" id="q-setup-ereaderaddress"></a>
 <a class="q" id="h-setup-ereaderaddress" href="#">What is my e-readers e-mail address?</a>
 <div class="answer">
-Dontprint sends documents to your e-reader by e-mail.
+You can configure Dontprint to send documents to your e-reader by e-mail.
 <p>
-<strong>If your e-reader is an Amazon Kindle</strong> then its e-mail address typically consists of a name that you chose when you bought the device followed by either of "@free.kindle.com", "@kindle.com" or "@kindle.cn".
+<strong>If your e-reader is an Amazon Kindle</strong> then its e-mail address typically consists of a name that you chose when you bought the device followed by one of suffixes "@free.kindle.com", "@kindle.com" or "@kindle.cn".
 If you can't remember which e-mail address you picked there are two ways to find it out:
 <ol type="a">
 <li>On the device itself, go to the home screen, press the menu key and select "Settings" or "Preferences".
@@ -179,12 +184,17 @@ Step through the settings like you would browse through the pages of a book unti
 <p>
 <strong>If your e-reader is is not an Amazon Kindle</strong> but supports receiving documents by e-mail then you probably had to pick an e-mail address when you bought the device or when you used it for the first time.
 If you don't remember the e-mail address that is tied to your e-reader, look for it in the settings on the device itself or on the website of the company that sold the e-reader to you.
+<p>
+<strong>If your e-reader does not support receiving documents by e-mail</strong> than you can still use Dontprint.
+On the welcome page, simply choose the option to transfer documents to your e-reader manually.
 </div>
 
 <a class="anchor" id="q-setup-approvedemail"></a>
 <a class="q" id="h-setup-approvedemail" href="#">What is an "approved personal document e-mail"?</a>
 <div class="answer">
-If your e-reader is an Amazon Kindle then you have to tell Amazon that Dontprint is allowed to send documents to the device.
+If you want to use the e-mail sending feature of Dontprint, then you may have to tell your e-reader's vendor to allow receiving e-mails from your Gmail address.
+<p>
+<strong>If your e-reader is an Amazon Kindle</strong> than you have to tell Amazon that Dontprint is allowed to send documents to the device.
 To do so, follow these steps:
 <ol>
 <img src="amazon-screenshot.png" class="screenshot" style="float:right;margin:0.4em 0px 1em 1em;" width="324" height="137" alt="Screenshot: list of approved personal document e-mails on the Amazon web site">
@@ -224,41 +234,44 @@ Since everybody on the web can read and inspect the code that runs Dontprint it 
 </div>
 
 <a class="anchor" id="q-privacy-gmail-username"></a>
-<a class="q" id="h-privacy-gmail-username" href="#">Does Dontprint store my Google username or password?</a>
+<a class="q" id="h-privacy-gmail-username" href="#">Does Dontprint store my Google username or password if I use the e-mail sending feature?</a>
 <div class="answer">
 <strong>No.</strong>
 Dontprint does not store any credentials (usernames or passwords).
 In fact, Dontprint does not even know your Google username or password.
-Even though you may have to enter these credentials when you run Dontprint, you're entering them directly into <em>Google's</em> login dialog and Dontprint does not intercept them.
+Even though you may have to enter these credentials when you run Dontprint and decide to use the e-mail sending feature, you're entering them directly into <em>Google's</em> login dialog.
+Dontprint does not intercept this confidential information.
 For proof of this claim, see "<a href="#q-privacy-trust">How can I be sure Dontprint does not secretly violate my privacy or abuse my e-mail account?</a>".
 <p>
 <strong>However,</strong> depending on your Firefox configuration, Firefox itself might store passwords on your computer or even synchronize them between different devices you own.
-This is completely independent of Dontprint and will happen even if you never installed Dontprint.
+This is completely independent of Dontprint and would happen even if you never installed Dontprint.
 To configure the way Firefox deals with passwords, go to the "Security" tab in the Firefox preferences.
 </div>
 
 <a class="anchor" id="q-privacy-gmailaccess"></a>
-<a class="q" id="h-privacy-gmailaccess" href="#">Which level of access does Dontprint have to my Gmail account?</a>
+<a class="q" id="h-privacy-gmailaccess" href="#">Which level of access does Dontprint have to my Gmail account if I use the e-mail sending feature?</a>
 <div class="answer">
+If you choose to activate the e-mail sending feature of Dontprint, then Dontprint will send documents to your e-reader by e-mail using your Gmail account.
 Dontprint has <strong>very limited</strong> access to your Gmail account.
 The only operation that Dontprint can perform from your account is <strong>sending emails</strong>.
 <p>
-The first time you use Dontprint it will ask you for permission to send e-mails from your account.
-If you don't actively grant this permission then Dontprint will gain no access to your Gmail account at all but then it won't be able to operate properly.
+The first time you use Dontprint with the e-mail sending feature turned on it will ask you for permission to send e-mails from your account.
+If you don't actively grant this permission then Dontprint will gain no access to your Gmail account at all but then the e-mail sending feature won't be able to operate properly.
 If you do grant the permission then Dontprint is allowed only to send e-mails from your account &mdash; and nothing else.
 Dontprint <strong>cannot</strong> read, modify or delete e-mails in your inbox or access any other Google services in your name.
 Most importantly, Dontprint <strong>never</strong> gets hold of your Google username or password.
-Even though you may have to enter these credentials the first time you use Dontprint, you're entering them directly into <em>Google's</em> login dialog and Dontprint does not intercept them.
+Even though you may have to enter these credentials the first time you use the e-mail sending feature, you're entering them directly into <em>Google's</em> login dialog and Dontprint does not intercept them.
 For proof of these claims, see "<a href="#q-privacy-trust">How can I be sure Dontprint does not secretly violate my privacy or abuse my e-mail account?</a>".
 <p>
-See also: "<a href="#q-setup-whygmail">Why do I need a Gmail account to use Dontprint?</a>"
+See also: "<a href="#q-setup-whygmail">Why do I need a Gmail account if I want to use the e-mail sending feature of Dontprint?</a>"
 </div>
 
 <a class="anchor" id="q-privacy-spam"></a>
 <a class="q" id="h-privacy-spam" href="#">Will Dontprint ever send any e-mails to my e-reader without my explicit request?</a>
 <div class="answer">
 <strong>No.</strong>
-Dontprint only sends an e-mail to your e-reader each time you instruct it to send a specific document and it will not send any additional files other than the document you asked for.
+Dontprint only sends an e-mail to your e-reader only if you activate the e-mail sending feature.
+Even then, Dontprint will only send an e-mail to your e-reader each time you instruct it to send a specific document and it will not send any additional files other than the document you asked for.
 For proof of this claim, see "<a href="#q-privacy-trust">How can I be sure Dontprint does not secretly violate my privacy or abuse my e-mail account?</a>".
 </div>
 
@@ -266,7 +279,7 @@ For proof of this claim, see "<a href="#q-privacy-trust">How can I be sure Dontp
 <a class="q" id="h-privacy-abuse" href="#">Will Dontprint ever send any e-mails from my Gmail account to third parties?</a>
 <div class="answer">
 <strong>No.</strong>
-You can specify two e-mail addresses in the preference dialog: The e-mail address that is tied to your e-reader and an optional second e-mail address to receive a copy of your dontprinted documents.
+If you choose to activate the e-mail sending feature, then you can specify two e-mail addresses in the preference dialog: The e-mail address that is tied to your e-reader and an optional second e-mail address to receive a copy of your dontprinted documents.
 Dontprint uses your "...@gmail.com" address <em>only</em> to send an e-mail to these two addresses each time you instruct it to send a document.
 For proof of this claim, see "<a href="#q-privacy-trust">How can I be sure Dontprint does not secretly violate my privacy or abuse my e-mail account?</a>".
 </div>
@@ -276,7 +289,7 @@ For proof of this claim, see "<a href="#q-privacy-trust">How can I be sure Dontp
 <div class="answer">
 <strong>No.</strong>
 In fact, Dontprint does not even <em>know</em> your Gmail address.
-Even though you have to enter your Google username and password the first time you run Dontprint, you're entering this confidential data directly into <em>Google's</em> login dialog.
+Even though you have to enter your Google username and password the first time you run Dontprint with the e-mail sending feature turned on, you're entering this confidential data directly into <em>Google's</em> login dialog.
 Dontprint does not intercept your Google account name, password, or e-mail address.
 Once you're signed in to your Google account you will be asked if you want to allow Dontprint to send e-mails from that account.
 Sending e-mails from your account is the only permission for which Dontprint will ask you.
@@ -289,6 +302,7 @@ For proof of the above claims, see "<a href="#q-privacy-trust">How can I be sure
 <a class="q" id="h-privacy-senddata" href="#">Which kind of data does Dontprint send from my computer?</a>
 <div class="answer">
 Dontprint <strong>never</strong> sends any usernames or passwords from your computer.
+If you choose to activate the e-mail sending feature of Dontprint, then Dontprint will send converted documents to your e-reader by e-mail attachment.
 The only e-mail addresses that Dontprint ever sends from your computer are the address that is tied to your e-reader and, depending on your settings, an optional secondary address of your choice.
 These e-mail addresses are used solely for the purpose of sending the e-mail and Dontprint does not store these addresses on the server once the e-mail is sent.
 For proof of these claims, see "<a href="#q-privacy-trust">How can I be sure Dontprint does not secretly violate my privacy or abuse my e-mail account?</a>".
@@ -300,7 +314,7 @@ When you click on the Dontprint icon on the website of a journal Dontprint downl
 To do so, Dontprint has to send some requests to the web-site of the journal.
 These are similar to the requests that your web browser would usually send out if you downloaded the article manually.</li>
 <li><strong>Sending documents by e-mail attachment:</strong>
-Every time you instruct Dontprint to send a document to your e-reader it sends an e-mail to your e-readers e-mail address and &mdash; if you choose to do so in the settings &mdash; to a secondary address of your choice.
+If you choose to activate the e-mail sending feature than Dontprint sends an e-mail to your e-readers e-mail address and &mdash; if you choose to do so in the settings &mdash; to a secondary address of your choice every time you instruct it to do so.
 The e-mail contains a single attachment (the document you requested) along with some meta data about the article (such as its title).
 The e-mail will not be sent to any recipients other than the ones you specify and it will not be stored by Dontprint once it is sent.
 (A copy may reside in your personal Gmail outbox, though.)</li>
@@ -325,11 +339,11 @@ However, even future versions of Dontprint will <em>never</em> send any password
 </div>
 
 <a class="anchor" id="q-privacy-revoke"></a>
-<a class="q" id="h-privacy-revoke" href="#">I'm no longer using Dontprint. Can I revoke the permission to send e-mails from my Gmail account that I granted to Dontprint?</a>
+<a class="q" id="h-privacy-revoke" href="#">I'm no longer using the e-mail sending feature of Dontprint. Can I revoke the permission to send e-mails from my Gmail account that I granted to Dontprint?</a>
 <div class="answer">
 <strong>Yes.</strong>
 You can revoke the permission on the <a href="https://accounts.google.com/IssuedAuthSubTokens?service=mail" target="_blank">authorization settings page of your Google account</a>.
-If you ever want to use Dontprint again, that's no problem.
+If you ever want to use the e-mail sendnig feature again, that's no problem.
 The next time you instruct Dontprint to send an article you will be asked to re-grant the permission.
 </div>
 
