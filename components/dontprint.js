@@ -195,7 +195,7 @@ function Dontprint() {
 	/**
 	 * Called when the user clicks the dontprint button in the Zotero pane.
 	 */
-	function dontprintZoteroItems(items) {
+	function dontprintZoteroItems(items, forceCropWindow) {
 		// delete duplicates (e.g., if user selects both an attachment and its parent)
 		var entryIds = items.map(function(i) {
 			return i.getSource() || i.id;
@@ -230,6 +230,7 @@ function Dontprint() {
 				pageurl:			i.getField('url'),
 				doi:				i.getField('DOI'),
 				articleDate:		i.getField('date'),
+				forceCropWindow:	forceCropWindow,
 				originalFilePath:	attachmentPaths.length === 0 ? undefined : attachmentPaths[0],
 				tmpFiles:			[]
 			};

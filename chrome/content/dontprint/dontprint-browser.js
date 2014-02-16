@@ -29,15 +29,9 @@ DontprintBrowser = (function() {
 			dontprintFromZoteroBtn = document.createElement("toolbarbutton");
 			dontprintFromZoteroBtn.setAttribute("id", "dontprint-zotero-tbbtn");
 			dontprintFromZoteroBtn.setAttribute("class", "zotero-tb-button");
-			dontprintFromZoteroBtn.setAttribute("tooltiptext", "Dontprint selected item(s) (send to e-reader); right-click for progress information");
-			dontprintFromZoteroBtn.addEventListener("click", function(event) {
-				if (event.button === 2) {
-					Dontprint.showProgress();
-				}
-			}, true);
-			dontprintFromZoteroBtn.addEventListener("command", function() {
-				Dontprint.dontprintZoteroItems(ZoteroPane.getSelectedItems());
-			}, true);
+			dontprintFromZoteroBtn.setAttribute("tooltiptext", "Dontprint attached PDF (send to e-reader); right-click for more options");
+			dontprintFromZoteroBtn.setAttribute("context", "dontprint-zotero-btn-context");
+			dontprintFromZoteroBtn.addEventListener("command", dontprintZoteroSelection);
 			
 			let toolbar = document.getElementById("zotero-items-toolbar");
 			let searchBtn = document.getElementById("zotero-tb-advanced-search");
@@ -67,6 +61,17 @@ DontprintBrowser = (function() {
 	
 	
 	/**
+	 * Dontprint the PDFs attached to the selected items in the zotero pane.
+	 * @param forceCropWindow Set to true if the page where the user can set custom
+	 *   crop margins and page ranges should always be shown even if Dontprint
+	 *   thinks to know how to handle articles from this journal.
+	 */
+	function dontprintZoteroSelection(event, forceCropWindow) {
+		Dontprint.dontprintZoteroItems(ZoteroPane.getSelectedItems(), !!forceCropWindow);
+	}
+	
+	
+	/**
 	 * Dontprint the document represented by the current page. Use functionality
 	 * originally developed for Zotero to get the original PDF file and its meta
 	 * data. Use the specified translator, or the translator that fits best for the
@@ -90,6 +95,7 @@ DontprintBrowser = (function() {
 			Dontprint.runJob({
 				jobType:			"pdfurl",
 				title:				title,
+				forceCropWindow:	!!forceCropWindow,
 				pdfurl:				url,
 				identifierurl:		url,
 				journalLongname:	"",
@@ -102,7 +108,7 @@ DontprintBrowser = (function() {
 				title:				'Unknown title',
 				jobType:			'page',
 				translator:			translator,
-				forceCropWindow:	forceCropWindow,
+				forceCropWindow:	!!forceCropWindow,
 				pageurl:			url,
 				identifierurl:		url,
 				tab:				tab
@@ -256,6 +262,7 @@ DontprintBrowser = (function() {
 	
 	return {
 		init: init,
+		dontprintZoteroSelection: dontprintZoteroSelection,
 		dontprintThisPage: dontprintThisPage,
 		cancelJobForThisPage: cancelJobForThisPage,
 		updateQueueLength: updateQueueLength,

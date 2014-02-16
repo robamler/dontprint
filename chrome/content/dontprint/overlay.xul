@@ -46,6 +46,17 @@
 			position="1" hidden="true" />
 	</hbox>
 	
+	<!-- popup menu for button on zotero pane -->
+	<popupset>
+		<menupopup id="dontprint-zotero-btn-context">
+			<menuitem oncommand="DontprintBrowser.dontprintZoteroSelection(event,false);" label="Dontprint attached PDF (send to e-reader) with default settings"/>
+			<menuitem oncommand="DontprintBrowser.dontprintZoteroSelection(event,true);" label="Dontprint attached PDF with custom settings..."/>
+			<menuseparator/>
+			<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
+			<menuitem oncommand="DontprintBrowser.configureDontprint();" label="&dontprint.configureMenuItemLabel;"/>
+		</menupopup>
+	</popupset>
+	
 	<!-- menu entry in tools menu -->
 	<menupopup id="menu_ToolsPopup">
 		<menu id="dontprint-tools-menu" insertbefore="devToolsEndSeparator" label="Dontprint">
