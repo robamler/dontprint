@@ -7,7 +7,7 @@
  
 <prefwindow id="dontprint-prefs"
 	title="&dontprint.preferences.title;"
-	onload="onLoad()" ondialogaccept="onUnload()"
+	onload="onLoad()" onclose="onUnload()" ondialogaccept="onUnload()"
 	buttons="accept"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
