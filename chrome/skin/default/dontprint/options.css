@@ -3,3 +3,4 @@ label.text-link { border:none; margin:0 }
 prefwindow { width:60em; }
 #otherEmailRow { margin-bottom:1ex; }
 prefpane > .content-box {overflow: -moz-hidden-unscrollable;} /* workaround a bug in firefox */
+#journal-list > .builtin { opacity:.8 }

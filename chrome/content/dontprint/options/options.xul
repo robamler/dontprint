@@ -102,7 +102,7 @@
 			<vbox flex="1">
 				<listbox id="journal-list" flex="1" onselect="journalFilterSelect();">
 					<listhead>
-						<listheader hflex="min" label="List of filters (most specific ones first)" />
+						<listheader hflex="min" label="List of filters (most specific ones first; builtin filters gray)" />
 					</listhead>
 				</listbox>
 				<hbox>

@@ -39,6 +39,10 @@ function onUnload() {
 	var savePromise = saveOldSelection();
 	if (savePromise !== undefined) {
 		savePromise.then(conn.close, conn.close);
+	} else {
+		try {
+			conn.close();
+		} catch (e) { }
 	}
 	document.getElementById("deviceIframe").contentWindow.screenSettingsChange();
 	if (
@@ -47,6 +51,7 @@ function onUnload() {
 	) {
 		Dontprint.reportScreenSettings();
 	}
+	journalFilters = null;	// free memory
 	return true;
 }
 
@@ -265,7 +270,10 @@ function loadJournalFilters() {
 		floatFields.forEach(function(key) {
 			j[key] = parseFloat(sqlentry.getResultByName(key)).toFixed(1);
 		});
-		journalFilterList.appendItem(getJournalFilterLabel(j), nextJournalFilterNumber);
+		var el = journalFilterList.appendItem(getJournalFilterLabel(j), nextJournalFilterNumber);
+		if (j.id < 0) {
+			el.className = "builtin";
+		}
 		journalFilters[nextJournalFilterNumber] = j;
 		nextJournalFilterNumber++;
 	});
@@ -364,10 +372,12 @@ function dateSwitchClicked(minmax, checked) {
 function updateSelectedFilter() {
 	var thenindex = journalFilterList.currentIndex;
 	var thenselectedFilter = selectedFilter;
-	// set timeout to work around bug 799
+	// set timeout to work around bug 799 of Firefox
 	setTimeout(function() {
 		updateVisibleFilterData(thenselectedFilter);
-		journalFilterList.getItemAtIndex(thenindex).label = getJournalFilterLabel(thenselectedFilter);
+		var item = journalFilterList.getItemAtIndex(thenindex);
+		item.label = getJournalFilterLabel(thenselectedFilter);
+		item.className = "";  // the filter was changed by the user, so it's not going to be saved as a builtin filter any more
 	}, 0);
 }
 
