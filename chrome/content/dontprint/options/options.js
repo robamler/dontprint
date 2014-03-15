@@ -421,7 +421,7 @@ function newJournalFilter() {
 	selectedFilter = null;
 	
 	journalFilters[nextJournalFilterNumber] = {
-		id:0, enabled:1, longname:"", shortname:"", minDate:0, maxDate:0,
+		enabled:1, longname:"", shortname:"", minDate:0, maxDate:0,
 		m1:5, m2:5, m3:5, m4:5, coverpage:0, k2pdfoptParams:""
 	};
 	journalFilterList.insertItemAt(0, "(new filter)", nextJournalFilterNumber);

@@ -893,8 +893,8 @@ function Dontprint() {
 			// Synthesize sql query (this is necessary because conn.execute() fails if
 			// if given more parameters than used in bound parameters.
 			let sqlfields = ["priority", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams"];
-			if (crop.id > 0) {
-				// don't overwrite builtin entries (id<0) or new entries (id===0)
+			if (crop.id >= 0) {
+				// don't overwrite builtin entries (id<0) or new entries (id===undefined)
 				sqlfields.push("id");
 			}
 			let sqlcommand = "INSERT INTO journals (" + sqlfields.join(",") + ") VALUES (" + sqlfields.map(function() {return "?";}).join(",") + ")";
@@ -903,9 +903,13 @@ function Dontprint() {
 			});
 			
 			yield conn.executeCached(sqlcommand, sqlparams);
-			if (crop.id <= 0) {
+			if (crop.id < 0 || crop.id===undefined) {
 				// TODO: this is ugly. Find something that is thread save
-				crop.id = conn.lastInsertRowID;
+				// NOTE: using conn.lastInsertRowID doesn't work. It returns undefined.
+				let sqlresult = yield conn.executeCached("SELECT id FROM journals ORDER BY id DESC LIMIT 1");
+				if (sqlresult.length === 1) {
+					crop.id = sqlresult[0].getResultByName("id");
+				}
 			}
 		});
 	}
