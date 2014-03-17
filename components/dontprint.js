@@ -230,6 +230,10 @@ function Dontprint() {
 				pageurl:			i.getField('url'),
 				doi:				i.getField('DOI'),
 				articleDate:		i.getField('date'),
+				articleVolume:		i.getField('volume'),
+				articleIssue:		i.getField('issue'),
+				articlePages:		i.getField('pages'),
+				articleCreators:	i.getCreators(),	//TODO: test
 				forceCropWindow:	forceCropWindow,
 				originalFilePath:	attachmentPaths.length === 0 ? undefined : attachmentPaths[0],
 				tmpFiles:			[]
@@ -581,9 +585,13 @@ function Dontprint() {
 			// Apparently, this is called when the item meta data is ready but attachments may still be being downloaded
 			job.zoteroKey			= checkUndefined(item.id, "noid");
 			job.title				= checkUndefined(item.title, "Untitled document");
+			job.articleCreators		= item.creators;
 			job.journalLongname		= checkUndefined(item.publicationTitle);
 			job.journalShortname	= checkUndefined(item.journalAbbreviation);
 			job.doi					= checkUndefined(item.DOI);
+			job.articleVolume		= item.volume;
+			job.articleIssue		= item.issue;
+			job.articlePages		= item.pages;
 			job.articleDate			= checkUndefined(item.date);
 			job.originalFilePath	= pdfFile.path;
 			itemDoneDeferred.resolve();
@@ -715,17 +723,17 @@ function Dontprint() {
 		
 		yield this.postTranslate(job);
 		
-		let dates = parseDateString(job.articleDate);
+		job.dates = parseDateString(job.articleDate);
 		
 		try {
 			var conn = yield Sqlite.openConnection({path: databasePath});
 			var longnameresult = yield conn.executeCached(
 				"SELECT * FROM journals WHERE :longname!='' AND longname=:longname AND ((minDate=0 AND maxDate=0) OR (:smalldate!=0 AND minDate!=0 AND minDate<=:smalldate AND (maxDate=0 OR maxDate>=:largedate)) OR (:smalldate!=0 AND maxDate!=0 AND maxDate>=:largedate AND minDate=0)) ORDER BY priority DESC, lastModified DESC LIMIT 1",
-				{ longname: job.journalLongname, smalldate: dates.small, largedate: dates.large }
+				{ longname: job.journalLongname, smalldate: job.dates.small, largedate: job.dates.large }
 			);
 			var shortnameresult = yield conn.executeCached(
 				"SELECT * FROM journals WHERE :shortname!='' AND shortname=:shortname AND ((minDate=0 AND maxDate=0) OR (:smalldate!=0 AND minDate!=0 AND minDate<=:smalldate AND (maxDate=0 OR maxDate>=:largedate)) OR (:smalldate!=0 AND maxDate!=0 AND maxDate>=:largedate AND minDate=0)) ORDER BY priority DESC, lastModified DESC LIMIT 1",
-				{ shortname: job.journalShortname, smalldate: dates.small, largedate: dates.large }
+				{ shortname: job.journalShortname, smalldate: job.dates.small, largedate: job.dates.large }
 			);
 		} catch (e) {
 			// ignore errors
@@ -1349,7 +1357,7 @@ function Dontprint() {
 		}
 	}
 	
-	function testFB() {
+	function testFB() {//TODO: remove
 		Task.spawn(function() {
 			let job = {
 				jobType:			"pdfurl",
@@ -1364,14 +1372,34 @@ function Dontprint() {
 				result: {filesize: 1000, params: {
 					filename: "a filename",
 					recipientEmail: "an email"
-				}}
+				},
+					fileName: "The Proof of Innocence.pdf",
+					destDir: "/home/robamler/Desktop",
+					filePath: "/home/robamler/Desktop/The Proof of Innocence.pdf"
+				}
 			};
+// 			let job = {
+// 				jobType:			"pdfurl",
+// 				title:				"test title",
+// 				forceCropWindow:	false,
+// 				pdfurl:				"a url",
+// 				identifierurl:		"a url",
+// 				journalLongname:	"longname",
+// 				journalShortname:	"shortname",
+// 				tmpFiles:			[],
+// 				state:				"success",
+// 				result: {
+// 					errorString: "an error message",
+// 					error: "an error"
+// 				}
+// 			};
 			job.id = Date.now();
 			while (job.id in runningJobs) {
 				job.id++;
 			}
 			runningJobs[job.id] = job;
 			yield displayResult(job, null);
+			delete runningJobs[job.id];
 		});
 	}
 	
@@ -1709,7 +1737,7 @@ function Dontprint() {
 		EREADER_MODEL_DEFAULTS: EREADER_MODEL_DEFAULTS,
 		getScreenDimensions: getScreenDimensions,
 		initResultPage: initResultPage,
-		testFB: testFB
+		testFB: testFB //TODO: remove
 	};
 }
 
