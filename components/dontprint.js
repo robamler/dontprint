@@ -1349,12 +1349,38 @@ function Dontprint() {
 		}
 	}
 	
+	function testFB() {
+		Task.spawn(function() {
+			let job = {
+				jobType:			"pdfurl",
+				title:				"test title",
+				forceCropWindow:	false,
+				pdfurl:				"a url",
+				identifierurl:		"a url",
+				journalLongname:	"longname",
+				journalShortname:	"shortname",
+				tmpFiles:			[],
+				state:				"success",
+				result: {filesize: 1000, params: {
+					filename: "a filename",
+					recipientEmail: "an email"
+				}}
+			};
+			job.id = Date.now();
+			while (job.id in runningJobs) {
+				job.id++;
+			}
+			runningJobs[job.id] = job;
+			yield displayResult(job, null);
+		});
+	}
 	
 	function displayResult(job, newtab) {
 		job.result.errorOperation = job.state;
 		updateJobState(job, job.result.error ? "error" : "success");
 		let transferMethod = prefs.getCharPref("transferMethod")==="email" ? "sendmail" : "savetodir";
-		let url = "chrome://dontprint/content/" + transferMethod + "/" + job.state + ".html#" + job.id;
+		let defaultInBackground = prefs.getBoolPref("uploadInBackground");
+		let url = "http://localhost:8000/" + transferMethod + "/" + job.state + ".html#" + (defaultInBackground ? "1," : "0,") + job.id;
 		deferred = Promise.defer();
 		job.resultPageCallback = deferred.resolve;
 		
@@ -1365,9 +1391,10 @@ function Dontprint() {
 				.getMostRecentWindow("navigator:browser").gBrowser;
 			let tab = gBrowser.loadOneTab(
 				url,
-				{inBackground: !job.result.error && prefs.getBoolPref("uploadInBackground")}
+				{inBackground: !job.result.error && defaultInBackground}
 			);
-			newtab = {gBrowser:gBrowser, tab: tab};
+			let tabBrowser = gBrowser.getBrowserForTab(tab);
+			newtab = {gBrowser:gBrowser, tab: tab, tabBrowser: tabBrowser};
 		} else {
 			// reuse existing tab
 			newtab.tab.removeEventListener("TabClose", job.onUploadClose, true);
@@ -1377,21 +1404,38 @@ function Dontprint() {
 		newtab.tab.addEventListener("TabClose", function() {
 			updateJobState(job, "closed");
 		}, true);
-		if (job.state === "error") {
+		
+		if (job.state === "error" && newtab.tab !== undefined) {
 			job.raiseErrorTab = function() {
 				newtab.gBrowser.selectedTab = newtab.tab;
 			};
 			updateJobState(job);
 		}
 		
-		try {
-			yield deferred.promise;
-		} finally {
-			delete job.resultPageCallback;
-		}
+		// wait for the page to load
+		yield deferred.promise;
+		delete job.resultCallback;
 		
-		if (job.result.error && newtab.tab !== undefined) {
-			newtab.gBrowser.selectedTab = newtab.tab;
+		if (job.raiseErrorTab) {
+			job.raiseErrorTab();
+		}
+	}
+	
+	function initResultPage(evt) {
+		let jobid = evt.target.location.hash.split(',')[1];
+		let job = runningJobs[jobid];
+		if (job === undefined) {
+			// outdated page, probably after restarting Firefox
+			evt.target.defaultView.close();
+		} else {
+			// send job data to page
+			let doc = evt.target;
+			let answerInput = doc.getElementById("jobjson");
+			answerInput.value = JSON.stringify(job);
+			let answerEvt = doc.createEvent("HTMLEvents");
+			answerEvt.initEvent("DontprintInitEvent", true, false);
+			answerInput.dispatchEvent(answerEvt);
+			job.resultPageCallback();
 		}
 	}
 	
@@ -1663,7 +1707,9 @@ function Dontprint() {
 		saveJournalSettings: saveJournalSettings,
 		deleteJournalSettings: deleteJournalSettings,
 		EREADER_MODEL_DEFAULTS: EREADER_MODEL_DEFAULTS,
-		getScreenDimensions: getScreenDimensions
+		getScreenDimensions: getScreenDimensions,
+		initResultPage: initResultPage,
+		testFB: testFB
 	};
 }
 

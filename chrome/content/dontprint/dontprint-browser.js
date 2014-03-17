@@ -57,6 +57,50 @@ DontprintBrowser = (function() {
 			// Register a listener to changes in the visibility of the "Dontprint this page" icon
 			Zotero_Browser.updateStatusCallback = updateDontprintIconVisibility;
 		}
+		
+		gBrowser.addEventListener("DontprintResultPageCallbackEvent", function(e) {
+			if (
+				e.originalTarget instanceof HTMLDocument &&
+				e.originalTarget.location.hostname === "localhost"//"robamler.github.io"
+			) {
+				Dontprint.initResultPage(e);
+			}
+		}, false, true);
+		
+		gBrowser.addEventListener("DontprintCloseEvent", function(e) {
+			if (
+				e.originalTarget instanceof HTMLDocument &&
+				e.originalTarget.location.hostname === "localhost"//"robamler.github.io"
+			) {
+				e.originalTarget.defaultView.close();
+			}
+		}, false, true);
+		
+		gBrowser.addEventListener("DontprintChangePrefEvent", function(e) {
+			if (
+				e.originalTarget.ownerDocument instanceof HTMLDocument &&
+				e.originalTarget.ownerDocument.location.hostname === "localhost"//"robamler.github.io"
+			) {
+				Dontprint.getPrefs().setBoolPref("uploadInBackground", e.target.checked);
+			}
+		}, false, true);
+		
+		gBrowser.addEventListener("DontprintShowOrRevealFile", function(e) {
+			if (
+				e.originalTarget.ownerDocument instanceof HTMLDocument &&
+				e.originalTarget.ownerDocument.location.hostname === "localhost"//"robamler.github.io"
+			) {
+				let filePath = e.target.getAttribute("dontprint_filepath");
+				let file = Components.classes["@mozilla.org/file/local;1"]
+							.createInstance(Components.interfaces.nsIFile);
+				file.initWithPath(filePath);
+				if (e.target.id === "showFile") {
+					file.launch();
+				} else {
+					file.reveal();
+				}
+			}
+		}, false, true);
 	}
 	
 	
