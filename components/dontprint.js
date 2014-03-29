@@ -1763,12 +1763,15 @@ Dontprint.prototype = {
 			break;
 		
 		case "profile-after-change":
-			os.addObserver(this, "browser-delayed-startup-finished", false);
+			os.addObserver(this, "sessionstore-windows-restored", false);
 			this.wrappedJSObject.init();
 			break;
 		
-		case "browser-delayed-startup-finished":
-			os.removeObserver(this, "browser-delayed-startup-finished");
+		case "sessionstore-windows-restored":
+			// See http://stackoverflow.com/a/10680715 for why we listen to
+			// "sessionstore-windows-restored" and not, e.g., to
+			// "browser-delayed-startup-finished".
+			os.removeObserver(this, "sessionstore-windows-restored");
 			this.wrappedJSObject.validatePreferences();
 			break;
 		}
