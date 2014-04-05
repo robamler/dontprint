@@ -8,7 +8,7 @@
 <prefwindow id="dontprint-prefs"
 	title="&dontprint.preferences.title;"
 	onload="onLoad()" onclose="onUnload()" ondialogaccept="onUnload()"
-	buttons="accept"
+	onbeforeaccept="return onBeforeAccept();" buttons="accept"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
 	<prefpane id="dontprint-prefpane-email" label="Transfer" image="transfer.png">
@@ -17,15 +17,13 @@
 			<preference id="emailPrefix_symbol" name="extensions.dontprint.recipientEmailPrefix" type="string"/>
 			<preference id="emailSuffix_symbol" name="extensions.dontprint.recipientEmailSuffix" type="string"/>
 			<preference id="emailOther_symbol" name="extensions.dontprint.recipientEmailOther" type="string"/>
-			<preference id="ccEmailsEnabled_symbol" name="extensions.dontprint.ccEmailsEnabled" type="bool"/>
-			<preference id="ccEmails_symbol" name="extensions.dontprint.ccEmails" type="string"/>
 			<preference id="destDir_symbol" name="extensions.dontprint.destDir" type="string"/>
 			<preference id="postTransferCommandEnabled_symbol" name="extensions.dontprint.postTransferCommandEnabled" type="bool"/>
 			<preference id="postTransferCommand_symbol" name="extensions.dontprint.postTransferCommand" type="string"/>
 		</preferences>
 		<label>Choose how Dontprint should transfer documents to your e-reader.</label>
 		<radiogroup id="transferMethodSelect" preference="transferMethod_symbol">
-			<radio value="email" label="Send Documents via e-mail (recommended choice for Amazon Kindle)" style="font-weight:bold;margin-top:0.5em" oncommand="updateTransferTab('otherEmail_control,emailPrefix_control')"/>
+			<radio value="email" label="Send documents via e-mail (recommended choice for Amazon Kindle)" style="font-weight:bold;margin-top:0.5em" oncommand="updateTransferTab('otherEmail_control,emailPrefix_control')"/>
 			<vbox style="margin-left:1.5em">
 				<label id="emailExplanationLabel">If you don't know your e-reader's e-mail address, <label id="emailExplanationLink" class="text-link" href="http://robamler.github.com/dontprint/faq/index.html#q-setup-ereaderaddress">get help here</label>.</label>
 				<grid>
@@ -37,7 +35,7 @@
 						<row>
 							<label id="emailPrefixLabel" control="emailPrefix_control" value="Your e-reader's e-mail address:"/>
 							<hbox>
-								<textbox flex="1" preference="emailPrefix_symbol" id="emailPrefix_control" style="text-align:right"/>
+								<textbox flex="1" preference="emailPrefix_symbol" id="emailPrefix_control" style="text-align:right" onkeyup="updateTransferTab();" onchange="updateTransferTab();"/>
 								<menulist id="emailSuffix_control" preference="emailSuffix_symbol" oncommand="updateTransferTab('otherEmail_control,emailPrefix_control')">
 									<menupopup>
 										<menuitem value="@free.kindle.com" label="@free.kindle.com   (Wi-Fi only, no charges)"/>
@@ -50,20 +48,37 @@
 						</row>
 						<row id="otherEmailRow">
 							<spacer/>
-							<textbox flex="1" id="otherEmail_control" preference="emailOther_symbol"/>
+							<textbox flex="1" id="otherEmail_control" preference="emailOther_symbol" onkeyup="updateTransferTab();" onchange="updateTransferTab();"/>
 						</row>
 						<row>
-							<checkbox label="Send a copy to:" id="ccEmails_switch" preference="ccEmailsEnabled_symbol" oncommand="updateTransferTab('ccEmails_control')"/>
-							<textbox flex="1" id="ccEmails_control" preference="ccEmails_symbol"/>
+							<label value="Verification status:"/>
+							<hbox>
+								<label id="verificationStatusLabel"/>
+								<button id="sendVerificationCodeBtn" label="Send verification code now." oncommand="sendVerificationCode()"/>
+							</hbox>
+						</row>
+						<row id="verificationProgressRow">
+							<spacer/>
+							<vbox>
+								<label id="verificaionProgressLabel1"/>
+								<label id="verificaionProgressLabel2"/>
+							</vbox>
+						</row>
+						<row id="verificationCodeRow">
+							<label value="Verification code:"/>
+							<hbox>
+								<textbox id="verificationCode" flex="0" style="width:6em"/>
+								<button id="verificationConfirmBtn" oncommand="verifyEmailAddress()" label="Confirm"/>
+							</hbox>
 						</row>
 					</rows>
 				</grid>
-				<description disabled="true">Dontprint uses your Gmail account to send the e-mails. It is important that you configure your e-reader so that it accepts e-mails sent from your Gmail address (something like "<label style="font-style:italic;border:none;margin:0">yourname</label>@gmail.com"). If your e-reader is an Amazon Kindle, this can be done by adding your Gmail address to the list of approved sender addresses on Amazon's "<label id="emailDescriptionLink" class="text-link" href="http://website-g7g.amazon.co.uk/myk#pdocSettings">Manage Your Kindle</label>" page.</description>
+				<description disabled="true"><label style="font-weight:bold;margin:0">Important:</label> Dontprint sends e-mails to your device from the address "<label style="font-style:italic;margin:0">noreply@dontprint.net</label>". It is important that you configure your e-reader to accept e-mails that are sent from this address. If your e-reader is an Amazon Kindle, this can be done by adding  the address to the list of approved sender addresses on Amazon's "<label id="emailDescriptionLink" class="text-link" href="http://website-g7g.amazon.co.uk/myk#pdocSettings">Manage Your Kindle</label>" page. (<label id="emailDescriptionLink" class="text-link" href="TODO">More help</label>)</description>
 				<hbox>
 					<button id="sendTestPageButton" label="Test my e-mail settings..." oncommand="sendTestPage()"/>
 				</hbox>
 			</vbox>
-			<radio value="directory" label="Save Documents to a directory (choose this option if your e-reader does not support e-mail transfer)" style="font-weight:bold;margin-top:2em" oncommand="updateTransferTab('destDirChooser')"/>
+			<radio value="directory" label="Save documents to a directory (choose this option if your e-reader does not support e-mail transfer)" style="font-weight:bold;margin-top:2em" oncommand="updateTransferTab('destDirChooser')"/>
 			<vbox style="margin-left:1.5em">
 				<grid>
 					<columns>

@@ -191,6 +191,7 @@ $('#sendTestEmailButton').click(function() {
 		this.disabled = true;
 		this.value = "Sending document...";
 		var that = this;
+		parent.saveEmailSettings();
 		Dontprint.sendTestEmail(function() {
 			that.value = "Document sent.";
 		});

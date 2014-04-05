@@ -17,10 +17,9 @@ pref("extensions.dontprint.screenPpi", -1);
 pref("extensions.dontprint.uploadInBackground", false);
 pref("extensions.dontprint.autoShowProgress", true);
 pref("extensions.dontprint.neverReportJournalSettings", false);
+pref("extensions.dontprint.verifiedEmails", "[]");
 
 pref("services.sync.prefs.sync.extensions.dontprint.transferMethod", true);
-pref("services.sync.prefs.sync.extensions.dontprint.ccEmails", true);
-pref("services.sync.prefs.sync.extensions.dontprint.ccEmailsEnabled", true);
 pref("services.sync.prefs.sync.extensions.dontprint.k2pdfoptAdditionalParams", true);
 pref("services.sync.prefs.sync.extensions.dontprint.recipientEmailPrefix", true);
 pref("services.sync.prefs.sync.extensions.dontprint.recipientEmailSuffix", true);
@@ -31,3 +30,4 @@ pref("services.sync.prefs.sync.extensions.dontprint.screenPpi", true);
 pref("services.sync.prefs.sync.extensions.dontprint.uploadInBackground", true);
 pref("services.sync.prefs.sync.extensions.dontprint.autoShowProgress", true);
 pref("services.sync.prefs.sync.extensions.dontprint.neverReportJournalSettings", true);
+pref("services.sync.prefs.sync.extensions.dontprint.verifiedEmails", true);

@@ -456,6 +456,57 @@ function Dontprint() {
 	}
 	
 	
+	function sendVerificationCode(onSuccess, onError, onFailure) {
+		let email = getRecipientEmail();
+		let req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
+							.createInstance(Components.interfaces.nsIXMLHttpRequest);
+		req.onload = function() {
+			let resp = JSON.parse(req.responseText);
+			if (resp.success) {
+				onSuccess(email, resp.returncode, resp.message);
+			} else {
+				onError(email, resp.errno, resp.message);
+			}
+		};
+		req.onerror = function() {
+			onFailure(email, req);
+		};
+		req.open("POST", "http://dontprint.net/cgi-bin/send-verification-mail.pl", true);
+		req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		req.send(buildURL("", {email:email}));
+	}
+	
+	
+	function verifyEmailAddress(code, onSuccess, onError, onFailure) {
+		let email = getRecipientEmail();
+		let req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
+							.createInstance(Components.interfaces.nsIXMLHttpRequest);
+		req.onload = function() {
+			let resp = JSON.parse(req.responseText);
+			if (resp.success) {
+				onSuccess(email, resp.returncode, resp.message);
+			} else {
+				onError(email, resp.errno, resp.message);
+			}
+		};
+		req.onerror = function() {
+			onFailure(email, req);
+		};
+		req.open("POST", "http://dontprint.net/cgi-bin/verify-email.pl", true);
+		req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		req.send(buildURL("", {email:email, code:code}));
+	}
+	
+	
+	function rememberVerifiedEmail(email) {
+		let verifiedEmails = JSON.parse(prefs.getCharPref("verifiedEmails"));
+		verifiedEmails.unshift(email.toLocaleLowerCase());
+		// Remember only up to 10 e-mail addresses.
+		prefs.setCharPref("verifiedEmails", JSON.stringify(verifiedEmails.slice(0, 10)));
+	}
+	
+	
+	
 	// ==== LIFE CYCLE OF A DONTPRINT JOB ===========================
 	
 	function runJob(job) {
@@ -1737,6 +1788,9 @@ function Dontprint() {
 		EREADER_MODEL_DEFAULTS: EREADER_MODEL_DEFAULTS,
 		getScreenDimensions: getScreenDimensions,
 		initResultPage: initResultPage,
+		sendVerificationCode: sendVerificationCode,
+		verifyEmailAddress: verifyEmailAddress,
+		rememberVerifiedEmail: rememberVerifiedEmail,
 		testFB: testFB //TODO: remove
 	};
 }

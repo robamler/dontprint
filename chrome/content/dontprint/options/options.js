@@ -22,6 +22,7 @@ var selectedFilter = null;
 var originalSelectedFilter = null;
 var journalFilterList;
 var nextJournalFilterNumber = 0;
+var verifiedEmails = JSON.parse(Dontprint.getPrefs().getCharPref("verifiedEmails"));
 
 if (platform.substr(0,7) === "unknown") {
 	platform = "src";
@@ -56,8 +57,33 @@ function onUnload() {
 }
 
 
+function onBeforeAccept() {
+	let textbox = document.getElementById("verificationCode");
+	if (textbox.getAttribute("focused") && /^\d{4}$/.test(textbox.value)) {
+		// It is likely that the user did not want to close the dialog but instead
+		// hit the enter key after typing in the verification code.
+		// TODO: Test with FF29 (because of Mozilla bug 474527)
+		sendVerificationCodeBtn.focus();
+		verifyEmailAddress();
+		return false;
+	}
+	
+	return true;
+}
+
+
 
 // TRANSFER TAB ===================================================
+
+/**
+ * Needs to be called before sending test e-mails so that current changes
+ * are saved on Windows.
+ */
+function saveEmailSettings() {
+	Dontprint.getPrefs().setCharPref("recipientEmailPrefix", document.getElementById("emailPrefix_control").value);
+	Dontprint.getPrefs().setCharPref("recipientEmailSuffix", document.getElementById("emailSuffix_control").value);
+	Dontprint.getPrefs().setCharPref("recipientEmailOther", document.getElementById("otherEmail_control").value);
+}
 
 function sendTestPage() {
 	var response = confirm(
@@ -67,6 +93,7 @@ function sendTestPage() {
 		var btn = document.getElementById("sendTestPageButton");
 		btn.disabled = true;
 		btn.label = "Sending document...";
+		saveEmailSettings();
 		Dontprint.sendTestEmail(function() {
 			btn.label = "Document sent.";
 		});
@@ -81,7 +108,6 @@ function updateTransferTab(focus) {
 	// Enable/disable controls
 	// Always disable hidden elements so that setting focus works propperly
 	let othersuffix = document.getElementById("emailSuffix_control").value === "other";
-	let ccChecked = document.getElementById("ccEmails_switch").checked;
 	let postTransferCommandChecked = document.getElementById("postTransferCommand_switch").checked;
 	document.getElementById("emailExplanationLabel").disabled = !emailtransfer;
 	document.getElementById("emailExplanationLink").disabled = !emailtransfer;
@@ -89,8 +115,6 @@ function updateTransferTab(focus) {
 	document.getElementById("emailPrefix_control").disabled = othersuffix || !emailtransfer;
 	document.getElementById("emailSuffix_control").disabled = !emailtransfer;
 	document.getElementById("otherEmail_control").disabled = !othersuffix || !emailtransfer;
-	document.getElementById("ccEmails_switch").disabled = !emailtransfer;
-	document.getElementById("ccEmails_control").disabled = !ccChecked || !emailtransfer;
 	// Disabling a <description> element unfortunately shows no visible effect
 	document.getElementById("sendTestPageButton").disabled = !emailtransfer;
 	document.getElementById("destDirLabel").disabled = !directorytransfer;
@@ -105,6 +129,24 @@ function updateTransferTab(focus) {
 	if (othersuffix) {
 		window.sizeToContent();
 	}
+	
+	let curEmail = (othersuffix ?
+		document.getElementById("otherEmail_control").value :
+		document.getElementById("emailPrefix_control").value + document.getElementById("emailSuffix_control").value
+	);
+	let verified = verifiedEmails.indexOf(curEmail.toLocaleLowerCase()) !== -1;
+	if (!verified) {
+		document.getElementById("verificaionProgressLabel1").value = "(Dontprint will send a small document with a four-digit code to your device.";
+		document.getElementById("verificaionProgressLabel2").value = "The e-mail will be sent from noreply@dontprint.net.)";
+		document.getElementById("sendVerificationCodeBtn").disabled = false;
+		document.getElementById("sendVerificationCodeBtn").label = "Send verification code now.";
+	}
+	document.getElementById("verificationStatusLabel").className = verified ? "verificationOk" : "verificationNotOk";
+	document.getElementById("verificationStatusLabel").value = verified ? "E-mail address verified." : "Verification required.";
+	document.getElementById("sendVerificationCodeBtn").style.visibility = verified ? "hidden" : "visible";
+	document.getElementById("verificationProgressRow").style.visibility = verified ? "hidden" : "visible";
+	document.getElementById("verificationCodeRow").style.visibility = verified ? "hidden" : "visible";
+	document.getElementById("sendVerificationCodeBtn").disabled = false;
 	
 	// Set Focus
 	let focusedElement = undefined;
@@ -141,6 +183,73 @@ function updateTransferTab(focus) {
 		document.getElementById("destDir_symbol").value = path;
 	}
 }
+
+function sendVerificationCode() {
+	saveEmailSettings();
+	document.getElementById("sendVerificationCodeBtn").disabled = true;
+	document.getElementById("verificaionProgressLabel1").value = "Sending verification code. Please wait...";
+	document.getElementById("verificaionProgressLabel2").value = "";
+	document.getElementById("verificationCode").value = "";
+	document.getElementById("verificationCode").focus();
+	Dontprint.sendVerificationCode(
+		function success(email, returncode, message) {
+			if (returncode === 0) {
+				document.getElementById("verificaionProgressLabel1").value = "Verification code sent. Please wait until the document arrives on";
+				document.getElementById("verificaionProgressLabel2").value = "your e-reader and then enter the code below.";
+				document.getElementById("sendVerificationCodeBtn").disabled = false;
+				document.getElementById("sendVerificationCodeBtn").label = "Resend verification code.";
+			} else if (returncode === 1) {
+				Dontprint.rememberVerifiedEmail(email);
+				verifiedEmails.unshift(email.toLocaleLowerCase());
+				updateTransferTab();
+			}
+		},
+		function error(email, errno, message) {
+			document.getElementById("sendVerificationCodeBtn").disabled = false;
+			document.getElementById("verificaionProgressLabel1").value = "Error: " + message;
+			document.getElementById("verificaionProgressLabel2").value = "";
+		},
+		function failure(email, xhr) {
+			document.getElementById("sendVerificationCodeBtn").disabled = false;
+			document.getElementById("verificaionProgressLabel1").value = "Error: unable to connect to the Dontprint server."
+			document.getElementById("verificaionProgressLabel2").value = "Are you connected to the internet?";
+		}
+	);
+}
+
+function verifyEmailAddress() {
+	let code = document.getElementById("verificationCode").value;
+	if (! /^\d{4}$/.test(code)) {
+		alert("The verification code must consist of four digits.");
+		document.getElementById("verificationCode").focus();
+		return;
+	}
+	saveEmailSettings()
+	document.getElementById("verificationConfirmBtn").disabled = true;
+	document.getElementById("verificaionProgressLabel1").value = "Checking verification code. Please wait...";
+	document.getElementById("verificaionProgressLabel2").value = "";
+	Dontprint.verifyEmailAddress(
+		code,
+		function success(email, returncode, message) {
+			document.getElementById("verificationCode").value = "";
+			document.getElementById("verificationConfirmBtn").disabled = false;
+			Dontprint.rememberVerifiedEmail(email);
+			verifiedEmails.unshift(email.toLocaleLowerCase())
+			updateTransferTab();
+		},
+		function error(email, errno, message) {
+			document.getElementById("verificationConfirmBtn").disabled = false;
+			document.getElementById("verificaionProgressLabel1").value = "Error: " + message;
+			document.getElementById("verificaionProgressLabel2").value = "";
+		},
+		function failure(email, xhr) {
+			document.getElementById("verificationConfirmBtn").disabled = false;
+			document.getElementById("verificaionProgressLabel1").value = "Error: unable to connect to the Dontprint server."
+			document.getElementById("verificaionProgressLabel2").value = "Are you connected to the internet?";
+		}
+	);
+}
+
 
 function chooseDestDir() {
 	const nsIFilePicker = Components.interfaces.nsIFilePicker;
