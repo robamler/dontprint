@@ -4,10 +4,6 @@ var listenerId = null;
 var items = {};
 var wasRemoved = {};
 var queue = null;
-var taskNames = {
-	email: {3: "upload", 4: "send"},
-	directory: {3: "transfer", 4: "notify"}
-};
 var successMessage = {
 	email: '<div class="success">The document has been successfully sent to your e-reader.</div>',
 	directory: '<div class="success">The document has been successfully converted and saved.</div>'
@@ -42,8 +38,8 @@ $(window).unload(function() {
  * Don't call addJob() from outside. Call updateJob() instead.
  */
 function addJob(job) {
-	var tn = taskNames[Dontprint.getPrefs().getCharPref("transferMethod")];
-	var jobNode = $('<div class="job"><a href="#" class="del" title="click to abort job"></a><div class="jtitle"></div><table class="tasks"><tr><td><div class="task"><div class="bar"></div><div class="tlabel">download</div></div></td><td><div class="task">crop</div></td><td><div class="task"><div class="bar"></div><div class="tlabel">convert</div></div></td><td><div class="task"><div class="bar"></div><div class="tlabel">' + tn[3] + '</div></div></td><td><div class="task"><div class="bar"></div><div class="tlabel">' + tn[4] + '</div></div></td></tr></table></div>');
+	var tmethod = Dontprint.getPrefs().getCharPref("transferMethod");
+	var jobNode = $('<div class="job"><a href="#" class="del" title="click to abort job"></a><div class="jtitle"></div><table class="tasks"><tr><td><div class="task"><div class="bar"></div><div class="tlabel">download</div></div></td><td><div class="task">crop</div></td><td><div class="task"><div class="bar"></div><div class="tlabel">convert</div></div></td><td><div class="task"><div class="bar"></div><div class="tlabel">' + (tmethod==="email" ? "send" : "transfer") + '</div></div></td></tr></table></div>');
 	
 	var tasks = jobNode.find('.task');
 	var bars = jobNode.find('.bar');
@@ -55,12 +51,10 @@ function addJob(job) {
 		downloadNode:	tasks.eq(0),
 		cropNode:		tasks.eq(1),
 		convertNode:	tasks.eq(2),
-		uploadNode:		tasks.eq(3),	// ("transfer" if transferMode==="directory")
-		sendNode:		tasks.eq(4),	// ("notify" if transferMode==="directory")
+		lastStepNode:	tasks.eq(3),	// ("send" or "transfer")
 		downloadBar:	bars.eq(0),
 		convertBar:		bars.eq(1),
-		uploadBar:		bars.eq(2),
-		sendBar:		bars.eq(3)
+		sendBar:		bars.eq(2)
 	};
 	
 	var jobid = job.id;	// use dummy variable so that delBtn.click doesn't need to keep a reference to job
@@ -112,26 +106,15 @@ function updateJob(job) {
 		item.convertNode.addClass("current");
 		break;
 		
-	case "authorizing":
-	case "uploading":
-		item.uploadBar.width(100*job.uploadProgress + "%");
+	case "sending":
+		item.sendBar.width(100*job.uploadProgress + "%");
 		// fallthrough
 	case "moving":
-		item.downloadNode.addClass("done");
-		item.cropNode.addClass("done");
-		item.convertNode.addClass("done");
-		item.uploadNode.addClass("current");
-		break;
-		
-	case "sending":
-		item.sendBar.width(100*job.sendProgress + "%");
-		// fallthrough
 	case "postTransferCommand":
 		item.downloadNode.addClass("done");
 		item.cropNode.addClass("done");
 		item.convertNode.addClass("done");
-		item.uploadNode.addClass("done");
-		item.sendNode.addClass("current");
+		item.lastStepNode.addClass("current");
 		break;
 		
 	case "error":
