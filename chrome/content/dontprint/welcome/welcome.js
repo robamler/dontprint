@@ -12,6 +12,7 @@ var prefs = Components.classes["@mozilla.org/preferences-service;1"]
 var progressArc = document.getElementById("progress-arc");
 var validK2pdfopt = false;
 var k2pdfoptPath;
+var emailVerified = false;
 
 var platforms = [
 	["win_32bit",	"32bit Windows"],
@@ -46,6 +47,7 @@ for (var i=0; i<platforms.length; i++) {
 }
 $("#platform-selector").html(selectorhtml);
 $("#platform-selector").val(platformstring);
+$("#sendVerificationCodeBtn,#verifyEmailBtn").removeAttr("disabled");
 
 function modelSelectListener(modelName) {
 	var model = ModelPicker.models[modelName];
@@ -296,7 +298,6 @@ $("#acceptstep3").prop("disabled", true);
 $("#email-suffix").change(emailSuffixChange);
 
 function emailSuffixChange() {
-	$("#test-email").removeAttr("disabled");
 	var v = $('#email-suffix').val();
 	if (v === "@free.kindle.com" || v === "other") {
 		$("#warning-charges").slideUp();
@@ -324,11 +325,6 @@ function emailSuffixChange() {
 		$("#email-other-container").slideUp();
 	}
 }
-
-$("#email-prefix").on("input", function() {
-	$("#test-email").removeAttr("disabled");
-});
-
 
 $("#kindle-email-question").click(function() {
 	$("#kindle-email-help").slideDown();
@@ -389,6 +385,10 @@ $("#acceptstep3").click(function() {
 	if (!saveStep3Prefs()) {
 		return false;
 	}
+	if ($("input[name='transferMethodChoice']:checked").val() === "email" && !emailVerified) {
+		alert("You have to verify your e-reader's e-mail address before you can continue. Alternatively, you can choose to save documents to a directory of your choice instead of sending them per e-mail.");
+		return false;
+	}
 	
 	$('#steps').slideUp();
 	$('#congrats').slideDown();
@@ -398,15 +398,63 @@ $("#acceptcongrats").click(function() {
 	close();
 });
 
-$("#test-email").click(function() {
+$("#sendVerificationCodeBtn").click(function() {
 	if (!saveStep3Prefs()) {
 		return false;
 	}
-	Dontprint.sendTestEmail(testEmailCallback);
-	$("#test-email").attr("disabled", "disabled");
-	$("#test-email-address").text(Dontprint.getRecipientEmail());
-	$("#test-email-done").slideUp();
-	$("#test-email-waiting").slideDown();
+	$("#sendVerificationCodeBtn").attr("disabled", "disabled");
+	$("#verificationCodeProgress").text("Sending verification code to " + Dontprint.getRecipientEmail() + ". Please wait...").slideDown();
+	$("#verificationCodeBtn").val("").focus();
+	Dontprint.sendVerificationCode(
+		function success(email, returncode, message) {
+			if (returncode === 0) {
+				$("#verificationCodeProgress").text("Verification code sent. Please wait until the document arrives on your e-reader and then enter the code below. You may have to manually select \"Sync\" on your device.");
+				$("#sendVerificationCodeBtn").removeAttr("disabled").text("Resend verification code");
+			} else if (returncode === 1) {
+				$("#verificationCodeProgress").text("The e-mail address had already been verified before. Click \"Accept and finish\" below to conclude the setup.");
+				emailVerified = true;
+				Dontprint.rememberVerifiedEmail(email);
+			}
+		},
+		function error(email, errno, message) {
+			$("#sendVerificationCodeBtn").removeAttr("disabled");
+			$("#verificationCodeProgress").text("Error: " + message);
+		},
+		function failure(email, xhr) {
+			$("#sendVerificationCodeBtn").removeAttr("disabled");
+			$("#verificationCodeProgress").text("Error: unable to connect to the Dontprint server. Are you connected to the internet?");
+		}
+	);
+});
+
+$("#verifyEmailBtn").click(function() {
+	var code = $("#verificationCode").val();
+	if (! /^\d{4}$/.test(code)) {
+		alert("The verification code must consist of four digits.");
+		$("#verificationCode").focus();
+		return false;
+	}
+	if (!saveStep3Prefs()) {
+		return false;
+	}
+	$("#verifyEmailBtn").attr("disabled", "disabled");
+	$("#verificationCodeProgress").text("Checking verification code. Please wait...").slideDown();
+	Dontprint.verifyEmailAddress(
+		code,
+		function success(email, returncode, message) {
+			emailVerified = true;
+			Dontprint.rememberVerifiedEmail(email);
+			$("#verificationCodeProgress").text("E-mail address successfully verified. Click \"Accept and finish\" below to conclude the setup.");
+		},
+		function error(email, errno, message) {
+			$("#verifyEmailBtn").removeAttr("disabled");
+			$("#verificationCodeProgress").text("Error: " + message);
+		},
+		function failure(email, xhr) {
+			$("#verifyEmailBtn").removeAttr("disabled");
+			$("#verificationCodeProgress").text("Error: unable to connect to the Dontprint server. Are you connected to the internet?");
+		}
+	);
 });
 
 

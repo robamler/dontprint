@@ -24,13 +24,13 @@ li{padding:0.3em 0}
 #postTransferCommandGroup{margin-left:1.5em}
 #postTransferContainer{width:33.5em;display:-moz-box}
 #postTransferCommandSwitch{margin-top:2ex}
-#test-email{display:block;margin:0.5em 0 1em 0}
 #email-prefix{text-align:right;width:12em}
 #email-other-container{margin-top:0.4ex; display:none}
 #email-other{width:25em}
 #k2pdfopt-file-selector{margin:0.5em 0}
-#test-email-waiting, #test-email-done{display:none}
-#test-email-address{font-style:italic}
+#sendVerificationCodeBtn{display:block;margin:0.5em 0 1em 0}
+#verificationCodeProgress{display:none;font-weight:bold}
+#verificationCode{width:5em}
 #questions-container{margin:1ex 0 2ex 0; background-color:#fff}
 #image-copyright{opacity:0.5; font-size:70%; text-align:right; margin-bottom:2ex; margin-top:1ex}
 </style>
@@ -125,19 +125,18 @@ Dontprint automatically optimizes the layout of articles so that you can read th
 	<td></td>
 	<td><div id="transferMethodEmailContainer" class="hint">
 		<div class="hint">
-Dontprint can send articles by e-mail directly to your e-reader. To use this feature, you need an e-mail address that ends in "@gmail.com" (<a href="http://robamler.github.com/dontprint/faq/index.html#q-setup-whygmail" target="_blank">why?</a>).
-Dontprint takes your privacy serious and gains only very limited access to your Gmail account (<a href="http://robamler.github.com/dontprint/faq/index.html#q-privacy-gmailaccess" target="_blank">more information on privacy</a>).
+Choose this option if your e-reader is able to receive documents via e-mail attachment.
+Dontprint sends documents to your e-reader from the sender address "<i>noreply@dontprint.net</i>".
 </div>
 
 <ol>
-<li>If you don't already have a Gmail account, <a href="https://accounts.google.com/SignUp?service=mail" target="_blank">create one for free</a>.</li>
 <li>
-If your e-reader is an Amazon Kindle you need to allow Dontprint to send documents to it.
-<div class="hint">Go to "<a href="http://website-g7g.amazon.co.uk/myk#pdocSettings" target="_blank">Manage Your Kindle</a>" on amazon.com and add your "...@gmail.com" address to the "<i>Approved Personal Document E-mail List</i>" (see image below; <a href="http://robamler.github.com/dontprint/faq/index.html#q-setup-approvedemail" target="_blank">help</a>).</div>
+Configure your e-reader to accept e-mails that are sent from "<i>noreply@dontprint.net</i>".
+<div class="hint">If your e-reader is an Amazon Kindle, go to "<a href="http://website-g7g.amazon.co.uk/myk#pdocSettings" target="_blank">Manage Your Kindle</a>" on amazon.com and add the address "<i>noreply@dontprint.net</i>" to the "<i>Approved Personal Document E-mail List</i>" (see image below; <a href="http://robamler.github.com/dontprint/faq/index.html#q-setup-approvedemail" target="_blank">help</a>):</div>
 <img class="screenshot" style="margin-top:2ex;margin-bottom:2ex;display:block" src="amazon-screenshot.png"></li>
 <li>Tell Dontprint your e-reader's e-mail address<span> (<a href="#" id="kindle-email-question">what's that?</a>)</span>:
 <div id="kindle-email-help" class="hint">
-Dontprint transfers documents wirelessly to your e-reader by e-mail. If your e-reader is an Amazon Kindle you find the e-mail address that is tied to your Kindle in the section "<i>Send-to-Kindle E-Mail Settings</i>" on the "<a href="http://website-g7g.amazon.co.uk/myk#pdocSettings" target="_blank">Manage Your Kindle</a>" page (see image below; <a href="http://robamler.github.com/dontprint/faq/index.html#q-setup-ereaderaddress" target="_blank">further help</a>). If your e-reader is not from Amazon then please consult the manual to find out if it can receive documents by e-mail.
+If your e-reader is an Amazon Kindle then you find the e-mail address that is tied to your Kindle in the section "<i>Send-to-Kindle E-Mail Settings</i>" on the "<a href="http://website-g7g.amazon.co.uk/myk#pdocSettings" target="_blank">Manage Your Kindle</a>" page (see image below; <a href="http://robamler.github.com/dontprint/faq/index.html#q-setup-ereaderaddress" target="_blank">further help</a>). If your e-reader is not from Amazon then please consult the manual to find out if it can receive documents by e-mail.
 <img src="amazon-screenshot2.png" class="screenshot">
 </div>
 <div><input type="text" required id="email-prefix" pattern="[^@ &quot;']+"><select id="email-suffix">
@@ -151,17 +150,19 @@ Dontprint transfers documents wirelessly to your e-reader by e-mail. If your e-r
 Full e-mail address: <input type="email" required id="email-other">
 </div>
 <div class="hint" id="warning-charges"><b>Warning:</b> You chose the e-mail suffix "<span id="warning-suffix"></span>". Articles will be delivered over the cellphone (3G) network if supported by your Kindle and if Wi-Fi is not available. <b>Amazon might charge for this.</b> To avoid charges, select the suffix "@free.kindle.com".</div></li>
-<li>To test your settings, we recommend to send a small test document to your e-reader.
-<input type="submit" id="test-email" value="Send a small test document to my e-reader now.">
-<div id="test-email-waiting" class="hint">Dontprint is sending a small test document to <span id="test-email-address"></span>. Please wait...</div>
-<div id="test-email-done" class="hint">Done sending test document. <a href="#" id="test-email-showresult">Show details.</a></div>
+<li>Verify your e-reader's e-mail address
+<div class="hint">To prevent abuse of our e-mail sending infrastructure, Dontprint sends a small test document with a random code to your e-reader.
+Once you received that code, enter it in the field below.</div>
+<input type="button" id="sendVerificationCodeBtn" value="Send verification code now.">
+<div id="verificationCodeProgress" class="hint"></div>
+Verification code: <input type="text" id="verificationCode"> <input type="button" id="verifyEmailBtn" value="Confirm.">
 </li>
 </ol>
 	</div></td>
 </tr>
 <tr>
 	<td><input type="radio" name="transferMethodChoice" value="directory" id="transferMethodDirectory"></td>
-	<td><label for="transferMethodDirectory">Save Documents to a directory (for e-readers that don't support e-mail transfer)</label></td>
+	<td><label for="transferMethodDirectory">Save documents to a directory (for e-readers that don't support e-mail transfer)</label></td>
 </tr>
 <tr>
 	<td></td>
