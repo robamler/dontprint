@@ -1264,7 +1264,7 @@ function Dontprint() {
 		job.result.errorOperation = job.state;
 		updateJobState(job, job.result.success ? "success" : "error");
 		let transferMethod = prefs.getCharPref("transferMethod")==="email" ? "sendmail" : "savetodir";
-		let defaultInBackground = prefs.getBoolPref("uploadInBackground");
+		let defaultInBackground = prefs.getBoolPref("successPageInBackground");
 		let url = "http://localhost:8000/" + transferMethod + "/" + job.state + ".html#" + (defaultInBackground ? "1," : "0,") + job.id;
 		deferred = Promise.defer();
 		job.resultPageCallback = deferred.resolve;

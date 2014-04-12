@@ -81,7 +81,7 @@ DontprintBrowser = (function() {
 				e.originalTarget.ownerDocument instanceof HTMLDocument &&
 				e.originalTarget.ownerDocument.location.hostname === "localhost"//"robamler.github.io"
 			) {
-				Dontprint.getPrefs().setBoolPref("uploadInBackground", e.target.checked);
+				Dontprint.getPrefs().setBoolPref("successPageInBackground", e.target.checked);
 			}
 		}, false, true);
 		
