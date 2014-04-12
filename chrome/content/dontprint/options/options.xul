@@ -73,7 +73,7 @@
 						</row>
 					</rows>
 				</grid>
-				<description disabled="true"><label style="font-weight:bold;margin:0">Important:</label> Dontprint sends e-mails to your device from the address "<label style="font-style:italic;margin:0">noreply@dontprint.net</label>". It is important that you configure your e-reader to accept e-mails that are sent from this address. If your e-reader is an Amazon Kindle, this can be done by adding  the address to the list of approved sender addresses on Amazon's "<label id="emailDescriptionLink" class="text-link" href="http://website-g7g.amazon.co.uk/myk#pdocSettings">Manage Your Kindle</label>" page. (<label id="emailDescriptionLink" class="text-link" href="TODO">More help</label>)</description>
+				<description disabled="true"><label style="font-weight:bold;margin:0">Important:</label> Dontprint sends e-mails to your device from the address "<label style="font-style:italic;margin:0">noreply@dontprint.net</label>". It is important that you configure your e-reader to accept e-mails that are sent from this address. If your e-reader is an Amazon Kindle, this can be done by adding  the address to the list of approved sender addresses on Amazon's "<label id="emailDescriptionLink" class="text-link" href="http://website-g7g.amazon.co.uk/myk#pdocSettings">Manage Your Kindle</label>" page. (<label id="emailDescriptionLink" class="text-link" href="http://robamler.github.com/dontprint/faq/index.html#q-setup-approvedemail">More help</label>)</description>
 				<hbox>
 					<button id="sendTestPageButton" label="Test my e-mail settings..." oncommand="sendTestPage()"/>
 				</hbox>

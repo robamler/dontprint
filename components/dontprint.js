@@ -1260,52 +1260,6 @@ function Dontprint() {
 		}
 	}
 	
-	function testFB() {//TODO: remove
-		Task.spawn(function() {
-			let job = {
-				jobType:			"pdfurl",
-				title:				"test title",
-				forceCropWindow:	false,
-				pdfurl:				"a url",
-				identifierurl:		"a url",
-				journalLongname:	"longname",
-				journalShortname:	"shortname",
-				tmpFiles:			[],
-				state:				"success",
-				result: {filesize: 1000, params: {
-					filename: "a filename",
-					recipientEmail: "an email"
-				},
-					fileName: "The Proof of Innocence.pdf",
-					destDir: "/home/robamler/Desktop",
-					filePath: "/home/robamler/Desktop/The Proof of Innocence.pdf"
-				}
-			};
-// 			let job = {
-// 				jobType:			"pdfurl",
-// 				title:				"test title",
-// 				forceCropWindow:	false,
-// 				pdfurl:				"a url",
-// 				identifierurl:		"a url",
-// 				journalLongname:	"longname",
-// 				journalShortname:	"shortname",
-// 				tmpFiles:			[],
-// 				state:				"success",
-// 				result: {
-// 					errorString: "an error message",
-// 					error: "an error"
-// 				}
-// 			};
-			job.id = Date.now();
-			while (job.id in runningJobs) {
-				job.id++;
-			}
-			runningJobs[job.id] = job;
-			yield displayResult(job, null);
-			delete runningJobs[job.id];
-		});
-	}
-	
 	function displayResult(job) {
 		job.result.errorOperation = job.state;
 		updateJobState(job, job.result.success ? "success" : "error");
@@ -1636,8 +1590,7 @@ function Dontprint() {
 		initResultPage: initResultPage,
 		sendVerificationCode: sendVerificationCode,
 		verifyEmailAddress: verifyEmailAddress,
-		rememberVerifiedEmail: rememberVerifiedEmail,
-		testFB: testFB //TODO: remove
+		rememberVerifiedEmail: rememberVerifiedEmail
 	};
 }
 

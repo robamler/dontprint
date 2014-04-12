@@ -87,7 +87,6 @@
 	<toolbarpalette id="BrowserToolbarPalette">
 		<toolbarbutton id="dontprint-toolbar-button" class="chromeclass-toolbar-additional" tooltiptext="Dontprint" label="Dontprint" type="menu">
 			<menupopup onpopupshowing="DontprintBrowser.onDontprintMenuShow(event)">
-				<menuitem oncommand="DontprintBrowser.getDontprint().testFB();" label="Test FB (TODO: REMOVE)"/>
 				<menuitem class="dontprintThisPage" oncommand="DontprintBrowser.dontprintThisPage();" label="&dontprint.thisPageMenuItemLabel;"/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().dontprintLocalFile();" label="Send a local PDF document to e-reader..."/>
 				<menuseparator/>
