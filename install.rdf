@@ -8,8 +8,8 @@
 		em:version="0.2beta3"
 		em:description="Send scientific articles to your e-reader in an optimized layout."
 		em:creator="Robert Bamler"
-		em:homepageURL="http://robamler.github.com/dontprint/"
-		em:updateURL="http://robamler.github.com/dontprint/update.rdf"
+		em:homepageURL="http://dontprint.net"
+		em:updateURL="http://dontprint.net/update.rdf"
 		em:optionsURL="chrome://dontprint/content/options/options.xul"
 		em:updateKey="MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC12m8i/dvwEx7DO+R1Yl7m4W8LAiAXCKPb6wsSDtpiOwBeMTiAIt5l2ZY603FdQsVvyzlcxz5dR+q7KUKlql7D4krehRv7ZP/Rzmum3cwVtAx46C8RaKrkn7ymP2gaE9bDO1JbIVpaWgGrRemgOmFnWo1FJz1qQoCb35MkSRRvmQIDAQAB"
 	>

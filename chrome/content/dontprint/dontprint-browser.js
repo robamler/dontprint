@@ -61,7 +61,7 @@ DontprintBrowser = (function() {
 		gBrowser.addEventListener("DontprintResultPageCallbackEvent", function(e) {
 			if (
 				e.originalTarget instanceof HTMLDocument &&
-				e.originalTarget.location.hostname === "localhost"//"robamler.github.io"
+				e.originalTarget.location.hostname === "dontprint.net"
 			) {
 				Dontprint.initResultPage(e);
 			}
@@ -70,7 +70,7 @@ DontprintBrowser = (function() {
 		gBrowser.addEventListener("DontprintCloseEvent", function(e) {
 			if (
 				e.originalTarget instanceof HTMLDocument &&
-				e.originalTarget.location.hostname === "localhost"//"robamler.github.io"
+				e.originalTarget.location.hostname === "dontprint.net"
 			) {
 				e.originalTarget.defaultView.close();
 			}
@@ -79,7 +79,7 @@ DontprintBrowser = (function() {
 		gBrowser.addEventListener("DontprintChangePrefEvent", function(e) {
 			if (
 				e.originalTarget.ownerDocument instanceof HTMLDocument &&
-				e.originalTarget.ownerDocument.location.hostname === "localhost"//"robamler.github.io"
+				e.originalTarget.ownerDocument.location.hostname === "dontprint.net"
 			) {
 				Dontprint.getPrefs().setBoolPref("successPageInBackground", e.target.checked);
 			}
@@ -88,7 +88,7 @@ DontprintBrowser = (function() {
 		gBrowser.addEventListener("DontprintShowOrRevealFile", function(e) {
 			if (
 				e.originalTarget.ownerDocument instanceof HTMLDocument &&
-				e.originalTarget.ownerDocument.location.hostname === "localhost"//"robamler.github.io"
+				e.originalTarget.ownerDocument.location.hostname === "dontprint.net"
 			) {
 				let filePath = e.target.getAttribute("dontprint_filepath");
 				let file = Components.classes["@mozilla.org/file/local;1"]

@@ -311,7 +311,7 @@ function checkForK2pdfoptUpdate() {
 	
 	var req = new XMLHttpRequest();
 	req.onload = reqListener;
-	req.open("get", "http://robamler.github.com/dontprint/k2pdfopt/versions.json", true);
+	req.open("get", "http://dontprint.net/k2pdfopt/versions.json", true);
 	req.send();
 }
 

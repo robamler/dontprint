@@ -423,7 +423,7 @@ function Dontprint() {
 		
 		let nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
 					.createInstance(Components.interfaces.nsIURL);
-		nsIURL.spec = "http://robamler.github.com/dontprint/k2pdfopt/" + platform + "/" + leafFilename;
+		nsIURL.spec = "http://dontprint.net/k2pdfopt/" + platform + "/" + leafFilename;
 		try {
 			wbp.saveURI(nsIURL, null, null, null, null, destFile);
 		} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
@@ -438,7 +438,7 @@ function Dontprint() {
 		runJob({
 			title:		'Dontprint test document',
 			jobType:	'test',
-			pdfurl:		"http://robamler.github.com/dontprint/test-documents/" + prefs.getCharPref("kindleModel") + ".pdf",
+			pdfurl:		"http://dontprint.net/test-documents/" + prefs.getCharPref("kindleModel") + ".pdf",
 			tmpFiles:	[],
 			callback:	callback
 		});
@@ -1265,7 +1265,7 @@ function Dontprint() {
 		updateJobState(job, job.result.success ? "success" : "error");
 		let transferMethod = prefs.getCharPref("transferMethod")==="email" ? "sendmail" : "savetodir";
 		let defaultInBackground = prefs.getBoolPref("successPageInBackground");
-		let url = "http://localhost:8000/" + transferMethod + "/" + job.state + ".html#" + (defaultInBackground ? "1," : "0,") + job.id;
+		let url = "http://dontprint.net/resultpage/" + transferMethod + "/" + job.state + ".html#" + (defaultInBackground ? "1," : "0,") + job.id;
 		deferred = Promise.defer();
 		job.resultPageCallback = deferred.resolve;
 		

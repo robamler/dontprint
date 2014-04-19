@@ -7,7 +7,7 @@
 # WARNING: The current source code in the git repository can be unstable
 # at any time. It is not recommended to use installations from source
 # in a production environment. Consider instead downloading a packaged
-# version from http://robamler.github.io/dontprint/.
+# version from http://dontprint.net.
 #
 # IMPORTANT: Uninstall any packaged versions of Dontprint and restart
 # Firefox before you run this script!
