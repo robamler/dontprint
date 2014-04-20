@@ -1110,10 +1110,21 @@ function Dontprint() {
 	}
 	
 	
+	function getFinalFilename(job) {
+		// Don't allow the '.' char in the file name because files starting with
+		// a '.' are usually hidden on unix systems, which would be confusing.
+		let ret = job.title.replace(/[^a-zA-Z0-9 \-_,]+/g, "_") + ".pdf";
+		if (job.articleCreators && job.articleCreators.length !== 0 && job.articleCreators[0].lastName) {
+			ret = job.articleCreators[0].lastName + ", " + ret;
+		}
+		return ret;
+	}
+	
+	
 	function sendEmail(job) {
 		updateJobState(job, "sending");
 		
-		job.emailedFilename = job.title.replace(/[^a-zA-Z0-9 .\-_,]+/g, "_") + ".pdf";
+		job.emailedFilename = getFinalFilename(job);
 		job.recipientEmail = getRecipientEmail();
 		var url = buildURL(
 			"http://dontprint.net/cgi-bin/send-document.pl",
@@ -1203,9 +1214,7 @@ function Dontprint() {
 			throw 'The destination directory "' + destFile.path + '" does not exist. Maybe your device is not connected or it needs to be accessed under a different path.';
 		}
 		
-		// Don't allow the '.' char in the file name because files starting with
-		// a '.' are usually hidden on unix systems, which would be confusing.
-		destFile.append(job.title.replace(/[^a-zA-Z0-9 \-_,]+/g, "_") + ".pdf");
+		destFile.append(getFinalFilename(job));
 		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0775); // octal value --> don't remove leading zero!
 		
 		try {
