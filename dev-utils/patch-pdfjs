@@ -1,6 +1,0 @@
-#!/bin/bash
-
-# this script patches pdf.js so that it works also in xhtml which is embedded in xul
-
-perl -pe 's/\bdocument\.createElement\(/document.createElementNS("http:\/\/www.w3.org\/1999\/xhtml", /g' < chrome/content/dontprint/pdfcrop/combined-pdf.js > chrome/content/dontprint/pdfcrop/combined-pdf-patched.js
-
