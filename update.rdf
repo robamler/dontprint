@@ -2,9 +2,9 @@
 <RDF:RDF xmlns:em="http://www.mozilla.org/2004/em-rdf#"
          xmlns:NC="http://home.netscape.com/NC-rdf#"
          xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-  <RDF:Description RDF:about="urn:mozilla:extension:dontprint@robamler.github.com"
-                   em:signature="MIGTMA0GCSqGSIb3DQEBDQUAA4GBAG2uUGxe8go3N2k25XlZHk9Zfy7RKjpXZGGsaE5sgTm9uFo37AaJkI8+zDHzFYCAIoOQG5BGPoc5kq0RvH3fKPBolTYvmKy7YN4OEVopqxSCB9xHdh7tyBGb+b7+nSoK97/CJAQmYtjhJgp4rAQOVRW7VsYzRIJs0Ep9/1I7aiDC">
-    <em:updates RDF:resource="rdf:#$bDzNw3"/>
+  <RDF:Description RDF:about="rdf:#$cDzNw3"
+                   em:version="0.2beta4">
+    <em:targetApplication RDF:resource="rdf:#$fDzNw3"/>
   </RDF:Description>
   <RDF:Seq RDF:about="rdf:#$bDzNw3">
     <RDF:li RDF:resource="rdf:#$cDzNw3"/>
@@ -14,10 +14,10 @@
                    em:minVersion="19.0"
                    em:maxVersion="30.*"
                    em:updateLink="http://dontprint.net/download/dontprint-beta.xpi"
-                   em:updateHash="sha512:0dddcf4c978682b494d0a653973648264f0c2f437d408e0adf6e235604358c407bf65940626e90570862d12efbbbe3494dd7c06fd82d54f3746ace440ac18f97"
+                   em:updateHash="sha512:bb5a34aa5d21e307893960ebc382170e3a07f59e31724dc0f1f728eac3b5684ae5d11bf00f7f9184e868b1cbf9bced6b049280066b389262cba3e457916ab070"
                    em:updateInfoURL="http://dontprint.net/changelogs/v0.2beta4.xhtml" />
-  <RDF:Description RDF:about="rdf:#$cDzNw3"
-                   em:version="0.2beta4">
-    <em:targetApplication RDF:resource="rdf:#$fDzNw3"/>
+  <RDF:Description RDF:about="urn:mozilla:extension:dontprint@robamler.github.com"
+                   em:signature="MIGTMA0GCSqGSIb3DQEBDQUAA4GBADOYz9NSLYu+s3so8cPOUpZFW95JwBAfMaFYIv1c+6CS0zufJ/lO0LX5CEeTWJ2QnDwXdG157O4L48oYdgsxmyH62JHEriv7pZtvOTVQX4rGm+/0xyE4Wl0auNKMCnxyUTs9Z51g/fg/KjCJ65R7i22GA3v9rzwUusiONlX54vSw">
+    <em:updates RDF:resource="rdf:#$bDzNw3"/>
   </RDF:Description>
 </RDF:RDF>
