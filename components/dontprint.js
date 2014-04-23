@@ -219,6 +219,23 @@ function Dontprint() {
 			}).filter(function(elem) {
 				return elem !== undefined;
 			});
+			
+			// Note that item.getCreators() returns something different than
+			// what the "itemDone" handler of translators return. Apparently,
+			// Zotero manages a table of all creators of all stored items and
+			// therefore saves creators as references to the stored items.
+			// Here, we bring the job.aritcleCreators in the same form as for
+			// jobs of type "page" and make it JSONifyable (i.e., explicitly
+			// call the JavaScript getters for firstName and lastName).
+			let creators = [];
+			try {
+				creators = i.getCreators().map(function(c) {
+					return {
+						firstName: c.ref.firstName,
+						lastName:  c.ref.lastName
+					};
+				});
+			} catch (e) { } // fall back to empty array for creators
 
 			// Find field names in Zotero's resource/schema/system.sql (grep "INSERT INTO fields" in zotero source code to get a list of field names)
 			return {
@@ -233,7 +250,7 @@ function Dontprint() {
 				articleVolume:		i.getField('volume'),
 				articleIssue:		i.getField('issue'),
 				articlePages:		i.getField('pages'),
-				articleCreators:	i.getCreators(),	//TODO: test
+				articleCreators:	creators,
 				forceCropWindow:	forceCropWindow,
 				originalFilePath:	attachmentPaths.length === 0 ? undefined : attachmentPaths[0],
 				tmpFiles:			[]
