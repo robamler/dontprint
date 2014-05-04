@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://dontprint/skin/overlay.css" type="text/css"?>
+<!DOCTYPE window SYSTEM "chrome://dontprint/locale/dontprint.dtd">
+<overlay xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<script type="application/x-javascript" src="zoteroTabOverlay.js"/>
+	
+	<!-- toolbar button -->
+	<hbox id="zotero-items-toolbar">
+		<toolbarbutton id="dontprint-zotero-tab-tbbtn" insertbefore="zotero-tb-advanced-search" class="zotero-tb-button dontprint-icon" tooltiptext="Dontprint attached PDF (send to e-reader); right-click for more options" context="dontprint-zotero-tab-btn-context" oncommand="Dontprint_ZoteroTabOverlay.DontprintBrowser.dontprintZoteroSelection(event,false)"/>
+		<toolbarseparator insertbefore="zotero-tb-advanced-search"/>
+	</hbox>
+	
+	<!-- popup menu for button on zotero pane -->
+	<popupset>
+		<menupopup id="dontprint-zotero-tab-btn-context">
+			<menuitem oncommand="Dontprint_ZoteroTabOverlay.DontprintBrowser.dontprintZoteroSelection(event,false);" label="Dontprint attached PDF (send to e-reader) with default settings"/>
+			<menuitem oncommand="Dontprint_ZoteroTabOverlay.DontprintBrowser.dontprintZoteroSelection(event,true);" label="Dontprint attached PDF with custom settings..."/>
+			<menuseparator/>
+			<menuitem oncommand="Dontprint_ZoteroTabOverlay.DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
+			<menuitem oncommand="Dontprint_ZoteroTabOverlay.DontprintBrowser.configureDontprint();" label="&dontprint.configureMenuItemLabel;"/>
+		</menupopup>
+	</popupset>
+</overlay>

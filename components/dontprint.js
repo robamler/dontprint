@@ -473,6 +473,11 @@ function Dontprint() {
 	}
 	
 	
+	function getQueueLength() {
+		return queuelength;
+	}
+	
+	
 	function sendVerificationCode(onSuccess, onError, onFailure) {
 		let email = getRecipientEmail();
 		let req = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
@@ -1596,6 +1601,7 @@ function Dontprint() {
 		detectK2pdfoptVersion: detectK2pdfoptVersion,
 		sendTestEmail: sendTestEmail,
 		getRecipientEmail: getRecipientEmail,
+		getQueueLength: getQueueLength,
 		compareVersionStrings: compareVersionStrings,
 		getPrefs: function() {return prefs;},
 		deleteFile: deleteFile,

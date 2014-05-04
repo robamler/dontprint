@@ -1,4 +1,4 @@
-#dontprint-zotero-tbbtn, #dontprint-toolbar-button, #dontprint-status-image, #dontprint-progress-image
+.dontprint-icon
 {
 	list-style-image: url('chrome://dontprint/skin/btn.png');
 	-moz-image-region: rect(0px 16px 16px 0px);

@@ -5,6 +5,7 @@ resource	EXTENSION				modules/
 
 overlay	chrome://browser/content/browser.xul	chrome://dontprint/content/overlay.xul
 overlay chrome://mozapps/content/downloads/unknownContentType.xul chrome://dontprint/content/downloadOverlay.xul
+overlay chrome://zotero/content/tab.xul chrome://dontprint/content/zoteroTabOverlay.xul
 
 style	chrome://global/content/customizeToolbar.xul	chrome://dontprint/skin/overlay.css
 

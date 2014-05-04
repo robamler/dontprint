@@ -7,6 +7,7 @@ DontprintBrowser = (function() {
 	var showDontprintIcon = false;
 	var alreadyProcessing = false;
 	var isInPrivateBrowsingMode = false;
+	var registeredZoteroButtons = [];
 	
 	
 	// PUBLIC FUNCTIONS ===========================================	
@@ -28,7 +29,7 @@ DontprintBrowser = (function() {
 			// Programmatically insert a "Dontprint" button into the Zotero pane
 			dontprintFromZoteroBtn = document.createElement("toolbarbutton");
 			dontprintFromZoteroBtn.setAttribute("id", "dontprint-zotero-tbbtn");
-			dontprintFromZoteroBtn.setAttribute("class", "zotero-tb-button");
+			dontprintFromZoteroBtn.setAttribute("class", "zotero-tb-button dontprint-icon");
 			dontprintFromZoteroBtn.setAttribute("tooltiptext", "Dontprint attached PDF (send to e-reader); right-click for more options");
 			dontprintFromZoteroBtn.setAttribute("context", "dontprint-zotero-btn-context");
 			dontprintFromZoteroBtn.addEventListener("command", dontprintZoteroSelection);
@@ -213,6 +214,24 @@ DontprintBrowser = (function() {
 	}
 	
 	
+	function registerZoteroTab(doc) {
+		let btn = doc.getElementById("dontprint-zotero-tab-tbbtn");
+		if (registeredZoteroButtons.indexOf(btn) === -1) {
+			registeredZoteroButtons.push(btn);
+		}
+		updateQueueLength(Dontprint.getQueueLength());
+	}
+	
+	
+	function unregisterZoteroTab(doc) {
+		let btn = doc.getElementById("dontprint-zotero-tab-tbbtn");
+		let index = registeredZoteroButtons.indexOf(btn);
+		if (index >= 0) {
+			registeredZoteroButtons.splice(index, 1);
+		}
+	}
+	
+	
 	function updateQueueLength(queuelength) {
 		clearInterval(idleAnimationTimer);
 		if (queuelength === 0) {
@@ -220,6 +239,14 @@ DontprintBrowser = (function() {
 				dontprintFromZoteroBtn.style.MozImageRegion = "rect(0px 16px 16px 0px)";
 			}
 			dontprintProgressImg.style.MozImageRegion = "rect(0px 16px 16px 0px)";
+			registeredZoteroButtons.forEach(function(el, i) {
+				try {
+					el.style.MozImageRegion = "rect(0px 16px 16px 0px)";
+				} catch (e) {
+					// Corresponding tab was apparently closed. Remove from registered buttons.
+					registeredZoteroButtons.splice(i, 1);
+				}
+			});
 			try {
 				document.getElementById("dontprint-toolbar-button").style.MozImageRegion = "rect(0px 16px 16px 0px)";
 			} catch (e) {} // button not displayed
@@ -235,6 +262,14 @@ DontprintBrowser = (function() {
 					dontprintFromZoteroBtn.style.MozImageRegion = cliprect[animationState];
 				}
 				dontprintProgressImg.style.MozImageRegion = cliprect[animationState];
+				registeredZoteroButtons.forEach(function(el, i) {
+					try {
+						el.style.MozImageRegion = cliprect[animationState];
+					} catch (e) {
+						// Corresponding tab was apparently closed. Remove from registered buttons.
+						registeredZoteroButtons.splice(i, 1);
+					}
+				});
 				try {
 					document.getElementById("dontprint-toolbar-button").style.MozImageRegion = cliprect[animationState];
 				} catch (e) {} // button not displayed
@@ -306,6 +341,8 @@ DontprintBrowser = (function() {
 	
 	return {
 		init: init,
+		registerZoteroTab: registerZoteroTab,
+		unregisterZoteroTab: unregisterZoteroTab,
 		dontprintZoteroSelection: dontprintZoteroSelection,
 		dontprintThisPage: dontprintThisPage,
 		cancelJobForThisPage: cancelJobForThisPage,
