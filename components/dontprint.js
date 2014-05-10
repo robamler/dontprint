@@ -196,29 +196,58 @@ function Dontprint() {
 	 * Called when the user clicks the dontprint button in the Zotero pane.
 	 */
 	function dontprintZoteroItems(items, forceCropWindow) {
-		// delete duplicates (e.g., if user selects both an attachment and its parent)
-		var entryIds = items.map(function(i) {
-			return i.getSource() || i.id;
-		});
-		var uniqueEntryIds = entryIds.filter(function(elem, pos, self) {
-			return self.indexOf(elem) == pos;
-		})
+		// Create structure of all zotero "items" to which we want to dontprint
+		// at least one attachment. Items are indexed by their ID. To each item
+		// ID, we store a list of explicitly selected attachments, if any.
+		let itemmap = {};
+		for (let i=0; i<items.length; i++) {
+			let it = items[i];
+			let itemid = undefined;
+			let attachment = undefined;
+			if (it.isAttachment() && it.attachmentMIMEType === 'application/pdf') {
+				itemid = it.getSource();
+				attachment = it;
+			} else {
+				// Get ID of parent item (if, e.g., a note was selected) or of
+				// the selected item itself.
+				itemid = it.getSource() || it.id;
+			}
+			
+			if (itemid !== undefined) {
+				if (itemmap[itemid] === undefined) {
+					itemmap[itemid] = (attachment === undefined) ? [] : [attachment];
+				} else if (attachment !== undefined) {
+					itemmap[itemid].push(attachment);
+				}
+				// else do nothing (both the item and one of its attachments were selected)
+			}
+		}
 		
-		// generate list of all meta data
-		var jobs = uniqueEntryIds.map(function(id) {
-			var i = Zotero.Items.get(id);
-			var attachmentPaths = i.getAttachments(false).map(function(id) {
-				var a_item = Zotero.Items.get(id);
-				if (a_item.attachmentMIMEType === 'application/pdf') {
-					var file = a_item.getFile();
-					if (file) {
-						return file.path;
+		// Add first attachment to each item for which no attachment was explicitly selected
+		let noattach = [];
+		for (let id in itemmap) {
+			let val = itemmap[id];
+			if (val.length === 0) {
+				let attachs = Zotero.Items.get(id).getAttachments(false);
+				for (let j=0; j<attachs.length; j++) {
+					let attach = Zotero.Items.get(attachs[j]);
+					if (attach.attachmentMIMEType === 'application/pdf') {
+						val.push(attach);
+						break;
 					}
 				}
-				return undefined;
-			}).filter(function(elem) {
-				return elem !== undefined;
-			});
+				if (val.length === 0) {
+					noattach.push(id);
+					delete itemmap[id];
+				}
+			}
+		}
+		
+		// generate list of all meta data
+		let jobs = [];
+		for (let id in itemmap) {
+			let attachs = itemmap[id];
+			let i = Zotero.Items.get(id);
 			
 			// Note that item.getCreators() returns something different than
 			// what the "itemDone" handler of translators return. Apparently,
@@ -236,41 +265,50 @@ function Dontprint() {
 					};
 				});
 			} catch (e) { } // fall back to empty array for creators
-
-			// Find field names in Zotero's resource/schema/system.sql (grep "INSERT INTO fields" in zotero source code to get a list of field names)
-			return {
-				jobType:			'zotero',
-				zoteroKey:			i.getField('key'),
-				title:				i.getField('title'),
-				journalLongname:	i.getField('publicationTitle'),
-				journalShortname:	i.getField('journalAbbreviation'),
-				pageurl:			i.getField('url'),
-				doi:				i.getField('DOI'),
-				articleDate:		i.getField('date'),
-				articleVolume:		i.getField('volume'),
-				articleIssue:		i.getField('issue'),
-				articlePages:		i.getField('pages'),
-				articleCreators:	creators,
-				forceCropWindow:	forceCropWindow,
-				originalFilePath:	attachmentPaths.length === 0 ? undefined : attachmentPaths[0],
-				tmpFiles:			[]
-			};
-		});
-		
-		// remove entries without attached PDF files
-		var noattach = jobs.filter(function(elem) {
-			return elem.originalFilePath === undefined;
-		});
-		if (noattach.length) {
-			prompts.alert(null, "Dontprint", "The following selected items cannot be sent to your e-reader because they do not have an attached PDF file:\n\n" +
-				noattach.map(function(elem) { return elem.title; }).join("\n"));
+			
+			for (let j=0; j<attachs.length; j++) {
+				// Note that if several attachments of the same item where selected,
+				// the corresponding jobs share the "creators" object. I.e., modifying
+				// job.articleCreators in one job will modify it in the others, too.
+				// But we never modify job.articleCreators, so this should not be an issue.
+				let file = attachs[j].getFile();
+				if (!file) {
+					prompts.alert(null, "Dontprint", "Error: Cannot find file for attachment to article \"" + i.getField('title') + "\".");
+					return;
+				}
+				jobs.push({
+					jobType:			'zotero',
+					zoteroKey:			i.getField('key'),
+					title:				i.getField('title'),
+					journalLongname:	i.getField('publicationTitle'),
+					journalShortname:	i.getField('journalAbbreviation'),
+					pageurl:			i.getField('url'),
+					doi:				i.getField('DOI'),
+					articleDate:		i.getField('date'),
+					articleVolume:		i.getField('volume'),
+					articleIssue:		i.getField('issue'),
+					articlePages:		i.getField('pages'),
+					articleCreators:	creators,
+					forceCropWindow:	forceCropWindow,
+					originalFilePath:	file.path,
+					tmpFiles:			[]
+				});
+			}
 		}
 		
-		jobs = jobs.filter(function(elem) {
-			return elem.originalFilePath !== undefined;
-		});
-		if (jobs.length == 0) {
-			prompts.alert(null, "Dontprint", "No documents sent to your e-reader. Select an item with an attached PDF file and try again.");
+		if (noattach.length !== 0) {
+			prompts.alert(
+				null,
+				"Dontprint",
+				"The following selected items cannot be sent to your e-reader because they do not have an attached PDF file:\n\n" +
+				noattach.map(function(id) {
+					return Zotero.Items.get(id).getField('title');
+				}).join("\n")
+			);
+		}
+		
+		if (jobs.length === 0) {
+			prompts.alert(null, "Dontprint", "Error: No documents sent to your e-reader. Select an item with an attached PDF file and try again.");
 			return;
 		}
 		
