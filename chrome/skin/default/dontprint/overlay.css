@@ -1,5 +1,24 @@
 .dontprint-icon
 {
-	list-style-image: url('chrome://dontprint/skin/btn.png');
+	list-style-image: url(chrome://dontprint/skin/btn.png);
 	-moz-image-region: rect(0px 16px 16px 0px);
+}
+
+#dontprint-toolbaritem {
+    list-style-image: url(chrome://dontprint/skin/icon16.png);
+}
+#dontprint-toolbaritem[cui-areatype="menu-panel"],
+toolbarpaletteitem[place="palette"] > #dontprint-toolbaritem {
+    list-style-image: url(chrome://dontprint/skin/icon32.png);
+}
+
+/* High-resolution displays */
+@media (min-resolution:2dppx) {
+    #dontprint-toolbaritem {
+        list-style-image: url(chrome://dontprint/skin/icon32.png);
+    }
+    #dontprint-toolbaritem[cui-areatype="menu-panel"],
+    toolbarpaletteitem[place="palette"] > #dontprint-toolbaritem {
+        list-style-image: url(chrome://dontprint/skin/icon64.png);
+    }
 }

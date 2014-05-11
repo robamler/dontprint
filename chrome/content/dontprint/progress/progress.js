@@ -12,7 +12,6 @@ var successMessage = {
 
 // initialization
 $(function() {
-	$("#toolsmenulabel").text(Dontprint.getToolsMenuLabel());
 	$('#autoShowProgress').prop(
 		'checked', Dontprint.getPrefs().getBoolPref("autoShowProgress")
 	).click(function() {

@@ -247,9 +247,6 @@ DontprintBrowser = (function() {
 					registeredZoteroButtons.splice(i, 1);
 				}
 			});
-			try {
-				document.getElementById("dontprint-toolbar-button").style.MozImageRegion = "rect(0px 16px 16px 0px)";
-			} catch (e) {} // button not displayed
 		} else {
 			let len = Math.min(10, queuelength);
 			let cliprect = [
@@ -270,9 +267,6 @@ DontprintBrowser = (function() {
 						registeredZoteroButtons.splice(i, 1);
 					}
 				});
-				try {
-					document.getElementById("dontprint-toolbar-button").style.MozImageRegion = cliprect[animationState];
-				} catch (e) {} // button not displayed
 				animationState = (animationState+1)%2;
 			};
 			timerfunc();

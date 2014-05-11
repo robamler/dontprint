@@ -51,6 +51,23 @@ function Dontprint() {
 						.getService(Components.interfaces.nsIPrefService)
 						.getBranch("extensions.dontprint.");
 		
+		// Add Dontprint button to menu panel
+		try {
+			Components.utils.import("resource:///modules/CustomizableUI.jsm");
+			let that = this;
+			CustomizableUI.createWidget({
+				id: 'dontprint-toolbaritem',
+				type: 'view',
+				viewId: 'dontprint-toolbaritem-view',
+				label: 'Dontprint',
+				tooltiptext: 'Show tools provided by addon "Dontprint"',
+				defaultArea: CustomizableUI.AREA_PANEL,
+				onViewShowing: function(event) {
+					event.target.ownerDocument.defaultView.DontprintBrowser.onDontprintMenuShow(event);
+				}
+			});
+		} catch (e) { } // FF < 29
+		
 		// Initialize database in file "dontprint/db3.sqlite" in the profile directory
 		// FileUtils.getFile() creates the directory (but not the file) if necessary
 		let dbfile = FileUtils.getFile("ProfD", ["dontprint", "db3.sqlite"]);
@@ -1064,33 +1081,6 @@ function Dontprint() {
 	}
 	
 	
-	function getToolsMenuLabel() {
-		try {
-			let win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-				.getService(Components.interfaces.nsIWindowMediator)
-				.getMostRecentWindow("navigator:browser");
-			
-			// Is the minified menu visible? (usually on Windows)
-			let titlebar = win.document.getElementById("titlebar");
-			if (titlebar && !titlebar.hidden) {
-				let appmenubtn = win.document.getElementById("appmenu-button");
-				if (appmenubtn && !appmenubtn.hidden) {
-					return appmenubtn.label;
-				}
-			}
-			
-			// Is the traditional tools menu visible?
-			let tm = win.document.getElementById("tools-menu");
-			if (!tm.hidden) {
-				return tm.label;
-			}
-		} catch (e) {}
-		
-		// Fallback
-		return "Tools";
-	}
-	
-	
 	function convertDocument(job) {
 		updateJobState(job, "converting");
 		
@@ -1652,7 +1642,6 @@ function Dontprint() {
 			// call with "var conn = yield Dontprint.getDB();" from a task
 			return Sqlite.openConnection({path: databasePath});
 		},
-		getToolsMenuLabel: getToolsMenuLabel,
 		saveJournalSettings: saveJournalSettings,
 		deleteJournalSettings: deleteJournalSettings,
 		EREADER_MODEL_DEFAULTS: EREADER_MODEL_DEFAULTS,
