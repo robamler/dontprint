@@ -1090,18 +1090,10 @@ function Dontprint() {
 		job.convertedFilePath = outFile.path;
 		job.tmpFiles.push(outFile.path);
 		
-		// Put more specific command line arguments to the beginning. It seems
-		// like earlier command line arguments overwrite later arguments.
-		let args = [];
-		if (job.crop.k2pdfoptParams) {
-			args = job.crop.k2pdfoptParams.split(/\s+/);
-		}
-		let globalArgs = prefs.getCharPref("k2pdfoptAdditionalParams").trim();
-		if (globalArgs) {
-			args = args.concat(globalArgs.split(/\s+/));
-		}
+		// Put more specific command line arguments to the end. It seems
+		// like later command line arguments overwrite earlier arguments.
 		let dims = getScreenDimensions();
-		args = args.concat([
+		let args = [
 			'-ui-', '-x', '-a-', '-om', '0',
 			'-w',  '' + dims.w,
 			'-h',  '' + dims.h,
@@ -1113,7 +1105,14 @@ function Dontprint() {
 			'-p', job.crop.pagerange ? job.crop.pagerange : (job.crop.coverpage ? '2-' : '1-'),
 			job.originalFilePath,
 			'-o', job.convertedFilePath
-		]);
+		];
+		let globalArgs = prefs.getCharPref("k2pdfoptAdditionalParams").trim();
+		if (globalArgs) {
+			args = args.concat(globalArgs.split(/\s+/));
+		}
+		if (job.crop.k2pdfoptParams) {
+			args = args.concat(job.crop.k2pdfoptParams.split(/\s+/));
+		}
 		
 		var k2pdfoptError = "";
 		var currentLine = "";

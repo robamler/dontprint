@@ -81,7 +81,7 @@
 					label="&dontprint.thisPageMenuItemLabel;"
 					oncommand="DontprintBrowser.dontprintThisPage();"/>
 				<toolbarbutton class="subviewbutton"
-					label="Send a local PDF document to e-reader..."
+					label="Send local PDF document to e-reader..."
 					oncommand="DontprintBrowser.getDontprint().dontprintLocalFile();"/>
 				<menuseparator/>
 				<toolbarbutton class="subviewbutton"
