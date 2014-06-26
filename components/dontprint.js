@@ -1084,8 +1084,20 @@ function Dontprint() {
 	function convertDocument(job) {
 		updateJobState(job, "converting");
 		
+		// Create filename from author and title. We already use the final filename
+		// for the temporarily generated file because k2pdfopt generates the pdf
+		// title meta-data based on the output filename if the input file has none
+		// and these meta data are displayed by Kobo e-readers.
+		
+		// Don't allow the '.' char in the file name because files starting with
+		// a '.' are usually hidden on unix systems, which would be confusing.
+		job.finalFilename = job.title.replace(/[^a-zA-Z0-9 \-,]+/g, "_") + ".pdf";
+		if (job.articleCreators && job.articleCreators.length !== 0 && job.articleCreators[0].lastName) {
+			job.finalFilename = job.articleCreators[0].lastName.replace(/[^a-zA-Z0-9 \-,]+/g, "_") + ", " + job.finalFilename;
+		}
+		
 		let exec = getK2pdfopt();
-		let outFile = FileUtils.getFile("TmpD", ["dontprint-converted.pdf"]);
+		let outFile = FileUtils.getFile("TmpD", [job.finalFilename]);
 		outFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 		job.convertedFilePath = outFile.path;
 		job.tmpFiles.push(outFile.path);
@@ -1159,21 +1171,10 @@ function Dontprint() {
 	}
 	
 	
-	function getFinalFilename(job) {
-		// Don't allow the '.' char in the file name because files starting with
-		// a '.' are usually hidden on unix systems, which would be confusing.
-		let ret = job.title.replace(/[^a-zA-Z0-9 \-_,]+/g, "_") + ".pdf";
-		if (job.articleCreators && job.articleCreators.length !== 0 && job.articleCreators[0].lastName) {
-			ret = job.articleCreators[0].lastName + ", " + ret;
-		}
-		return ret;
-	}
-	
-	
 	function sendEmail(job) {
 		updateJobState(job, "sending");
 		
-		job.emailedFilename = getFinalFilename(job);
+		job.emailedFilename = job.finalFilename;  // for compatibility of result page with older versions of Dontprint
 		job.recipientEmail = getRecipientEmail();
 		var url = buildURL(
 			"http://dontprint.net/cgi-bin/send-document.pl",
@@ -1263,7 +1264,7 @@ function Dontprint() {
 			throw 'The destination directory "' + destFile.path + '" does not exist. Maybe your device is not connected or it needs to be accessed under a different path.';
 		}
 		
-		destFile.append(getFinalFilename(job));
+		destFile.append(job.finalFilename);
 		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0775); // octal value --> don't remove leading zero!
 		
 		try {
