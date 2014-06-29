@@ -126,14 +126,18 @@ function scrollModelsTo(left, right) {
 
 
 function changeHeightListener(heightChange) {
-	if (ModelPicker.initialized) {
-		var oldheight = parseInt(parent.document.getElementById("deviceIframe").style.height);
-		var newheight = $('#heightMeasurer').offset().top + heightChange;
-		if (newheight > oldheight) {
-			parent.document.getElementById("deviceIframe").style.height = newheight + "px";
-			parent.sizeToContent();
+	// We defer the execution of this function in order to hopefully solve an
+	// issue with the options dialog on Mac (issue #16).
+	window.setTimeout(function() {
+		if (ModelPicker.initialized) {
+			var oldheight = parseInt(parent.document.getElementById("deviceIframe").style.height);
+			var newheight = $('#heightMeasurer').offset().top + heightChange;
+			if (newheight > oldheight) {
+				parent.document.getElementById("deviceIframe").style.height = newheight + "px";
+				parent.sizeToContent();
+			}
 		}
-	}
+	}, 0);
 }
 
 
@@ -178,7 +182,7 @@ function screenSettingsChange() {
 	Dontprint.getPrefs().setIntPref('screenPpi', newvalues.ppi);
 }
 
-$('#widthinput,#heightinput,#ppiinput').change(screenSettingsChange);
+$('#widthinput,#heightinput,#ppiinput').change(screenSettingsChange).keyup(screenSettingsChange);
 
 window.screenSettingsChange = screenSettingsChange; // export function
 
@@ -232,7 +236,7 @@ $('#sendScreenSettingsDetails').click(function() {
 			<td><input type="number" required pattern="\d+" id="widthinput"> x <input type="number" required pattern="\d+" id="heightinput"> pixels at <input type="number" required id="ppiinput"> pixels per inch</td>
 		</tr>
 	</table>
-	<input type="submit" id="sendTestEmailButton" value="Help me find out the correct document size...">
+	<input type="button" id="sendTestEmailButton" value="Help me find out the correct document size...">
 	<div id="sendScreenSettignsContainer"><input type="checkbox" id="sendScreenSettigns"><label for="sendScreenSettigns">Send the above settings anonymously to the developer of Dontprint to help improve future versions (<a id="sendScreenSettingsDetails" href="#">details</a>).</label></div>
 </div>
 
