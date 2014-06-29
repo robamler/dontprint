@@ -632,6 +632,7 @@ function Dontprint() {
 				
 				if (job.jobType === 'test') {
 					job.convertedFilePath = job.originalFilePath;
+					job.finalFilename = 'Dontprint test document.pdf';
 				} else {
 					yield cropMargins.call(that, job);
 					yield convertDocument(job);
