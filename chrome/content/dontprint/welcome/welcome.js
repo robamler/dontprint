@@ -404,7 +404,7 @@ $("#sendVerificationCodeBtn").click(function() {
 	}
 	$("#sendVerificationCodeBtn").attr("disabled", "disabled");
 	$("#verificationCodeProgress").text("Sending verification code to " + Dontprint.getRecipientEmail() + ". Please wait...").slideDown();
-	$("#verificationCodeBtn").val("").focus();
+	$("#verificationCode").val("").focus();
 	Dontprint.sendVerificationCode(
 		function success(email, returncode, message) {
 			if (returncode === 0) {
