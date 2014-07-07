@@ -234,6 +234,55 @@ $("#acceptstep1").click(function() {
 	}
 });
 
+
+$("#screensizeHelperLink").click(function(event) {
+	event.preventDefault();
+	
+	var screensizeHelper = $("#screensizeHelper");
+	screensizeHelper.text("Downloading measurement document...");
+	
+	Components.utils.import("resource://gre/modules/FileUtils.jsm");
+	var destFile = FileUtils.getFile("Desk", ["Welcome to Dontprint.pdf"]);
+	destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+	
+	var nsIWBP = Components.interfaces.nsIWebBrowserPersist;
+	var wbp = Components.
+		classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"].
+		createInstance(nsIWBP);
+	wbp.persistFlags = nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
+
+	var lastProgress = 0;
+	wbp.progressListener = {
+		onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
+			if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
+				if (Components.isSuccessCode(aStatus) && aRequest.QueryInterface(Components.interfaces.nsIHttpChannel).requestSucceeded) {
+					screensizeHelper.text("Dontprint has just downloaded the document \"" + destFile.leafName + "\" to your Desktop. Transfer this document to your e-reader in order to measure its screen size (you can also do this at a later time).");
+				} else {
+					screensizeHelper.text("Error while downloading an auxiliary file. Are you connected to the internet?");
+				}
+			}
+		},
+		
+		onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
+			if (aMaxTotalProgress!=0 && aCurTotalProgress>lastProgress) {	// no typo, we really want to use != instead of !==
+				lastProgress = aCurTotalProgress;
+				screensizeHelper.text("Downloading measurement document (" + Math.round(100*aCurTotalProgress/aMaxTotalProgress) + "% done)...");
+			}
+		}
+	};
+
+	var nsIURL = Components.classes["@mozilla.org/network/standard-url;1"].
+					createInstance(Components.interfaces.nsIURL);
+	nsIURL.spec = "http://dontprint.net/test-documents/measurement-only/" + ModelPicker.selection + ".pdf";
+	try {
+		wbp.saveURI(nsIURL, null, null, null, null, destFile);
+	} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=794602
+		//TODO: Always use when we no longer support Firefox < 18
+		wbp.saveURI(nsIURL, null, null, null, null, destFile, null);
+	}
+});
+
 $("#acceptstep2").click(function() {
 	if (
 		!ModelPicker.selection ||
