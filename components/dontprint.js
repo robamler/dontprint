@@ -721,6 +721,7 @@ function Dontprint() {
 			job.articlePages		= item.pages;
 			job.articleDate			= checkUndefined(item.date);
 			job.originalFilePath	= pdfFile.path;
+			job.originalFileName	= pdfFile.leafName;
 			itemDoneDeferred.resolve();
 			timeoutDeferred.resolve();
 		});
@@ -1092,13 +1093,18 @@ function Dontprint() {
 		
 		// Don't allow the '.' char in the file name because files starting with
 		// a '.' are usually hidden on unix systems, which would be confusing.
-		job.finalFilename = job.title.replace(/[^a-zA-Z0-9 \-,]+/g, "_") + ".pdf";
+		let authorAndTitle = job.title.replace(/[^a-zA-Z0-9 \-,]+/g, "_");
 		if (job.articleCreators && job.articleCreators.length !== 0 && job.articleCreators[0].lastName) {
-			job.finalFilename = job.articleCreators[0].lastName.replace(/[^a-zA-Z0-9 \-,]+/g, "_") + ", " + job.finalFilename;
+			authorAndTitle = job.articleCreators[0].lastName.replace(/[^a-zA-Z0-9 \-,]+/g, "_") + ", " + authorAndTitle;
 		}
+		job.finalFilename = authorAndTitle + ".pdf";
 		
+		// On OS X, k2pdfopt crops long file paths for some reason. To
+		// work around this issue, we start k2pdfopt with workdir set
+		// to the directory of the output file, and also use a rather
+		// short filename for the temporary file.
 		let exec = getK2pdfopt();
-		let outFile = FileUtils.getFile("TmpD", [job.finalFilename]);
+		let outFile = FileUtils.getFile("TmpD", [authorAndTitle.substr(0, 70) + ".pdf"]);
 		outFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 		job.convertedFilePath = outFile.path;
 		job.tmpFiles.push(outFile.path);
@@ -1116,8 +1122,8 @@ function Dontprint() {
 			'-mr', '' + parseFloat(job.crop.m3)/25.4,
 			'-mb', '' + parseFloat(job.crop.m4)/25.4,
 			'-p', job.crop.pagerange ? job.crop.pagerange : (job.crop.coverpage ? '2-' : '1-'),
-			job.originalFilePath,
-			'-o', job.convertedFilePath
+			job.originalFileName!==undefined ? job.originalFileName : job.originalFilePath,
+			'-o', outFile.leafName
 		];
 		let globalArgs = prefs.getCharPref("k2pdfoptAdditionalParams").trim();
 		if (globalArgs) {
@@ -1133,6 +1139,7 @@ function Dontprint() {
 		
 		let p = subprocess.call({
 			command: exec,
+			workdir: outFile.parent.path,
 			arguments: args,
 			stdout: function(data) {
 				let lines = data.split(/[\n\r]+/);
