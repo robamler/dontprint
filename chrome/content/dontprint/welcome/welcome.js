@@ -453,6 +453,7 @@ $("#sendVerificationCodeBtn").click(function() {
 	}
 	$("#sendVerificationCodeBtn").attr("disabled", "disabled");
 	$("#verificationCodeProgress").text("Sending verification code to " + Dontprint.getRecipientEmail() + ". Please wait...").slideDown();
+	$("#verificationCodeInputLine").slideDown();
 	$("#verificationCode").val("").focus();
 	Dontprint.sendVerificationCode(
 		function success(email, returncode, message) {
@@ -461,6 +462,7 @@ $("#sendVerificationCodeBtn").click(function() {
 				$("#sendVerificationCodeBtn").removeAttr("disabled").text("Resend verification code");
 			} else if (returncode === 1) {
 				$("#verificationCodeProgress").text("The e-mail address had already been verified before. Click \"Accept and finish\" below to conclude the setup.");
+				$("#verificationCodeInputLine").slideUp();
 				emailVerified = true;
 				Dontprint.rememberVerifiedEmail(email);
 			}
