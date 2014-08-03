@@ -19,7 +19,7 @@ fi
 echo $PROGDIR
 
 # Remove temporary files
-find . -name *~ -exec rm {} +
+find . -name '*~' -exec rm {} +
 
 # Build translators.zip and translators.index
 # (This is adapted from the file "build_xpi_4.0" in https://github.com/zotero/zotero-xpi-build.)
