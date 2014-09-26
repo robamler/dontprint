@@ -793,48 +793,83 @@ function Dontprint() {
 	function downloadPdfUrl(job) {
 		updateJobState(job, "downloading");
 		
+		let nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
+					.createInstance(Components.interfaces.nsIURL);
+		nsIURL.spec = job.pdfurl;
+		
+		let title = decodeURIComponent(nsIURL.filePath);
+		let m = title.match(/^.*\/([^/]+)\/?$/);  // extract last part of path
+		if (m) {
+			title = m[1];
+		}
+		title = title.replace(/\..{0,4}$/, ""); // trim file extension if any
+		if (!title) {
+			title = "Dontprinted document";
+		}
+		job.title = title;
+		
 		let destFile = FileUtils.getFile("TmpD", ["dontprint-original.pdf"]);
 		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 		job.originalFilePath = destFile.path;
 		job.tmpFiles.push(destFile.path);
 		
-		let deferred = Promise.defer();
-		
-		const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
-		let wbp = Components
-			.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
-			.createInstance(nsIWBP);
-		wbp.persistFlags = nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
-		
-		let lastProgress = 0;
-		wbp.progressListener = {
-			onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
-				if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
-					deferred.resolve();
-				}
-			},
-			onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
-				if (aMaxTotalProgress!=0 && aCurTotalProgress>lastProgress) {	// no typo, we really want to use != instead of !==
-					lastProgress = aCurTotalProgress;
-					job.downloadProgress = aCurTotalProgress/aMaxTotalProgress;
-					updateJobState(job);
-				}
-			}
-		};
-		
-		let nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
-					.createInstance(Components.interfaces.nsIURL);
-		nsIURL.spec = job.pdfurl;
-		
+		let localfile = false;
 		try {
-			wbp.saveURI(nsIURL, null, null, null, null, destFile);
-		} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
-			// https://bugzilla.mozilla.org/show_bug.cgi?id=794602
-			//TODO: Always use when we no longer support Firefox < 18
-			wbp.saveURI(nsIURL, null, null, null, null, destFile, null);
+			// Test if the url points to a local file
+			let ios = Components.classes["@mozilla.org/network/io-service;1"]
+						.getService(Components.interfaces.nsIIOService);
+			var origfile = ios.newURI(job.pdfurl, null, null).QueryInterface(Components.interfaces.nsIFileURL).file;
+			localfile = true;
+		} catch (e) {
+			// Not a local file. That's ok.
 		}
 		
-		yield deferred.promise;
+		if (localfile) {
+			// Copy the original file to a new location to make sure the
+			// file path is short (otherwise problems on OS X when running
+			// k2pdfopt command) and does not contain weird characters.
+			
+			let destDir = destFile.parent;
+			let destName = destFile.leafName;
+			destFile.remove(false);
+			origfile.copyTo(destDir, destName);
+		} else {
+			// Not a local file; download it.
+			
+			let deferred = Promise.defer();
+			
+			const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
+			let wbp = Components
+				.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
+				.createInstance(nsIWBP);
+			wbp.persistFlags = nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
+			
+			let lastProgress = 0;
+			wbp.progressListener = {
+				onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
+					if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
+						deferred.resolve();
+					}
+				},
+				onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
+					if (aMaxTotalProgress!=0 && aCurTotalProgress>lastProgress) {	// no typo, we really want to use != instead of !==
+						lastProgress = aCurTotalProgress;
+						job.downloadProgress = aCurTotalProgress/aMaxTotalProgress;
+						updateJobState(job);
+					}
+				}
+			};
+			
+			try {
+				wbp.saveURI(nsIURL, null, null, null, null, destFile);
+			} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
+				// https://bugzilla.mozilla.org/show_bug.cgi?id=794602
+				//TODO: Always use when we no longer support Firefox < 18
+				wbp.saveURI(nsIURL, null, null, null, null, destFile, null);
+			}
+			
+			yield deferred.promise;
+		}
 	}
 	
 	

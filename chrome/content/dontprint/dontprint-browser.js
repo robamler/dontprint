@@ -133,13 +133,9 @@ DontprintBrowser = (function() {
 		let url = gBrowser.selectedBrowser.contentDocument.location.href;
 		
 		if (gBrowser.selectedBrowser.contentDocument.contentType.toLowerCase() === "application/pdf") {
-			let title = decodeURIComponent(url.match(/([^/]*?)(\.pdf)?([?#].*)?$/i)[1]);
-			if (!title) {
-				title = "Untitled document";
-			}
 			Dontprint.runJob({
 				jobType:			"pdfurl",
-				title:				title,
+				title:				'Unknown title',
 				forceCropWindow:	!!forceCropWindow,
 				pdfurl:				url,
 				identifierurl:		url,
