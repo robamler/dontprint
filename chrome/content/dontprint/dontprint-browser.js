@@ -9,6 +9,7 @@ DontprintBrowser = (function() {
 	var isInPrivateBrowsingMode = false;
 	var registeredZoteroButtons = [];
 	
+	const itemTypeBlacklist = ["multiple", "blogPost", "forumPost", "presentation", "webpage"];
 	
 	// PUBLIC FUNCTIONS ===========================================	
 	
@@ -294,7 +295,7 @@ DontprintBrowser = (function() {
 				let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
 				if (tab && tab.page.translators && tab.page.translators.length) {
 					let itemType = tab.page.translators[0].itemType;
-					if (itemType !== "multiple") {
+					if (itemType && itemTypeBlacklist.indexOf(itemType) === -1) {
 						showDontprintIcon = true;
 					}
 				}
