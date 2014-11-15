@@ -334,14 +334,11 @@ $("#transferMethodEmail,#transferMethodDirectory").prop("checked", false);
 $("#transferMethodEmail").click(function() {
 	$("#transferMethodEmailContainer").slideDown();
 	$("#transferMethodDirectoryContainer").slideUp();
-	$("#acceptstep3").removeAttr("disabled");
 });
 $("#transferMethodDirectory").click(function() {
 	$("#transferMethodEmailContainer").slideUp();
 	$("#transferMethodDirectoryContainer").slideDown();
-	$("#acceptstep3").removeAttr("disabled");
 });
-$("#acceptstep3").prop("disabled", true);
 
 
 $("#email-suffix").change(emailSuffixChange);
@@ -430,12 +427,8 @@ function updateProgressBar(progress) {
 	);
 }
 
-$("#acceptstep3").click(function() {
+$("#acceptstep3a,#acceptstep3b").click(function() {
 	if (!saveStep3Prefs()) {
-		return false;
-	}
-	if ($("input[name='transferMethodChoice']:checked").val() === "email" && !emailVerified) {
-		alert("You have to verify your e-reader's e-mail address before you can continue. Alternatively, you can choose to save documents to a directory of your choice instead of sending them per e-mail.");
 		return false;
 	}
 	
@@ -453,7 +446,7 @@ $("#sendVerificationCodeBtn").click(function() {
 	}
 	$("#sendVerificationCodeBtn").attr("disabled", "disabled");
 	$("#verificationCodeProgress").text("Sending verification code to " + Dontprint.getRecipientEmail() + ". Please wait...").slideDown();
-	$("#verificationCodeInputLine").slideDown();
+	$("#verificationCodeInputLine,#verificationCodeWaitMessage").slideDown();
 	$("#verificationCode").val("").focus();
 	Dontprint.sendVerificationCode(
 		function success(email, returncode, message) {
@@ -461,10 +454,11 @@ $("#sendVerificationCodeBtn").click(function() {
 				$("#verificationCodeProgress").text("Verification code sent. Please wait until the document arrives on your e-reader and then enter the code below. You may have to manually select \"Sync\" on your device.");
 				$("#sendVerificationCodeBtn").removeAttr("disabled").text("Resend verification code");
 			} else if (returncode === 1) {
-				$("#verificationCodeProgress").text("The e-mail address had already been verified before. Click \"Accept and finish\" below to conclude the setup.");
+				$("#verificationCodeProgress").text("The e-mail address had already been verified before. There is no need to reverify. Click \"Accept and finish\" below to conclude the setup.");
 				$("#verificationCodeInputLine").slideUp();
 				emailVerified = true;
 				Dontprint.rememberVerifiedEmail(email);
+				$("#acceptstep3aContainer").slideDown();
 			}
 		},
 		function error(email, errno, message) {
@@ -495,7 +489,8 @@ $("#verifyEmailBtn").click(function() {
 		function success(email, returncode, message) {
 			emailVerified = true;
 			Dontprint.rememberVerifiedEmail(email);
-			$("#verificationCodeProgress").text("E-mail address successfully verified. Click \"Accept and finish\" below to conclude the setup.");
+			$('#steps').slideUp();
+			$('#congrats').slideDown();
 		},
 		function error(email, errno, message) {
 			$("#verifyEmailBtn").removeAttr("disabled");
