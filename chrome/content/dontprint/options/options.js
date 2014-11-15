@@ -46,11 +46,12 @@ function onUnload() {
 		} catch (e) { }
 	}
 	document.getElementById("deviceIframe").contentWindow.screenSettingsChange();
-	if (
-		Dontprint.getPrefs().getCharPref("kindleModel") !== "other" &&
-		document.getElementById("deviceIframe").contentWindow.document.getElementById("sendScreenSettigns").checked
-	) {
-		Dontprint.reportScreenSettings();
+	if (document.getElementById("deviceIframe").contentWindow.document.getElementById("sendScreenSettigns").checked) {
+		var modelname = null;
+		if (Dontprint.getPrefs().getCharPref("kindleModel") === "other") {
+			modelname = "other:" + document.getElementById("deviceIframe").contentWindow.document.getElementById("otherEreaderModelInput").value;
+		}
+		Dontprint.reportScreenSettings(modelname);
 	}
 	journalFilters = null;	// free memory
 	return true;

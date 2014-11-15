@@ -5,7 +5,6 @@
 <link rel="stylesheet" type="text/css" href="../model-picker.css">
 <style type="text/css">
 body{font:message-box}
-
 .choice{margin:1em 0em 1em 1em}
 .hint{margin:0.1em 0 1em 0; color:#333; font-size:90%}
 #platform{font-style:italic}
@@ -27,6 +26,8 @@ table{border-collapse:collapse}
 th,td{padding:0 0.5em 0.2ex 0}
 #image-copyright{opacity:0.5; font-size:70%; text-align:right; margin-bottom:2ex}
 a{text-decoration:underline;color:#000088}
+#sendScreenSettingsOtherContainer{opacity:0.8; margin-left:1.5em; display:none}
+#otherEreaderModelInput{width:15em}
 </style>
 
 <script src="../jquery-1.9.1.min.js"></script>
@@ -58,12 +59,23 @@ function modelSelectListener(modelName) {
 		var modelDefaults = Dontprint.EREADER_MODEL_DEFAULTS[modelName];
 		$('#model-result-text').text(model.label);
 		if (modelName==="other") {
-			$('#recomendations,#sendScreenSettignsContainer').hide();
+			$('#recomendations').hide();
+			if ($('#sendScreenSettigns').prop("checked")) {
+				$('#sendScreenSettingsOtherContainer').slideDown(
+					400,
+					function() {
+						changeHeightListener(0);
+						$('#otherEreaderModelInput').focus();
+					}
+				);
+			}
 		} else {
 			$('#recommendedWidth').text(modelDefaults.w);
 			$('#recommendedHeight').text(modelDefaults.h);
 			$('#recommendedPpi').text(modelDefaults.ppi);
-			$('#recomendations,#sendScreenSettignsContainer').show();
+			$('#recomendations').show();
+			$('#sendScreenSettingsOtherContainer').slideUp();
+			$('#otherEreaderModelInput').val("");
 		}
 		var userSettings = modelSettings[modelName] ? modelSettings[modelName] : modelDefaults;
 		$('#widthinput').val(userSettings.w);
@@ -204,14 +216,32 @@ $('#sendTestEmailButton').click(function() {
 
 
 $('#sendScreenSettingsDetails').click(function() {
+	var model = ModelPicker.selection === "other" ? "other (" + ($('#otherEreaderModelInput').val() === "" ? "unknown" : $('#otherEreaderModelInput').val()) + ")" : ModelPicker.models[ModelPicker.selection].label;
 	alert(
 		"If you check this box, Dontprint will send the following data to its developer:" +
-		"\n - e-reader model: " + ModelPicker.models[ModelPicker.selection].label +
+		"\n - e-reader model: " + model +
 		"\n - width: " + $('#widthinput').val() +
 		"\n - height: " + $('#heightinput').val() + 
 		"\n - pixels per inch: " + $('#ppiinput').val() +
 		"\n\nDontprint will NOT send any personal data (such as e-mail addresses)."
 	);
+});
+
+$('#sendScreenSettigns').change(function() {
+	if (ModelPicker.selection === "other") {
+		if ($(this).prop("checked")) {
+			$('#sendScreenSettingsOtherContainer').slideDown(
+				400,
+				function() {
+					changeHeightListener(0);
+					$('#otherEreaderModelInput').focus();
+				}
+			);
+		} else {
+			$('#sendScreenSettingsOtherContainer').slideUp();
+			$('#otherEreaderModelInput').val("");
+		}
+	}
 });
 
 });
@@ -237,7 +267,8 @@ $('#sendScreenSettingsDetails').click(function() {
 		</tr>
 	</table>
 	<input type="button" id="sendTestEmailButton" value="Help me find out the correct document size...">
-	<div id="sendScreenSettignsContainer"><input type="checkbox" id="sendScreenSettigns"><label for="sendScreenSettigns">Send the above settings anonymously to the developer of Dontprint to help improve future versions (<a id="sendScreenSettingsDetails" href="#">details</a>).</label></div>
+	<div><input type="checkbox" id="sendScreenSettigns"><label for="sendScreenSettigns">Send the above settings anonymously to the developer of Dontprint to help improve future versions (<a id="sendScreenSettingsDetails" href="#">details</a>).</label>
+	<div id="sendScreenSettingsOtherContainer">Please provide your e-reader model (e.g. "Kobo Mini"): <input type="text" id="otherEreaderModelInput"/></div></div>
 </div>
 
 <div id="heightMeasurer"></div>

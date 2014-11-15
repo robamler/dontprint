@@ -191,12 +191,12 @@ function Dontprint() {
 	}
 	
 	
-	function reportScreenSettings() {
+	function reportScreenSettings(modelname) {
 		let dims = getScreenDimensions();
 		let url = buildURL(
 			'https://docs.google.com/forms/d/1YCclhAjI9iDOf9tQybcJuW4QYM8Ayr1K6HB8894GfrI/formResponse?draftResponse=[]%0D%0A&pageHistory=0',
 			{
-				'entry.1501323902':	prefs.getCharPref("kindleModel"),
+				'entry.1501323902':	modelname ? modelname : prefs.getCharPref("kindleModel"),
 				'entry.1922726083':	dims.w,
 				'entry.651002044':	dims.h,
 				'entry.2016260998':	dims.ppi
