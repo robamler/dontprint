@@ -182,8 +182,6 @@ $(function() {
 	}
 
 	function loadpdf(path) {
-	//    PDFJS.disableWorker = true;
-		PDFJS.workerSrc = 'combined-pdf.js'
 		PDFJS.getDocument("file://" + path).then(function(loadedpdf) {
 			pdf = loadedpdf;
 			pagecount = pdf.numPages;
