@@ -85,35 +85,33 @@ Zotero.Translate.Dontprint.prototype.downloadPdfAttachment = function(url, cooki
 		throw "canceled";
 	}
 	
-	const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
-	this.wbp = Components
-		.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
-		.createInstance(nsIWBP);
-	this.wbp.persistFlags = nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
-	
+	Components.utils.import("resource://gre/modules/Downloads.jsm");
+	Components.utils.import("resource://gre/modules/Task.jsm");
 	var that = this;
-	this.wbp.progressListener = {
-		onProgressChange: that.progressHandler,
-		onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
-			if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
-				delete that.wbp;
-				if (that.attachDoneHandler)
-					that.attachDoneHandler();
+
+	Task.spawn(function() {
+		var success = false;
+		try {
+			that.download = yield Downloads.createDownload({source: url, target: that.destFile});
+			that.download.onchange = function() {
+				that.progressHandler(that.download.progress/100);
+			};
+
+			yield that.download.start();
+			success = true;
+		} catch(e) {
+			that.errorHandler("Error downloading the PDF file. Maybe you have to sign in to the journal website or the article is behind a captcha. Original error message: " + e.toString());
+		} finally {
+			if (that.download) {
+				that.download.onchange = undefined;
+				that.download.finalize();
 			}
 		}
-	};
-	
-	if(cookieSandbox) cookieSandbox.attachToInterfaceRequestor(this.wbp);
-	var nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
-				.createInstance(Components.interfaces.nsIURL);
-	nsIURL.spec = url;
-	try {
-		this.wbp.saveURI(nsIURL, null, null, null, null, this.destFile);
-	} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
-		// https://bugzilla.mozilla.org/show_bug.cgi?id=794602
-		//TODO: Always use when we no longer support Firefox < 18
-		this.wbp.saveURI(nsIURL, null, null, null, null, this.destFile, null);
-	}
+		
+		if (success && that.attachDoneHandler) {
+			that.attachDoneHandler();
+		}
+	});
 };
 
 /**
@@ -152,7 +150,9 @@ Zotero.Translate.Dontprint.prototype.setErrorHandler = function(errorHandler) {
  */
 Zotero.Translate.Dontprint.prototype.abort = function() {
 	this.canceled = true;
-	if (this.wbp !== undefined) {
-		this.wbp.cancelSave();
+	if (this.download !== undefined) {
+		try {
+			this.download.finalize(true);
+		} catch (e) { }
 	}
 };

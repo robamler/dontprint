@@ -34,6 +34,7 @@ function Dontprint() {
 		Components.utils.import("resource://EXTENSION/subprocess.jsm");
 		Components.utils.import("resource://gre/modules/AddonManager.jsm");
 		Components.utils.import("resource://gre/modules/Timer.jsm");
+		Components.utils.import("resource://gre/modules/Downloads.jsm");
 		try {
 			// Gecko >= 25
 			Components.utils.import("resource://gre/modules/Promise.jsm");
@@ -454,55 +455,45 @@ function Dontprint() {
 		let destFile = FileUtils.getFile("ProfD", ["dontprint", leafFilename]);
 		// create *executable* file (if on unix)
 		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0775); // octal value --> don't remove leading zero!
-		let k2pdfoptPath = destFile.path;
-		
-		const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
-		let wbp = Components
-			.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
-			.createInstance(nsIWBP);
-		wbp.persistFlags = nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
-		
-		let progressListener = {
-			onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
-				if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
-					detectK2pdfoptVersion(
-						k2pdfoptPath,
-						function onDownloadSuccess() {
-							prefs.setCharPref("k2pdfoptPath", k2pdfoptPath);
-							if (onSuccess) {
-								onSuccess();
-							}
-						},
-						function onOutdated() { }, //TODO error handling
-						function onNotFound() { }, //TODO liston on connection restore
-						function onError(errstr) { } //TODO error handling
-					);
+
+		Task.spawn(function() {
+			try {
+				var download = yield Downloads.createDownload({
+					source: "http://dontprint.net/k2pdfopt/" + platform + "/" + leafFilename,
+					target: destFile
+				});
+				if (onProgress) {
+					download.onchange = function() {
+						onProgress(download.progress/100);
+					};
+				}
+
+				yield download.start();
+
+				// Original file permissions seem to be overwritten, so we have to reset them here
+				destFile.permissions = 0775; // octal value --> don't remove leading zero!
+
+				detectK2pdfoptVersion(
+					destFile.path,
+					function onDownloadSuccess() {
+						prefs.setCharPref("k2pdfoptPath", destFile.path);
+						if (onSuccess) {
+							onSuccess();
+						}
+					},
+					function onOutdated() { }, //TODO error handling
+					function onNotFound() { }, //TODO liston on connection restore
+					function onError(errstr) { } //TODO error handling
+				);
+			} catch(e) {
+				// TODO: error handling
+			} finally {
+				if (download) {
+					download.onchange = undefined;
+					download.finalize();
 				}
 			}
-		};
-		
-		if (onProgress) {
-			let lastProgress = 0;
-			progressListener.onProgressChange = function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
-				if (aMaxTotalProgress!=0 && aCurTotalProgress>lastProgress) {	// no typo, we really want to use != instead of !==
-					lastProgress = aCurTotalProgress;
-					onProgress(aCurTotalProgress/aMaxTotalProgress);
-				}
-			};
-		}
-		
-		wbp.progressListener = progressListener;
-		
-		let nsIURL = Components.classes["@mozilla.org/network/standard-url;1"]
-					.createInstance(Components.interfaces.nsIURL);
-		nsIURL.spec = "http://dontprint.net/k2pdfopt/" + platform + "/" + leafFilename;
-		try {
-			wbp.saveURI(nsIURL, null, null, null, null, destFile);
-		} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
-			// https://bugzilla.mozilla.org/show_bug.cgi?id=794602
-			//TODO: Always use when we no longer support Firefox < 18
-			wbp.saveURI(nsIURL, null, null, null, null, destFile, null);
-		}
+		});
 	}
 	
 	
@@ -735,12 +726,9 @@ function Dontprint() {
 		});
 		
 		var lastProgress = 0;
-		translate.setProgressHandler(function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
-			if (aMaxTotalProgress!=0 && aCurTotalProgress>lastProgress) {	// no typo, we really want to use != instead of !==
-				lastProgress = aCurTotalProgress;
-				job.downloadProgress = aCurTotalProgress/aMaxTotalProgress;
-				updateJobState(job);
-			}
+		translate.setProgressHandler(function(progress) {
+			job.downloadProgress = progress;
+			updateJobState(job);
 		});
 		
 		translate.setErrorHandler(function(e) {
@@ -836,39 +824,22 @@ function Dontprint() {
 		} else {
 			// Not a local file; download it.
 			
-			let deferred = Promise.defer();
-			
-			const nsIWBP = Components.interfaces.nsIWebBrowserPersist;
-			let wbp = Components
-				.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
-				.createInstance(nsIWBP);
-			wbp.persistFlags = nsIWBP.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
-			
-			let lastProgress = 0;
-			wbp.progressListener = {
-				onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
-					if (aStateFlags & Components.interfaces.nsIWebProgressListener.STATE_STOP) {
-						deferred.resolve();
-					}
-				},
-				onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress) {
-					if (aMaxTotalProgress!=0 && aCurTotalProgress>lastProgress) {	// no typo, we really want to use != instead of !==
-						lastProgress = aCurTotalProgress;
-						job.downloadProgress = aCurTotalProgress/aMaxTotalProgress;
-						updateJobState(job);
-					}
-				}
-			};
-			
 			try {
-				wbp.saveURI(nsIURL, null, null, null, null, destFile);
-			} catch(e if e.name === "NS_ERROR_XPC_NOT_ENOUGH_ARGS") {
-				// https://bugzilla.mozilla.org/show_bug.cgi?id=794602
-				//TODO: Always use when we no longer support Firefox < 18
-				wbp.saveURI(nsIURL, null, null, null, null, destFile, null);
+				var download = yield Downloads.createDownload({source: job.pdfurl, target: destFile});
+				download.onchange = function() {
+					job.downloadProgress = download.progress/100;
+					updateJobState(job);
+				};
+
+				yield download.start();
+			} catch(e) {
+				throw "Unable to download the PDF file. Are you connected to the internet? Original error message: " + e.toString();
+			} finally {
+				if (download) {
+					download.onchange = undefined;
+					download.finalize();
+				}
 			}
-			
-			yield deferred.promise;
 		}
 	}
 	
