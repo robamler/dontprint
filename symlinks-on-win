@@ -1,0 +1,5 @@
+symlinks=`git ls-files -s | awk '/120000/{print $4}'`
+
+for i in $symlinks; do orig="$(dirname $i)/$(cat $i)"; rm -r $i; cp -r $orig $i; git update-index --assume-unchanged $i; done
+
+# To undo the update-index stuff: git co -- .
