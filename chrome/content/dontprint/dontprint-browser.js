@@ -72,6 +72,22 @@ window.DontprintBrowser = (function() {
 			}
 		}, false, true);
 
+		gBrowser.addEventListener("GetDontprintVersion", function(e) {
+			if (
+				e.originalTarget.ownerDocument instanceof HTMLDocument &&
+				e.originalTarget.ownerDocument.location.hostname === "dontprint.net"
+			) {
+				Components.utils.import("resource://gre/modules/AddonManager.jsm");
+				AddonManager.getAddonByID("dontprint@robamler.github.com", function(addon) {
+					e.originalTarget.dispatchEvent(
+						new e.originalTarget.ownerDocument.defaultView.CustomEvent(
+							"DontprintVersionEvent", {detail: addon.version}
+						)
+					);
+				});
+			}
+		}, false, true);
+
 		// Test whether Zotero is installed
 		Dontprint.isZoteroInstalled().then(function(haszotero) {
 			zoteroInstalled = haszotero;
