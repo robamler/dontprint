@@ -39,7 +39,8 @@ function onLoad() {
 function onUnload() {
 	var savePromise = saveOldSelection();
 	if (savePromise !== undefined) {
-		savePromise.then(conn.close, conn.close);
+		// Just passing conn.close() won't work (throws: "this" is undefined)
+		savePromise.then(function() {conn.close();}, function() {conn.close();});
 	} else {
 		try {
 			conn.close();
