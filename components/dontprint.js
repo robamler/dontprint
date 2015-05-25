@@ -1217,7 +1217,7 @@ function Dontprint() {
 		var filesize = file.fileSize;
 		var stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
 					.createInstance(Components.interfaces.nsIFileInputStream);
-		stream.init(file, 0x04 | 0x08, 0644, 0x04);
+		stream.init(file, 0x04 | 0x08, 420, 0x04);  // octal representation of 420: 644
 		
 		// Use XHR to send POST data because sending POST data directly to a new
 		// tab will freeze the interface and change the tab's title to "Connecting",
