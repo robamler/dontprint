@@ -10,6 +10,7 @@ function Dontprint() {
 	var queuelength = 0;
 	var prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
 					.getService(Components.interfaces.nsIPromptService);
+	var console;
 	
 	const EREADER_MODEL_DEFAULTS = {
 		'paperwhite':		{w: 718,  h: 963,  ppi: 212},
@@ -37,6 +38,7 @@ function Dontprint() {
 		Components.utils.import("resource://gre/modules/AddonManager.jsm");
 		Components.utils.import("resource://gre/modules/Timer.jsm");
 		Components.utils.import("resource://gre/modules/Downloads.jsm");
+		console = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {}).console;
 		try {
 			// Gecko >= 25
 			Components.utils.import("resource://gre/modules/Promise.jsm");
@@ -74,7 +76,7 @@ function Dontprint() {
 		// Initialize database in file "dontprint/db3.sqlite" in the profile directory
 		// FileUtils.getFile() creates the directory (but not the file) if necessary
 		let dbfile = FileUtils.getFile("ProfD", ["dontprint", "db3.sqlite"]);
-		databasePath = dbfile.path
+		databasePath = dbfile.path;
 		
 		Task.spawn(function() {
 			try {
@@ -99,6 +101,11 @@ function Dontprint() {
 	}
 	
 	
+	function debug(msg) {
+		console.log("Dontprint: " + msg);
+	}
+
+
 	function updateDatabase(conn) {
 		let context = {};
 		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
@@ -1642,6 +1649,7 @@ function Dontprint() {
 	
 	this.wrappedJSObject = {
 		init: init,
+		debug: debug,
 		validatePreferences: validatePreferences,
 		dontprintZoteroItems: dontprintZoteroItems,
 		runJob: runJob,

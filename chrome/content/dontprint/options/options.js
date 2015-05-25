@@ -521,7 +521,7 @@ function saveOldSelection() {
 	// otherwise delete builtin journals without a reason and also update
 	// the lastModified timestamp.)
 	var equal = true;
-	for (key in selectedFilter) {
+	for (var key in selectedFilter) {
 		// we really need != and not !== here because Sqlite returns everything as string
 		if (originalSelectedFilter[key] != selectedFilter[key]) {
 			equal = false;
