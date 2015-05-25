@@ -1,5 +1,6 @@
 function Dontprint() {
 	const DATABASE_VERSION = 20141206;
+	var prefs;
 	var k2pdfoptTestTimeout;
 	var databasePath = null;
 	var zoteroInstalled = undefined;
