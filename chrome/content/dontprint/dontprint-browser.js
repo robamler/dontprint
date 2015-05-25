@@ -100,6 +100,8 @@ window.DontprintBrowser = (function() {
 					updateDontprintIconVisibility();
 				};
 			} else {
+				window.Zotero = Components.classes["@robamler.github.com/minimal-zotero;1"]
+						.getService(Components.interfaces.nsISupports).wrappedJSObject;
 				const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
 								.getService(Components.interfaces.mozIJSSubScriptLoader);
 				loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/browser.js");
