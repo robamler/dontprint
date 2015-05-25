@@ -461,7 +461,7 @@ function Dontprint() {
 		let leafFilename = platform.substr(0,4)==="win_" ? "k2pdfopt.exe" : "k2pdfopt";
 		let destFile = FileUtils.getFile("ProfD", ["dontprint", leafFilename]);
 		// create *executable* file (if on unix)
-		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0775); // octal value --> don't remove leading zero!
+		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 509); // octal representation: 775
 
 		Task.spawn(function() {
 			try {
@@ -478,7 +478,7 @@ function Dontprint() {
 				yield download.start();
 
 				// Original file permissions seem to be overwritten, so we have to reset them here
-				destFile.permissions = 0775; // octal value --> don't remove leading zero!
+				destFile.permissions = 509; // octal representation: 775
 
 				detectK2pdfoptVersion(
 					destFile.path,
@@ -893,8 +893,8 @@ function Dontprint() {
 			sqlresult = longnameresult;
 		} else {
 			// found match for both longname and shortname
-			let spriority = parseFloat(shortnameresult[0].getResultByName("priority")) + 01000;
-			let lpriority = parseFloat(longnameresult[0].getResultByName("priority")) + 010000;
+			let spriority = parseFloat(shortnameresult[0].getResultByName("priority")) + 0x200;
+			let lpriority = parseFloat(longnameresult[0].getResultByName("priority")) + 0x1000;
 			sqlresult = spriority > lpriority ? shortnameresult : longnameresult;
 		}
 		
@@ -1023,21 +1023,21 @@ function Dontprint() {
 				yield deleteJournalSettings(conn, crop.id, true);
 			}
 			
-			// determine priority (octal values --> don't remove leading zero!)
+			// determine priority (used to be octal values, therefore increment by factor of 8)
 			crop.priority = (
 				// If enabled===false, then the filter should be regarded as deleted.
 				// It will only be used as a suggestion and only if no other filter matches.
-				(crop.enabled					?  010000000 : 0)
+				(crop.enabled					?  0x200000 : 0)
 				// Setting minDate and/or maxDate increases the specificity of the filter
-				+ (crop.minDate !== 0			?   01000000 : 0)
-				+ (crop.maxDate !== 0			?   01000000 : 0)
+				+ (crop.minDate !== 0			?   0x40000 : 0)
+				+ (crop.maxDate !== 0			?   0x40000 : 0)
 				// If two filters are equally specific, then custom filters have priority over builtin ones; this function only inserts custom filters
-				+ 								     0100000
-				// longname matches:                  010000 (set in cropMargins())
-				// shortname matches:                  01000 (set in cropMargins())
+				+ 								     0x8000
+				// longname matches:                 0x1000 (set in cropMargins())
+				// shortname matches:                 0x200 (set in cropMargins())
 				// If there's still a tie, then use the more cautious filter.
-				+ (!crop.coverpage				?       0100 : 0)
-				+ (crop.k2pdfoptParams !== ""	?        010 : 0)
+				+ (!crop.coverpage				?      0x40 : 0)
+				+ (crop.k2pdfoptParams !== ""	?       0x8 : 0)
 			);
 			
 			// Synthesize sql query (this is necessary because conn.execute() fails if
@@ -1287,7 +1287,7 @@ function Dontprint() {
 		}
 		
 		destFile.append(job.finalFilename);
-		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 0775); // octal value --> don't remove leading zero!
+		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 509); // octal representation: 775
 		
 		try {
 			// TODO: moving the file should really be done asynchronously
