@@ -75,7 +75,8 @@ window.DontprintBrowser = (function() {
 		gBrowser.addEventListener("GetDontprintVersion", function(e) {
 			if (
 				e.originalTarget.ownerDocument instanceof HTMLDocument &&
-				e.originalTarget.ownerDocument.location.hostname === "dontprint.net"
+				(e.originalTarget.ownerDocument.location.hostname === "dontprint.net" ||
+				e.originalTarget.ownerDocument.location.hostname === "www.dontprint.net")
 			) {
 				Components.utils.import("resource://gre/modules/AddonManager.jsm");
 				AddonManager.getAddonByID("dontprint@robamler.github.com", function(addon) {
