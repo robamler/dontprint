@@ -1,4 +1,4 @@
-DontprintBrowser = (function() {
+window.DontprintBrowser = (function() {
 	var dontprintThisPageImg = null;
 	var dontprintProgressImg = null;
 	var dontprintFromZoteroBtn = null;
@@ -8,6 +8,7 @@ DontprintBrowser = (function() {
 	var alreadyProcessing = false;
 	var isInPrivateBrowsingMode = false;
 	var registeredZoteroButtons = [];
+	var zoteroInstalled = undefined;
 	
 	const itemTypeBlacklist = ["multiple", "blogPost", "forumPost", "presentation", "webpage"];
 	
@@ -25,41 +26,8 @@ DontprintBrowser = (function() {
 		
 		dontprintThisPageImg = document.getElementById("dontprint-status-image");
 		dontprintProgressImg = document.getElementById("dontprint-progress-image");
-		
-		if (Dontprint.isZoteroInstalled()) {
-			// Programmatically insert a "Dontprint" button into the Zotero pane
-			dontprintFromZoteroBtn = document.createElement("toolbarbutton");
-			dontprintFromZoteroBtn.setAttribute("id", "dontprint-zotero-tbbtn");
-			dontprintFromZoteroBtn.setAttribute("class", "zotero-tb-button dontprint-icon");
-			dontprintFromZoteroBtn.setAttribute("tooltiptext", "Dontprint attached PDF (send to e-reader); right-click for more options");
-			dontprintFromZoteroBtn.setAttribute("context", "dontprint-zotero-btn-context");
-			dontprintFromZoteroBtn.addEventListener("command", dontprintZoteroSelection);
-			
-			let toolbar = document.getElementById("zotero-items-toolbar");
-			let searchBtn = document.getElementById("zotero-tb-advanced-search");
-			toolbar.insertBefore(dontprintFromZoteroBtn, searchBtn);
-			toolbar.insertBefore(document.createElement("toolbarseparator"), searchBtn);
-			
-			// Inject some own code into Zotero's updateStatus() function. This function
-			// is called to show or hide the "scrape this"-icon in the address bar.
-			// We first call the original Zotero implemntation and then add our own icon.
-			let oldUpdateStatus = Zotero_Browser.updateStatus;
-			Zotero_Browser.updateStatus = function() {
-				oldUpdateStatus.apply(Zotero_Browser, arguments);
-				updateDontprintIconVisibility();
-			};
-		} else {
-			// Initialize the included Zotero xpcom module
-			Zotero = Components.classes["@robamler.github.com/minimal-zotero;1"]
-				.getService(Components.interfaces.nsISupports).wrappedJSObject;
-			const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-							.getService(Components.interfaces.mozIJSSubScriptLoader);
-			loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/browser.js");
-			
-			// Register a listener to changes in the visibility of the "Dontprint this page" icon
-			Zotero_Browser.updateStatusCallback = updateDontprintIconVisibility;
-		}
-		
+
+		// Add event listener types for result pages
 		gBrowser.addEventListener("DontprintResultPageCallbackEvent", function(e) {
 			if (
 				e.originalTarget instanceof HTMLDocument &&
@@ -103,6 +71,45 @@ DontprintBrowser = (function() {
 				}
 			}
 		}, false, true);
+
+		// Test whether Zotero is installed
+		Dontprint.isZoteroInstalled().then(function(haszotero) {
+			zoteroInstalled = haszotero;
+			if (zoteroInstalled) {
+				// Programmatically insert a "Dontprint" button into the Zotero pane
+				dontprintFromZoteroBtn = document.createElement("toolbarbutton");
+				dontprintFromZoteroBtn.setAttribute("id", "dontprint-zotero-tbbtn");
+				dontprintFromZoteroBtn.setAttribute("class", "zotero-tb-button dontprint-icon");
+				dontprintFromZoteroBtn.setAttribute("tooltiptext", "Dontprint attached PDF (send to e-reader); right-click for more options");
+				dontprintFromZoteroBtn.setAttribute("context", "dontprint-zotero-btn-context");
+				dontprintFromZoteroBtn.addEventListener("command", dontprintZoteroSelection);
+				
+				let toolbar = document.getElementById("zotero-items-toolbar");
+				let searchBtn = document.getElementById("zotero-tb-advanced-search");
+				toolbar.insertBefore(dontprintFromZoteroBtn, searchBtn);
+				toolbar.insertBefore(document.createElement("toolbarseparator"), searchBtn);
+				
+				// Inject some own code into Zotero's updateStatus() function. This function
+				// is called to show or hide the "scrape this"-icon in the address bar.
+				// We first call the original Zotero implemntation and then add our own icon.
+				// TODO: How can we be sure that this is called *after* Zotero_Browser is initialized?
+				// (Seems to work, though.)
+				let oldUpdateStatus = Zotero_Browser.updateStatus;
+				Zotero_Browser.updateStatus = function() {
+					oldUpdateStatus.apply(Zotero_Browser, arguments);
+					updateDontprintIconVisibility();
+				};
+			} else {
+				const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+								.getService(Components.interfaces.mozIJSSubScriptLoader);
+				loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/browser.js");
+
+				// Register a listener to changes in the visibility of the "Dontprint this page" icon
+				Zotero_Browser.updateStatusCallback = updateDontprintIconVisibility;
+			}
+
+			updateDontprintIconVisibility();
+		});
 	}
 	
 	
@@ -232,7 +239,7 @@ DontprintBrowser = (function() {
 	function updateQueueLength(queuelength) {
 		clearInterval(idleAnimationTimer);
 		if (queuelength === 0) {
-			if (Dontprint.isZoteroInstalled()) {
+			if (zoteroInstalled) {
 				dontprintFromZoteroBtn.style.MozImageRegion = "rect(0px 16px 16px 0px)";
 			}
 			dontprintProgressImg.style.MozImageRegion = "rect(0px 16px 16px 0px)";
@@ -252,7 +259,7 @@ DontprintBrowser = (function() {
 			];
 			let animationState = 0;
 			let timerfunc = function() {
-				if (Dontprint.isZoteroInstalled()) {
+				if (zoteroInstalled) {
 					dontprintFromZoteroBtn.style.MozImageRegion = cliprect[animationState];
 				}
 				dontprintProgressImg.style.MozImageRegion = cliprect[animationState];

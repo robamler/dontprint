@@ -2,7 +2,7 @@ function Dontprint() {
 	const DATABASE_VERSION = 20141206;
 	var k2pdfoptTestTimeout;
 	var databasePath = null;
-	var zoteroInstalled = false;
+	var zoteroInstalled = undefined;
 	var queuedUrls = [];
 	var runningJobs = {};
 	var progressListeners = {};
@@ -94,63 +94,70 @@ function Dontprint() {
 		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
 						.getService(Components.interfaces.mozIJSSubScriptLoader);
 		loader.loadSubScript("chrome://dontprint/content/post-translation.js");
-		
-		// Detect whether Zotero is installed and finish inialization based on that
-		AddonManager.getAddonByID("zotero@chnm.gmu.edu", function(addon) {
-			if (addon && addon.isActive) {
-				initWithZotero();
-			} else {
-				initWithoutZotero();
-			}
-		});
 	}
 	
 	
 	function updateDatabase(conn) {
-		let context = {}
+		let context = {};
 		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
 						.getService(Components.interfaces.mozIJSSubScriptLoader);
 		loader.loadSubScript("chrome://dontprint/content/updateDatabase.js", context, "UTF-8");
 		yield context.updateDatabase(conn, DATABASE_VERSION);
 	}
-	
-	
-	function initWithZotero() {
-		zoteroInstalled = true;
-		// Register this extension as an extension to Zotero
-		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-						.getService(Components.interfaces.mozIJSSubScriptLoader);
-		// Load Zotero's main extension logic (this is from Zotero's
-		// documentation on how to write a Zotero extension).
-		loader.loadSubScript("chrome://zotero/content/include.js");
-		// Load some code that was adapted from Zotero's source code and may
-		// only be loaded *after* loading Zotero's main extension logic.
-		loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/translate-dontprint.js");
+
+
+	/**
+	 * Checks asynchroneously whether the Zotero addon is installed and activated. Upon first call,
+	 * this also initializes the Zotero and the Zotero.Translate.Dontprint objects.
+	 * IMPORTANT: Must not be run during service registration because then the Zotero object may
+	 * not be registered yet.
+	 * @return Promise
+	 */
+	function isZoteroInstalled() {
+		var deferred = Promise.defer();
+
+		if (zoteroInstalled !== undefined) {
+			deferred.resolve(zoteroInstalled);
+		} else {
+			const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
+							.getService(Components.interfaces.mozIJSSubScriptLoader);
+
+			AddonManager.getAddonByID("zotero@chnm.gmu.edu", function(addon) {
+				if (addon && addon.isActive) {
+					zoteroInstalled = true;
+
+					// Load Zotero's main extension logic (this is from Zotero's
+					// documentation on how to write a Zotero extension).
+					loader.loadSubScript("chrome://zotero/content/include.js");
+				} else {
+					zoteroInstalled = false;
+
+					// Register URI alias "resource://zotero/...". The Zotero xpcom module expects this.
+					Components.utils.import("resource://gre/modules/Services.jsm");
+					var resProt = Services.io.getProtocolHandler("resource")
+									.QueryInterface(Components.interfaces.nsIResProtocolHandler);
+					var aliasURI = Components.classes["@mozilla.org/network/io-service;1"]
+									.getService(Components.interfaces.nsIIOService)
+									.newURI("chrome://dontprint/content/zotero-resource/", null, null);
+					resProt.setSubstitution("zotero", aliasURI);
+
+					// Initialize the included Zotero xpcom module
+					Zotero = Components.classes["@robamler.github.com/minimal-zotero;1"]
+						.getService(Components.interfaces.nsISupports).wrappedJSObject;
+				}
+
+				// Load Dontprint's own translator (may only be loaded *after* loading Zotero, regardless
+				// of whether we use an actual zotero plugin or the included Zotero xpcom module)
+				loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/translate-dontprint.js");
+
+				deferred.resolve(zoteroInstalled);
+			});
+		}
+
+		return deferred.promise;
 	}
-	
-	
-	function initWithoutZotero() {
-		// Register URI alias "resource://zotero/...". The Zotero xpcom module expects this.
-		Components.utils.import("resource://gre/modules/Services.jsm");
-		var resProt = Services.io.getProtocolHandler("resource")
-						.QueryInterface(Components.interfaces.nsIResProtocolHandler);
-		var aliasURI = Components.classes["@mozilla.org/network/io-service;1"]
-						.getService(Components.interfaces.nsIIOService)
-						.newURI("chrome://dontprint/content/zotero-resource/", null, null);
-		resProt.setSubstitution("zotero", aliasURI);
-		
-		// Initialize the included Zotero xpcom module
-		Zotero = Components.classes["@robamler.github.com/minimal-zotero;1"]
-			.getService(Components.interfaces.nsISupports).wrappedJSObject;
-		
-		// Load some code that was adapted from Zotero's code and that can
-		// only be loaded *after* the the Zotero xpcom module was initialized.
-		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-						.getService(Components.interfaces.mozIJSSubScriptLoader);
-		loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/translate-dontprint.js");
-	}
-	
-	
+
+
 	function validatePreferences() {
 		let platform = prefs.getCharPref("k2pdfoptPlatform");
 		let transferMethod = prefs.getCharPref("transferMethod");
@@ -668,6 +675,7 @@ function Dontprint() {
 	
 	function grabOriginalFileForCurrentTab(job) {
 		updateJobState(job, "downloading");
+
 		
 		if (!job.tab || !job.tab.page.translators || !job.tab.page.translators.length) {
 			throw "No translators available for this web site.";
@@ -1339,7 +1347,7 @@ function Dontprint() {
 		let transferMethod = prefs.getCharPref("transferMethod")==="email" ? "sendmail" : "savetodir";
 		let defaultInBackground = prefs.getBoolPref("successPageInBackground");
 		let url = "http://dontprint.net/resultpage/" + transferMethod + "/" + job.state + ".html#" + (defaultInBackground ? "1," : "0,") + job.id;
-		deferred = Promise.defer();
+		let deferred = Promise.defer();
 		job.resultPageCallback = deferred.resolve;
 		
 		// Open new tab
@@ -1383,6 +1391,7 @@ function Dontprint() {
 			// send job data to page
 			let doc = evt.target;
 			let answerInput = doc.getElementById("jobjson");
+			job.translator = undefined; // avoid cyclic object value when stringifying job (job.translator won't be used any more anyway)
 			answerInput.value = JSON.stringify(job);
 			let answerEvt = doc.createEvent("HTMLEvents");
 			answerEvt.initEvent("DontprintInitEvent", true, false);
@@ -1648,7 +1657,7 @@ function Dontprint() {
 		getPrefs: function() {return prefs;},
 		deleteFile: deleteFile,
 		reportScreenSettings: reportScreenSettings,
-		isZoteroInstalled: function() { return zoteroInstalled; },
+		isZoteroInstalled: isZoteroInstalled,
 		isQueuedUrl: function(url) { return queuedUrls.indexOf(url) !== -1; },
 		getRunningJobs: function() { return runningJobs; },
 		getHostFromUrl: getHostFromUrl,
