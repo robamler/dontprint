@@ -17,5 +17,5 @@
 .filter.current{background-color:#ffd; opacity:1;}
 #model-result{padding:.5ex; background-color:#e1f5dc; display:none; margin-top:2ex}
 #model-result-header{font-weight:bold; margin-bottom:.5ex}
-#widthinput,#heightinput,#ppiinput{width:3em; text-align:center}
+#widthinput,#heightinput,#ppiinput{width:4em; text-align:center}
 .filteroptions>label {font-weight:normal}

@@ -2,9 +2,10 @@ ModelPicker = {
 	initialized: false,
 	selection: null,
 	models: {
-		'paperwhite':		{label: 'Kindle Paperwhite',	hint: '- black-and-white display\n- no keyboard\n- builtin display backlight'},
-		'touch':			{label: 'Kindle Touch',			hint: '- black-and-white display\n- no keyboard\n- no display backlight'},
-		'generation4':		{label: 'Kindle 4',				hint: '- black-and-white display\n- no keyboard\n- no touch screen'},
+		'paperwhite':		{label: 'Kindle Paperwhite',	hint: '- black-and-white display\n- builtin display backlight'},
+		'voyage':			{label: 'Kindle Voyage',		hint: '- black-and-white display\n- builtin display backlight\n- very high display resolution (300ppi)'},
+		'touch':			{label: 'Kindle Touch / 7',		hint: '- black-and-white display\n- no display backlight'},
+		'generation4':		{label: 'Kindle 4',				hint: '- black-and-white display\n- no touch screen'},
 		'keyboard':			{label: 'Kindle keyboard',		hint: '- 4 rows of circular keys\n- spacebar is below C,V,B,N,M'},
 		'dx':				{label: 'Kindle DX',			hint: '- 4 rows of rounded-rectangular keys\n- spacebar is below V,B,N,M'},
 		'generation2':		{label: 'Kindle 2',				hint: '- 5 rows of circular keys'},
@@ -18,7 +19,7 @@ ModelPicker = {
 		'START': {
 			label:	'Show only:',
 			// order of entries in questions['START'].filter defines order of appearance
-			filter:	['other', 'paperwhite', 'touch', 'generation4', 'keyboard', 'dx', 'generation2', 'generation1', 'fire-1or2', 'fire-hd-7inch', 'fire-hd-8p9inch'],
+			filter:	['other', 'paperwhite', 'voyage', 'touch', 'generation4', 'keyboard', 'dx', 'generation2', 'generation1', 'fire-1or2', 'fire-hd-7inch', 'fire-hd-8p9inch'],
 			answers: [
 				{label: 'Amazon Kindle', next: 'kindle'},
 				{label: 'Other e-reader brand', model: 'other'}
@@ -26,7 +27,7 @@ ModelPicker = {
 		},
 		'kindle': {
 			label:	'Display:',
-			filter:	['paperwhite', 'touch', 'generation4', 'keyboard', 'dx', 'generation2', 'generation1', 'fire-1or2', 'fire-hd-7inch', 'fire-hd-8p9inch'],
+			filter:	['paperwhite', 'voyage', 'touch', 'generation4', 'keyboard', 'dx', 'generation2', 'generation1', 'fire-1or2', 'fire-hd-7inch', 'fire-hd-8p9inch'],
 			answers: [
 				{label: 'black/white display',	next: 'keyboard'},
 				{label: 'color display',		next: 'displaysize'}
@@ -44,7 +45,7 @@ ModelPicker = {
 		},
 		'keyboard': {
 			label:	'Keyboard:',
-			filter:	['paperwhite', 'touch', 'generation4', 'keyboard', 'dx', 'generation2', 'generation1'],
+			filter:	['paperwhite', 'voyage', 'touch', 'generation4', 'keyboard', 'dx', 'generation2', 'generation1'],
 			answers: [
 				{label: 'full alphabetic keyboard',			next: 'keys'},
 				{label: 'no or only few mechanical keys',	next: 'touch'}
@@ -63,18 +64,20 @@ ModelPicker = {
 		},
 		'touch': {
 			label:	'Touch:',
-			filter:	['paperwhite', 'touch', 'generation4'],
+			filter:	['paperwhite', 'voyage', 'touch', 'generation4'],
 			answers: [
 				{label: 'display is touch sensitive',				next: 'light'},
 				{label: 'display is <i>not</i> touch sensitive',	model: 'generation4'},
 			]
 		},
 		'light': {
-			label:	'Backlight:',
-			filter:	['paperwhite', 'touch'],
+			label:	'',
+			filter:	['paperwhite', 'voyage', 'touch'],
+			selectHeader: 'Select the display type',
 			answers: [
-				{label: 'display has a backlight',					model: 'paperwhite'},
-				{label: 'display does <i>not</i> have a backlight',	model: 'touch'},
+				{label: 'Normal-resolution display (167ppi) with backlight', model: 'paperwhite'},
+				{label: 'High-resolution display (300ppi) with backlight', model: 'voyage'},
+				{label: 'Display without backlight', model: 'touch'}
 			]
 		}
 	}

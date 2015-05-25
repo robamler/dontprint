@@ -12,16 +12,17 @@ function Dontprint() {
 					.getService(Components.interfaces.nsIPromptService);
 	
 	const EREADER_MODEL_DEFAULTS = {
-		'paperwhite':		{w: 708,  h: 935,  ppi: 212},
+		'paperwhite':		{w: 718,  h: 963,  ppi: 212},
 		'touch':			{w: 557,  h: 721,  ppi: 167},
 		'generation4':		{w: 557,  h: 721,  ppi: 167},
 		'keyboard':			{w: 557,  h: 721,  ppi: 167},
-		'dx':				{w: 790,  h: 1110, ppi: 150},
+		'dx':				{w: 785,  h: 1153, ppi: 150},
 		'generation2':		{w: 557,  h: 721,  ppi: 167},
 		'generation1':		{w: 557,  h: 721,  ppi: 167},
-		'fire-1or2':		{w: 557,  h: 940,  ppi: 169},
-		'fire-hd-7inch':	{w: 750,  h: 1180, ppi: 216},
-		'fire-hd-8p9inch':	{w: 1136, h: 1800, ppi: 254},
+		'fire-1or2':		{w: 557,  h: 963,  ppi: 169},
+		'fire-hd-7inch':	{w: 761,  h: 1240, ppi: 216},
+		'fire-hd-8p9inch':	{w: 1168, h: 1931, ppi: 254},
+		'voyage':			{w: 1046, h: 1412, ppi: 300},
 		'other':			{w: 600,  h: 800,  ppi: 170}
 	};
 	
