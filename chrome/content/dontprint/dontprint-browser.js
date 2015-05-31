@@ -21,7 +21,7 @@ window.DontprintBrowser = (function() {
 		try {
 			// Firefox 20+
 			Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
-			isInPrivateBrowsingMode = PrivateBrowsingUtils.isWindowPrivate(gBrowser.selectedBrowser.contentWindow);
+			isInPrivateBrowsingMode = PrivateBrowsingUtils.isContentWindowPrivate(gBrowser.selectedBrowser.contentWindow);
 		} catch(e) { }
 		
 		dontprintThisPageImg = document.getElementById("dontprint-status-image");
@@ -74,14 +74,14 @@ window.DontprintBrowser = (function() {
 
 		gBrowser.addEventListener("GetDontprintVersion", function(e) {
 			if (
-				e.originalTarget.ownerDocument instanceof HTMLDocument &&
-				(e.originalTarget.ownerDocument.location.hostname === "dontprint.net" ||
-				e.originalTarget.ownerDocument.location.hostname === "www.dontprint.net")
+				e.originalTarget instanceof HTMLDocument &&
+				(e.originalTarget.location.hostname === "dontprint.net" ||
+				e.originalTarget.location.hostname === "www.dontprint.net")
 			) {
 				Components.utils.import("resource://gre/modules/AddonManager.jsm");
 				AddonManager.getAddonByID("dontprint@robamler.github.com", function(addon) {
 					e.originalTarget.dispatchEvent(
-						new e.originalTarget.ownerDocument.defaultView.CustomEvent(
+						new e.originalTarget.defaultView.CustomEvent(
 							"DontprintVersionEvent", {detail: addon.version}
 						)
 					);
