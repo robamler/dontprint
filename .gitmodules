@@ -1,6 +1,3 @@
 [submodule "zotero"]
 	path = zotero
 	url = git://github.com/robamler/zotero.git
-[submodule "server"]
-	path = server
-	url = git@github.com:robamler/dontprint-server.git

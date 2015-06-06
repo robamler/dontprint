@@ -27,7 +27,7 @@ GNU Affero General Public License for more details.
 A copy of the GNU Affero General Public License version 3 is available in the
 file named "COPYING" in this directory, as well as [online](http://www.gnu.org/licenses/agpl-3.0).
 
-A small part of Donptrint is implemented as a script that runs on a web server. The statements in this section ("License & Copyright") also apply to the server-side part of Dontprint. The current version of the server-side source code can be accessed [on Google Drive](https://script.google.com/d/1WVbKmBpq492ElgBVDWQj5mOKAy_pO51Q0HtYYSIYcWMEmBd6UpAJeCpW/edit?usp=sharing) by registered Google users. A static copy of the server-side source code that can be accessed anonymously is available in the directory "server".
+A small part of Donptrint is implemented as a script that runs on a web server. The statements in this section ("License & Copyright") also apply to the server-side part of Dontprint. The current version of the server-side source code is also available [on Github](https://github.com/robamler/dontprint-server).
 
 
 Legal
