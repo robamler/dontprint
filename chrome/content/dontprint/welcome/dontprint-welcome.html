@@ -49,16 +49,16 @@ li{padding:0.3em 0}
 <div id="steps">
 <h1>Get started with Dontprint</h1>
 
-<p><i>Setting up Dontprint is quick and easy!</i> Just follow these three simple steps.</p>
+<p><i>Setting up Dontprint is easy!</i> Just follow these three simple steps.</p>
 
 
 <svg id="download-progress" xmlns="http://www.w3.org/2000/svg" version="1.1" width="30" height="30">
   <circle cx="15" cy="15" r="14" stroke-width="0" fill="#8b9287" fill-opacity="0.4"/>
-  <path id="progress-arc" d="M 15,15 15,1 A 14,14 0 0 1 15,1 z" stroke-width="0" fill="#467f2e" ffill-opacity="0.4"/>
+  <path id="progress-arc" d="M 15,15 15,1 A 14,14 0 0 1 15,1 z" stroke-width="0" fill="#467f2e"/>
 </svg>
 <h2 id="step1header">Step 1: Download external tools</h2>
 <div id="step1body" class="step-description">
-Dontprint automatically optimizes the layout of articles so that you can read them comfortably on your e-reader. To do this, Dontprint internally uses a program called <i>k2pdfopt</i> developed by William Menninger.
+Dontprint internally uses a program called <i>k2pdfopt</i> developed by William Menninger to optimize the layout of articles for your e-reader.
 
 <table class="choice">
 <tr>
@@ -129,17 +129,16 @@ Dontprint automatically optimizes the layout of articles so that you can read th
 	<td><div id="transferMethodEmailContainer" class="hint">
 		<div class="hint">
 Choose this option if your e-reader is able to receive documents via e-mail attachment.
-Dontprint sends documents to your e-reader from the sender address "<i>noreply@dontprint.net</i>".
 </div>
 
 <ol>
 <li>
 Configure your e-reader to accept e-mails that are sent from "<i>noreply@dontprint.net</i>".
-<div class="hint">If your e-reader is an Amazon Kindle, go to "<a href="http://website-g7g.amazon.co.uk/myk#pdocSettings" target="_blank">Manage Your Kindle</a>" on amazon.com and add the address "<i>noreply@dontprint.net</i>" to the "<i>Approved Personal Document E-mail List</i>" (see image below; <a href="http://dontprint.net/faq/index.html#q-setup-approvedemail" target="_blank">help</a>):</div>
+<div class="hint"><strong>Kindle users:</strong> Log in to Amazon's <a href="http://website-g7g.amazon.co.uk/myk#/home/settings/payment" target="_blank">"Manage Your Content and Devices"</a> page, go to the "Settings" tab, and add the address "<i>noreply@dontprint.net</i>" to the "<i>Approved Personal Document E-mail List</i>" (see image below; <a href="http://dontprint.net/faq/index.html#q-setup-approvedemail" target="_blank">help</a>):</div>
 <img class="screenshot" style="margin-top:2ex;margin-bottom:2ex;display:block" src="amazon-screenshot.png"></li>
 <li>Tell Dontprint your e-reader's e-mail address<span> (<a href="#" id="kindle-email-question">what's that?</a>)</span>:
 <div id="kindle-email-help" class="hint">
-If your e-reader is an Amazon Kindle then you find the e-mail address that is tied to your Kindle in the section "<i>Send-to-Kindle E-Mail Settings</i>" on the "<a href="http://website-g7g.amazon.co.uk/myk#pdocSettings" target="_blank">Manage Your Kindle</a>" page (see image below; <a href="http://dontprint.net/faq/index.html#q-setup-ereaderaddress" target="_blank">further help</a>). If your e-reader is not from Amazon then please consult the manual to find out if it can receive documents by e-mail.
+If your e-reader is an Amazon Kindle then you find the e-mail address that is tied to your Kindle on Amazon's <a href="http://website-g7g.amazon.co.uk/myk#/home/settings/payment" target="_blank">"Manage Your Content and Devices"</a> page. Select the tab "Your Devices" and your Kindle's e-mail address will be displayed (see image below; <a href="http://dontprint.net/faq/index.html#q-setup-ereaderaddress" target="_blank">further help</a>). If your e-reader is not from Amazon then please consult the manual to find out if it can receive documents by e-mail.
 <img src="amazon-screenshot2.png" class="screenshot">
 </div>
 <div><input type="text" required id="email-prefix" pattern="[^@ &quot;']+"><select id="email-suffix">
@@ -154,14 +153,14 @@ Full e-mail address: <input type="email" required id="email-other">
 </div>
 <div class="hint" id="warning-charges"><b>Warning:</b> You chose the e-mail suffix "<span id="warning-suffix"></span>". Articles will be delivered over the cellphone (3G) network if supported by your Kindle and if Wi-Fi is not available. <b>Amazon might charge for this.</b> To avoid charges, select the suffix "@free.kindle.com".</div></li>
 <li>Verify your e-reader's e-mail address
-<div class="hint">Click on the button below to send a small test document to the e-mail address you typed in above. The test document contains a random verification code. Once you received that verification code on your e-reader, enter it in the field below and click "Confirm".</div>
+<div class="hint">Click on the button below to send a document with a verification code to the e-mail address you typed above.
 <input type="button" id="sendVerificationCodeBtn" value="Send verification code now.">
 <div id="verificationCodeProgress" class="hint"></div>
 <div class="next" id="acceptstep3aContainer">
 <input type="submit" value="Accept and finish" id="acceptstep3a">
 </div>
 <form id="verificationCodeInputLine" action="javascript:;">Verification code: <input type="text" id="verificationCode"> <input type="submit" id="verifyEmailBtn" value="Confirm.">
-<div id="verificationCodeWaitMessage" class="hint">It may take a couple of minutes until the document arrives on your e-reader. If you don't receive any document after 15 minutes, then it might be that the address "<i>noreply@dontprint.net</i>" is still blacklisted to send documents to your e-reader. If you don't get it to work, you can still choose the option to save documents to a directory instead of sending them via e-mail (i.e., check the box below).</div></form>
+<div id="verificationCodeWaitMessage" class="hint">Please wait until a document with your verification code arrives on your e-reader (you may have to select "Sync" on your device). Then type the code in the field above. It may take a couple of minutes until the document arrives on your e-reader.</div></form>
 </li>
 </ol>
 	</div></td>
@@ -173,7 +172,7 @@ Full e-mail address: <input type="email" required id="email-other">
 <tr>
 	<td></td>
 	<td><div class="hint" id="transferMethodDirectoryContainer">
-		<div>Select a directory where the converted PDF files should be saved:</div>
+		<div>Choose a directory:</div>
 		<div id="destDirContainer"><input type="text" id="destDirInput"><input type="button" id="destDirChooser" value="Choose..."></div>
 		<div><input type="checkbox" id="postTransferCommandSwitch"><label for="postTransferCommandSwitch" style="font-weight:normal">Execute a command after saving the file:</label></div>
 		<div id="postTransferCommandGroup">
@@ -197,9 +196,9 @@ Full e-mail address: <input type="email" required id="email-other">
 <h1>Congratulations</h1>
 <p>You are now ready to use Dontprint. Go ahead and try it out:</p>
 <ol>
-<li>Go to the website of a publisher.</li>
-<li>Log in or use your institution's proxy.</li>
-<li>Navigate to an article. A Dontprint icon should appear (see screenshot). Click it!</li>
+<li>Go to the web page of a scientific article, e.g. <a href="http://arxiv.org/abs/1204.0492" target="_blank">this one</a>.</li>
+<li>Wait for the page to load completely.</li>
+<li>A Dontprint icon should appear (see screenshot below). Click it!</li>
 </ol>
 <p>Dontprint will download the PDF file of the article, optimize the layout for a small screen, and send it to your e-reader.</p>
 <img src="detect-screenshot.png" id="detect-screenshot">
