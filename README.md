@@ -1,8 +1,8 @@
 Dontprint
 ===============================
 
-Dontprint is going to be an add-on for Firefox.
-It is currently still in development but you can already install a <a href="http://dontprint.net">beta version</a>.
+Dontprint is a free add-on for Firefox.
+To install the add-on, go to [dontprint.net](http://dontprint.net/).
 Dontprint allows scientists to send literature to their e-reader (e.g. Amazon Kindle) in an optimized layout directly from the websites of many scientific journals and preprint servers.
 Dontprint also integrates with the [Zotero](http://www.zotero.org/) literature database, if Zotero is installed.
 
