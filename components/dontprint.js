@@ -737,7 +737,7 @@ function Dontprint() {
 		translate.setHandler("error", function(obj, error) {
 			// Note: So far, I haven't been able to observe this handler in action.
 			// But it should be the correct error handler according to Zotero's documentation.
-			let errstr = "Unable to download article. Maybe it is behind a captcha or you need to sign in with the publisher's web site. Original error message: " + error.toString();
+			let errstr = "Unable to download article. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again. Original error message: " + error.toString();
 			itemDoneDeferred.reject(errstr);
 			attachDoneDeferred.reject(errstr);
 		});
@@ -790,7 +790,7 @@ function Dontprint() {
 		updateJobState(job);
 		
 		if (!pdfFile.exists() || pdfFile.fileSize === 0) {
-			throw "Unable to download article. Maybe it is behind a captcha or you need to sign in with the publisher's web site.";
+			throw "Unable to download article. Maybe it is behind a captcha (try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again).";
 		}
 	}
 	
@@ -1184,7 +1184,7 @@ function Dontprint() {
 			done: function(result) {
 				if (result.exitCode) {
 					if (job.jobType === 'page') {
-						deferred.reject("Conversion failed. This may mean that Dontprint was unable to download the article. Maybe it is behind a captcha or you need to sign in with the publisher's web site. Original error message: " + k2pdfoptError);
+						deferred.reject("Conversion failed. This may mean that Dontprint was unable to download the article. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again. Original error message: " + k2pdfoptError);
 					} else {
 						deferred.reject("Conversion failed with error message: " + k2pdfoptError);
 					}

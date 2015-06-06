@@ -100,7 +100,7 @@ Zotero.Translate.Dontprint.prototype.downloadPdfAttachment = function(url, cooki
 			yield that.download.start();
 			success = true;
 		} catch(e) {
-			that.errorHandler("Error downloading the PDF file. Maybe you have to sign in to the journal website or the article is behind a captcha. Original error message: " + e.toString());
+			that.errorHandler("Error downloading the PDF file. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again. Original error message: " + e.toString());
 		} finally {
 			if (that.download) {
 				that.download.onchange = undefined;
