@@ -176,6 +176,20 @@
 					</rows>
 				</grid>
 				<checkbox id="coverpage_control" label="Discard first page (cover page)"/>
+				<hbox>
+					<label value="Scale text by"/>
+					<menulist id="scale_control">
+						<menupopup>
+							<menuitem value="0.7" label="70% (shrink)"/>
+							<menuitem value="0.8" label="80% (shrink)"/>
+							<menuitem value="0.9" label="90% (shrink)"/>
+							<menuitem value="1" label="100% (normal)"/>
+							<menuitem value="1.1" label="110% (enlarge)"/>
+							<menuitem value="1.2" label="120% (enlarge)"/>
+							<menuitem value="1.3" label="130% (enlarge)"/>
+						</menupopup>
+					</menulist>
+				</hbox>
 				<label value="Additional parameters to k2pdfopt (for experts):" style="margin-top:1ex" control="k2pdfoptParams_control"/>
 				<textbox id="k2pdfoptParams_control"/>
 			</groupbox>

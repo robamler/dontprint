@@ -1,5 +1,5 @@
 function Dontprint() {
-	const DATABASE_VERSION = 20141206;
+	const DATABASE_VERSION = 20150627;
 	var prefs;
 	var k2pdfoptTestTimeout;
 	var databasePath = null;
@@ -909,7 +909,7 @@ function Dontprint() {
 		
 		if (sqlresult) {
 			job.crop = { rememberPreset:false }; // if crop window needs to be shown, then by default don't remember settings
-			["id", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams"].forEach(
+			["id", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams", "scale"].forEach(
 				function(key) {
 					job.crop[key] = sqlresult[0].getResultByName(key);
 				}
@@ -919,7 +919,7 @@ function Dontprint() {
 				rememberPreset:true, id:0, enabled:false,
 				minDate:0, maxDate:0,
 				m1:5, m2:5, m3:5, m4:5,
-				coverpage:false, k2pdfoptParams: ""
+				coverpage:false, k2pdfoptParams: "", scale: "1"
 			};
 		}
 		if (!job.crop.longname) {
@@ -1051,7 +1051,7 @@ function Dontprint() {
 			
 			// Synthesize sql query (this is necessary because conn.execute() fails if
 			// if given more parameters than used in bound parameters.
-			let sqlfields = ["priority", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams"];
+			let sqlfields = ["priority", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams", "scale"];
 			if (crop.id >= 0) {
 				// don't overwrite builtin entries (id<0) or new entries (id===undefined)
 				sqlfields.push("id");
@@ -1087,6 +1087,7 @@ function Dontprint() {
 				'entry.349466349':	job.crop.m3.toFixed(1),
 				'entry.646272568':	job.crop.m4.toFixed(1),
 				'entry.1378832419':	job.crop.coverpage,
+				'entry_708841410':  job.crop.scale,
 				'entry.937121035':	job.crop.k2pdfoptParams,
 				'entry.536903634':	job.doi,
 				'entry.1375537145':	job.title
@@ -1132,14 +1133,19 @@ function Dontprint() {
 		job.convertedFilePath = outFile.path;
 		job.tmpFiles.push(outFile.path);
 		
+		let dims = getScreenDimensions();
+		var scale = parseFloat(job.crop.scale);
+		if (isNaN(scale)) {
+			scale = 1;
+		}
+
 		// Put more specific command line arguments to the end. It seems
 		// like later command line arguments overwrite earlier arguments.
-		let dims = getScreenDimensions();
 		let args = [
 			'-ui-', '-x', '-a-', '-om', '0',
 			'-w',  '' + dims.w,
 			'-h',  '' + dims.h,
-			'-odpi', '' + dims.ppi,
+			'-odpi', '' + Math.round(scale * dims.ppi),
 			'-ml', '' + parseFloat(job.crop.m1)/25.4,
 			'-mt', '' + parseFloat(job.crop.m2)/25.4,
 			'-mr', '' + parseFloat(job.crop.m3)/25.4,

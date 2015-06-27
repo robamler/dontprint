@@ -366,9 +366,9 @@ function marginsPaneLoad() {
 
 function loadJournalFilters() {
 	conn = yield Dontprint.getDB();
-	var sqlresult = yield conn.execute("SELECT id, longname, shortname, minDate, maxDate, m1, m2, m3, m4, coverpage, k2pdfoptParams FROM journals WHERE enabled=1 ORDER BY priority DESC, lastModified DESC");
+	var sqlresult = yield conn.execute("SELECT id, longname, shortname, minDate, maxDate, m1, m2, m3, m4, coverpage, k2pdfoptParams, scale FROM journals WHERE enabled=1 ORDER BY priority DESC, lastModified DESC");
 	
-	var fields = ["id", "longname", "shortname", "minDate", "maxDate",  "coverpage", "k2pdfoptParams"];
+	var fields = ["id", "longname", "shortname", "minDate", "maxDate",  "coverpage", "k2pdfoptParams", "scale"];
 	var floatFields = ["m1", "m2", "m3", "m4"];
 	
 	nextJournalFilterNumber = 0;
@@ -444,7 +444,7 @@ function journalFilterSelect() {
 	
 	selectedFilter = journalFilters[journalFilterList.value];
 	originalSelectedFilter = {};
-	var fields = ["id", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams"];
+	var fields = ["id", "enabled", "longname", "shortname", "minDate", "maxDate", "m1", "m2", "m3", "m4", "coverpage", "k2pdfoptParams", "scale"];
 	fields.forEach(function(key) {
 		originalSelectedFilter[key] = selectedFilter[key];
 	});
@@ -469,6 +469,7 @@ function journalFilterSelect() {
 	document.getElementById("m2_control").value = selectedFilter.m2;
 	document.getElementById("m3_control").value = selectedFilter.m3;
 	document.getElementById("m4_control").value = selectedFilter.m4;
+	document.getElementById("scale_control").value = selectedFilter.scale;
 	document.getElementById("coverpage_control").checked = selectedFilter.coverpage;
 	document.getElementById("k2pdfoptParams_control").value = selectedFilter.k2pdfoptParams;
 }
@@ -515,6 +516,7 @@ function saveOldSelection() {
 	selectedFilter.m3 = document.getElementById("m3_control").valueNumber.toFixed(1);
 	selectedFilter.m4 = document.getElementById("m4_control").valueNumber.toFixed(1);
 	selectedFilter.coverpage = document.getElementById("coverpage_control").checked;
+	selectedFilter.scale = document.getElementById("scale_control").value;
 	selectedFilter.k2pdfoptParams = document.getElementById("k2pdfoptParams_control").value;
 	
 	// see if anything has been changed (this is necessary because we would
@@ -543,7 +545,7 @@ function newJournalFilter() {
 	
 	journalFilters[nextJournalFilterNumber] = {
 		enabled:1, longname:"", shortname:"", minDate:0, maxDate:0,
-		m1:5, m2:5, m3:5, m4:5, coverpage:0, k2pdfoptParams:""
+		m1:5, m2:5, m3:5, m4:5, coverpage:0, k2pdfoptParams:"", scale:"1"
 	};
 	journalFilterList.insertItemAt(0, "(new filter)", nextJournalFilterNumber);
 	nextJournalFilterNumber++;

@@ -198,6 +198,7 @@ $(function() {
 		}
 		job.crop.enabled        = $("#savetemplate").prop("checked");
 		job.crop.coverpage      = $("#coverpage").prop("checked");
+		job.crop.scale          = $("#scaleselect").val();
 		job.crop.k2pdfoptParams = $("#additionalParamsCheckbox").prop("checked") ? $("#k2pdfoptParams").val().trim() : "";
 		job.crop.sendsettings   = $("#sendsettings").prop("checked") && $("#savetemplate").prop("checked") && !job.prohibitSaveJournalSettings && !neverReportJournalSettings;
 		job.crop.m1             = mmmargins[0];
@@ -244,6 +245,7 @@ $(function() {
 		}).join(", "));
 		$('#tooltipPages').text($("#coverpage").prop("checked") ? "All but first page" : "All pages");
 		var params = $("#additionalParamsCheckbox").prop("checked") ? $("#k2pdfoptParams").val().trim() : "";
+		$('#tooltipScale').text(Math.round(parseFloat($("#scaleselect").val()) * 100) + "%");
 		$('#tooltipParameters').text(params ? params : "(none)");
 		
 		tooltip.show();
@@ -303,7 +305,9 @@ $(function() {
 		for (var i=1; i<=4; i++) {
 			mmmargins[i-1] = parseFloat(job.crop['m'+i]);
 		}
-		
+
+		$("#scaleselect").val(job.crop.scale);
+
 		if (!job.crop.longname && !job.crop.shortname) {
 			job.prohibitSaveJournalSettings = true;
 		}
