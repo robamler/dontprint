@@ -1,14 +1,13 @@
 var updateDatabase = function(conn, dbversion) {
 	// The "scale" column was added on 2015-06-27
-	let versionresult = null;
 	if (yield conn.tableExists("settings")) {
-		versionresult = yield conn.execute("SELECT value FROM settings WHERE key='dbversion'");
-	}
-	if (!versionresult || versionresult.length !== 1 || versionresult[0].getResultByName("value") < 20150627) {
 		try {
-			yield conn.execute('ALTER TABLE journals ADD COLUMN scale TEXT DEFAULT "1"');
-		} catch (e) {
-			// ignore; will try the CREATE TABLE IF NOT EXISTS command below instead
+			let versionresult = yield conn.execute("SELECT value FROM settings WHERE key='dbversion'");
+			if (versionresult.length === 1 && versionresult[0].getResultByName("value") < 20150627) {
+				yield conn.execute('ALTER TABLE journals ADD COLUMN scale TEXT DEFAULT "1"');
+			} catch (e) {
+				// ignore; will try the CREATE TABLE IF NOT EXISTS command below instead
+			}
 		}
 	}
 
