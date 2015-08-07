@@ -5,9 +5,9 @@ var updateDatabase = function(conn, dbversion) {
 			let versionresult = yield conn.execute("SELECT value FROM settings WHERE key='dbversion'");
 			if (versionresult.length === 1 && versionresult[0].getResultByName("value") < 20150627) {
 				yield conn.execute('ALTER TABLE journals ADD COLUMN scale TEXT DEFAULT "1"');
-			} catch (e) {
-				// ignore; will try the CREATE TABLE IF NOT EXISTS command below instead
 			}
+		} catch (e) {
+			// ignore; will try the CREATE TABLE IF NOT EXISTS command below instead
 		}
 	}
 
