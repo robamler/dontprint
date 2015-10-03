@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset=utf-8 />
+	<link rel="shortcut icon" href="../favicon.png">
+	<title>Get started with Dontprint</title>
+	<link rel="stylesheet" type="text/css" href="../blue.css">
+	<link rel="stylesheet" type="text/css" href="../model-picker.css">
+	<link rel="stylesheet" type="text/css" href="welcome.css">
+	<script src="../jquery-1.9.1.min.js"></script>
+	<script src="../model-picker.js"></script>
+	<script src="welcome.js"></script>
+</head>
+
+<body>
+	<div id="container">
+		<div id="rightcol">
+			<div id="msg">
+				<div id="steps">
+					<h1>Get started with Dontprint</h1>
+					<p><i>Setting up Dontprint is easy!</i> Just follow these two simple steps.</p>
+					<svg id="download-progress" xmlns="http://www.w3.org/2000/svg" version="1.1" width="30" height="30">
+						<circle cx="15" cy="15" r="14" stroke-width="0" fill="#8b9287" fill-opacity="0.4" />
+						<path id="progress-arc" d="M 15,15 15,1 A 14,14 0 0 1 15,1 z" stroke-width="0" fill="#467f2e" />
+					</svg>
+					<h2 id="stepModelPickerHeader">Step 1: Select your e-reader model</h2>
+					<div id="stepModelPickerBody">
+						<div id="questions-container"></div>
+						<div id="model-select-container"></div>
+						<div id="image-copyright">images courtesy of Wikipedia users Frmorrison, Atirador, NotFromUtrecht, ShakataGaNai and さぱしあ (cc-by-sa)</div>
+						<div id="model-result">
+							<div id="model-result-header">You selected: <span id="model-result-text"></span></div>
+							<div>Recommended settings:
+								<input type="number" required pattern="\d+" id="widthinput"> x
+								<input type="number" required pattern="\d+" id="heightinput"> pixels at
+								<input type="number" required id="ppiinput"> pixels per inch</div>
+							<div class="hint" id="screensizeHelper">(<a href="#" id="screensizeHelperLink">Help me find out the correct screen size...</a>)</div>
+							<p class="next">
+								<input type="submit" id="acceptStepModelPicker" value="Accept and go to next step">
+							</p>
+						</div>
+					</div>
+					<div id="stepTransferMethod">
+						<h2 id="stepTransferMethodHeader">Step 2: Set up document transfer</h2>
+						<div class="hint">How should Dontprint transfer documents to your e-reader?</div>
+						<table class="choice">
+							<tr>
+								<td>
+									<input type="radio" name="transferMethodChoice" value="email" id="transferMethodEmail">
+								</td>
+								<td>
+									<label for="transferMethodEmail">Send Documents via e-mail (recommended choice for Amazon Kindle)</label>
+								</td>
+							</tr>
+							<tr>
+								<td></td>
+								<td>
+									<div id="transferMethodEmailContainer" class="hint">
+										<div class="hint">
+											Choose this option if your e-reader is able to receive documents via e-mail attachment.
+										</div>
+										<ol>
+											<li>
+												Configure your e-reader to accept e-mails that are sent from "<i>noreply@dontprint.net</i>".
+												<div class="hint"><strong>Kindle users:</strong> Log in to Amazon's <a href="http://website-g7g.amazon.co.uk/myk#/home/settings/payment" target="_blank">"Manage Your Content and Devices"</a> page, go to the "Settings" tab, and add the address "<i>noreply@dontprint.net</i>" to the "<i>Approved Personal Document E-mail List</i>" (see image below; <a href="http://dontprint.net/faq/index.html#q-setup-approvedemail" target="_blank">help</a>):</div>
+												<img class="screenshot" style="margin-top:2ex;margin-bottom:2ex;display:block" src="amazon-screenshot.png"></li>
+											<li>Tell Dontprint your e-reader's e-mail address<span> (<a href="#" id="kindle-email-question">what's that?</a>)</span>:
+												<div id="kindle-email-help" class="hint">
+													If your e-reader is an Amazon Kindle then you find the e-mail address that is tied to your Kindle on Amazon's <a href="http://website-g7g.amazon.co.uk/myk#/home/settings/payment" target="_blank">"Manage Your Content and Devices"</a> page. Select the tab "Your Devices" and your Kindle's e-mail address will be displayed (see image below; <a href="http://dontprint.net/faq/index.html#q-setup-ereaderaddress" target="_blank">further help</a>). If your e-reader is not from Amazon then please consult the manual to find out if it can receive documents by e-mail.
+													<img src="amazon-screenshot2.png" class="screenshot">
+												</div>
+												<div>
+													<input type="text" required id="email-prefix" pattern="[^@ &quot;']+">
+													<select id="email-suffix">
+														<option value="@free.kindle.com" selected>@free.kindle.com&nbsp;&nbsp;&nbsp;(Wi-Fi only, no charges)</option>
+														<option value="@kindle.com">@kindle.com&nbsp;&nbsp;&nbsp;(Wi-Fi or 3G, charges apply)</option>
+														<option value="@kindle.cn">@kindle.cn&nbsp;&nbsp;&nbsp;(China; Wi-Fi or 3G, charges apply)</option>
+														<option value="other">other</option>
+													</select>
+												</div>
+												<div id="email-other-container">
+													Full e-mail address:
+													<input type="email" required id="email-other">
+												</div>
+												<div class="hint" id="warning-charges"><b>Warning:</b> You chose the e-mail suffix "<span id="warning-suffix"></span>". Articles will be delivered over the cellphone (3G) network if supported by your Kindle and if Wi-Fi is not available. <b>Amazon might charge for this.</b> To avoid charges, select the suffix "@free.kindle.com".</div>
+											</li>
+											<li>Verify your e-reader's e-mail address
+												<div class="hint">Click on the button below to send a document with a verification code to the e-mail address you typed above.
+													<input type="button" id="sendVerificationCodeBtn" value="Send verification code now.">
+													<div id="verificationCodeProgress" class="hint"></div>
+													<div class="next" id="acceptEmailContainer">
+														<input type="submit" value="Accept and finish" id="acceptStepEmail">
+													</div>
+													<form id="verificationCodeInputLine" action="javascript:;">Verification code:
+														<input type="text" id="verificationCode" pattern="\d{4}">
+														<input type="submit" id="verifyEmailBtn" value="Confirm.">
+													</form>
+											</li>
+										</ol>
+										</div>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<input type="radio" name="transferMethodChoice" value="directory" id="transferMethodDirectory">
+								</td>
+								<td>
+									<label for="transferMethodDirectory">Save documents to your "Downloads" folder (for e-readers that don't support e-mail transfer)</label>
+								</td>
+							</tr>
+							<tr>
+								<td></td>
+								<td>
+									<div class="hint" id="transferMethodDirectoryContainer">
+										(<a href="#" id="showDownloadsFolder">Where is my "Downloads" folder?</a>)
+										<div class="next" style="margin-top:2ex">
+											<input type="submit" value="Accept and finish" id="acceptStepTransferMethod">
+										</div>
+									</div>
+								</td>
+							</tr>
+						</table>
+						</div>
+					</div>
+					<div id="congrats">
+						<h1>Congratulations</h1>
+						<p>You are now ready to use Dontprint. Go ahead and try it out:</p>
+						<ol>
+							<li>Go to the web page of a scientific article, e.g. <a href="http://arxiv.org/abs/1204.0492" target="_blank">this one</a>.</li>
+							<li>Wait for the page to load completely.</li>
+							<li>A Dontprint icon should appear (see screenshot below). Click it!</li>
+						</ol>
+						<p>Dontprint will download the PDF file of the article, optimize the layout for a small screen, and send it to your e-reader.</p>
+						<img src="detect-screenshot.png" id="detect-screenshot">
+						<div class="next">
+							<input type="submit" value="Close this tab" id="acceptCongrats">
+						</div>
+					</div>
+				</div>
+				<div id="origin">
+					<a href="http://dontprint.net" target="_blank">(Dontprint &mdash; paperless printer for scientists)</a>
+				</div>
+			</div>
+			<img id="icon" src="../dontprint-speaking.png" alt="">
+		</div>
+</body>
+
+</html>

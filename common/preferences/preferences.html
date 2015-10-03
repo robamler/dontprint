@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Dontprint Preferences</title>
+		<link rel="stylesheet" href="../model-picker.css" />
+		<link rel="stylesheet" href="preferences.css" />
+		<script src="../jquery-1.9.1.min.js"></script>
+		<script src="../model-picker.js"></script>
+		<script src="preferences.js"></script>
+	</head>
+	<body>
+		<div id="panes">
+			<a href="#transfer" id="pane-transfer" class="pane">
+				<div class="pane-image"><img src="transfer.png" alt=""/></div>
+				<div class="pane-label">Transfer</div>
+			</a>
+			<a href="#device" id="pane-device" class="pane">
+				<div class="pane-image"><img src="device.png" alt=""/></div>
+				<div class="pane-label">Device</div>
+			</a>
+			<a href="#margins" id="pane-margins" class="pane">
+				<div class="pane-image"><img src="margins.png" alt=""/></div>
+				<div class="pane-label">Margins</div>
+			</a>
+			<a href="#advanced" id="pane-advanced" class="pane">
+				<div class="pane-image"><img src="advanced.png" alt=""/></div>
+				<div class="pane-label">Advanced</div>
+			</a>
+		</div>
+		<div id="content-transfer" class="content">
+				Choose how Dontprint should transfer documents to your e-reader.
+			<p>
+			<table>
+				<tr>
+					<td><input type="radio" id="transferMethodEmail" name="transferMethod" value="email"></td>
+					<td><label for="transferMethodEmail"><strong>Send documents via e-mail (recommended choice for Amazon Kindle)</stron></label></td>
+				</tr>
+				<tr>
+					<td></td>
+					<td>
+						<div id="transferMethodEmailDetails">
+							<div class="hint">
+								If you don't know your e-reader's e-mail addres, <a href="http://dontprint.net/faq/index.html#q-setup-ereaderaddress" target="_blank">get help here</a>.
+							</div>
+							<p>
+							<table class="formtable">
+								<tr>
+									<th>Your e-reader's e-mail address:</th>
+									<td>
+										<input type="text" id="recipientEmailPrefix" pattern="[^@ &quot;']+">
+										<select id="recipientEmailSuffix">
+											<option value="@free.kindle.com" selected>@free.kindle.com</option>
+											<option value="@kindle.com">@kindle.com</option>
+											<option value="@kindle.cn">@kindle.cn</option>
+											<option value="other">other</option>
+										</select>
+									</td>
+								</tr>
+								<tr id="emailOtherContainer">
+									<th></th>
+									<td><input type="email" required id="recipientEmailOther" class="largeinput"></td>
+								</tr>
+								<tr>
+									<td colspan="2" class="hint" id="warning-charges">
+										<p>
+											<b>Warning:</b> You chose the e-mail suffix "<span id="warning-suffix"></span>". Articles will be delivered over the cellphone (3G) network if supported by your Kindle and if Wi-Fi is not available. <b>Amazon might charge for this.</b> To avoid charges, select the suffix "@free.kindle.com".
+										</p>
+									</td>
+								</tr>
+								<tr>
+									<th>Verification status:</th>
+									<td id="verificationStatus" class="verificationStatus">
+										<button id="sendVerificationCodeBtn">Send verification code now.</button>
+									</td>
+								</tr>
+								<tr>
+									<td colspan="2" id="verificationProgress" class="hint">
+										(Dontprint will send a small document with a four-digit verification code to your device. The e-mail will be sent from <em>noreply@dontprint.net</em>.)
+									</td>
+								</tr>
+								<tr id="verificationCodeContainer">
+									<th>Verification code:</th>
+									<td><input class="smallinput" type="text" id="verificationCode" pattern="\d{4}"> <button id="confirmVerificationCodeBtn">Confirm</td>
+								</tr>
+							</table>
+							<p class="hint">
+								<strong>Important:</strong> Dontprint sends e-mails to your device from the address "<em>noreply@dontprint.net</em>". It is important that you configure your e-reader to accept e-mails that are sent from this address. If your e-reader is an Amazon Kindle, this can be done by adding  the address to the list of approved sender addresses on Amazon's "<a target="_blank" href="http://website-g7g.amazon.co.uk/myk#pdocSettings">Manage Your Kindle</a>" page. (<a target="_blank" href="http://dontprint.net/faq/index.html#q-setup-approvedemail">more help</a>)
+							</p>
+							<p>
+								<button id="testEmailSettingsBtn">Test my e-mail settings...</button>
+							</p>
+						</div>
+					</td>
+				</tr>
+				<tr>
+					<td><input type="radio" id="transferMethodDirectory" name="transferMethod" value="directory"></td>
+					<td>
+						<label for="transferMethodDirectory"><strong>Save documents to your "Downloads" folder (choose this option if your e-reader does not support e-mail transfer)</strong></label>
+					</td>
+				</tr>
+				<tr>
+					<td></td>
+					<td>
+						<div id="transferMethodDirectoryDetails" class="hint">
+							(<a href="#" id="showDownloadsFolder">Where is my "Downloads" folder?</a>)
+						</div>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<div id="content-device" class="content">
+			Choose your e-reader model from the list or set your screen settings manually in the green box below.
+			<p>
+			<div id="questions-container"></div>
+			<div id="model-select-container"></div>
+			<div id="image-copyright">images courtesy of Wikipedia users Frmorrison, Atirador, NotFromUtrecht, ShakataGaNai and さぱしあ (cc-by-sa)</div>
+			<div id="model-result">
+				<div id="model-result-header">You selected: <span id="model-result-text"></span></div>
+				<div> </div>
+				<table class="formtable">
+					<tr id="recomendations">
+						<th>Recommended settings:</th>
+						<td><span id="recommendedWidth"></span> x <span id="recommendedHeight"></span> pixels at <span id="recommendedPpi"></span> pixels per inch</td>
+					</tr>
+					<tr>
+						<th>Your settings:</th>
+						<td><input type="number" required pattern="\d+" id="widthinput"> x <input type="number" required pattern="\d+" id="heightinput"> pixels at <input type="number" required id="ppiinput"> pixels per inch</td>
+					</tr>
+				</table>
+				<button id="sendTestEmailButton">Help me find out the correct document size...</button>
+				<div><input type="checkbox" id="sendScreenSettigns"><label for="sendScreenSettigns">Send the above settings anonymously to the developer of Dontprint to help improve future versions (<a id="sendScreenSettingsDetails" href="#">details</a>).</label>
+				<div id="sendScreenSettingsOtherContainer">Please provide your e-reader model (e.g. "Kobo Mini"): <input type="text" id="otherEreaderModel"/></div></div>
+			</div>
+		</div>
+		<div id="content-margins" class="content">
+			<div class="text">
+				When Dontprint optimizes the layout of an article for your e-erader, it cuts off repeating headers and footers because these would otherwise appear at random positions in the converted document. You can fine-tune this behaviour below.
+			</div>
+			<p class="hint">
+				<strong>Tip:</strong> The easiest way to adjust the margins for a specific journal is to simply delete all filters that match the journal from the list below. The next time you use Dontprint for an article from this journal you will be able to save new settings.
+			</p>
+			<table class="formtable" style="width:100%;max-width:60em">
+				<tr>
+					<th style="width:100%;padding-right:2em"><h2>1. Pick a journal filter</h2></th>
+					<th style="width:initial"><h2>2. Modify settings for the selected filter</h2></th>
+				</tr>
+				<tr>
+					<td style="width:initial;padding-right:2em;vertical-align:top;height:100%">
+						<select id="filterList" size="10">
+							<option value="">Loading filter list...</option>
+						</select>
+					</td>
+					<td style="width:initial;vertical-align:top">
+						<table class="formtable">
+							<tr>
+								<th><label for="journalLongname">Journal title:</th></th>
+								<td><input class="flex-x" id="journalLongname" type="text"></td>
+							</tr>
+							<tr>
+								<th><label for="journalShortname">Journal abbreviation:</th></th>
+								<td><input class="flex-x" id="journalShortname" type="text"></td>
+							</tr>
+							<tr class="separatorrow">
+								<th colspan="2">Apply only to articles</th>
+							</tr>
+							<tr>
+								<th>
+									<input type="checkbox" id="mindateSwitch">
+									<label for="mindateSwitch">published since:</th>
+								</th>
+								<td><input type="date" class="flex-x" id="mindate" type="text"></td>
+							</tr>
+							<tr>
+								<th>
+									<input type="checkbox" id="maxdateSwitch">
+									<label for="maxdateSwitch">published until:</th>
+								</th>
+								<td><input type="date" class="flex-x" id="maxdate" type="text"></td>
+							</tr>
+							<tr class="separatorrow">
+								<th>Margins (mm):</th>
+								<td id="margininputs">
+									<div id="marginsrow1"><input id="m2Input" required  type="number" step="0.1" min="0"></div>
+									<div id="marginsrow2"><input id="m1Input" required  type="number" step="0.1" min="0"><input id="m3Input" required  type="number" step="0.1" min="0"></div>
+									<div id="marginsrow3"><input id="m4Input" required  type="number" step="0.1" min="0"></div>
+								</td>
+							</tr>
+							<tr class="separatorrow">
+								<td colspan="2">
+									<input type="checkbox" id="coverpage">
+									<label for="coverpage">Discard first page (cover page)
+								</td>
+							</tr>
+							<tr class="separatorrow">
+								<th colspan="2">
+									Scale text by
+									<select id="scale">
+										<option value="0.7">70% (shrink)</option>
+										<option value="0.8">80% (shrink)</option>
+										<option value="0.9">90% (shrink)</option>
+										<option value="1">100% (normal)</option>
+										<option value="1.1">110% (enlarge)</option>
+										<option value="1.2">120% (enlarge)</option>
+										<option value="1.3">130% (enlarge)</option>
+									</select>
+								</th>
+							</tr>
+							<tr class="separatorrow">
+								<td colspan="2">
+									<div>Additional parameters to k2pdfopt (for experts):</div>
+									<div><input type="text" id="filterK2pdfoptParams" class="flex-x"></div>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<table class="formtable">
+							<tr>
+								<td>
+									<button id="newFilterBtn">New filter</button>
+									<button id="deleteFilterBtn">Delete selected filter</button>
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td></td>
+				</tr>
+			</table>
+			<p class="hint">(Journal filters are listed in order of decreasing priority. Builtin journal filters are displayed in gray.)</p>
+		</div>
+		<div id="content-advanced" class="content">
+			<h2>Privacy settings</h2>
+			<p class="hint">
+				When you dontprint an article from a journal you may sometimes have to set the page margins manually because Dontprint does not yet know the correct margins for that journal. Since this can be annoying, Dontprint provides to you the option to report the selected margins to its developer. Future versions of Dontprint will then recognize this journal automatically.
+			</p>
+			<p class="hint">
+				Dontprint will <strong>not</strong> send any user-specific data (such as e-mail addresses or user names). You can inspect the data before it is being sent and reject the transmission for each case individually. If you instead prefer to <em>never</em> report any journal settings, check the box below.
+			</p>
+			<input type="checkbox" id="neverReportJournalSettings">
+			<label for="neverReportJournalSettings"><strong>Never report any journal settigns.</strong></label>
+			<hr>
+			<h2>Third party software</h2>
+			<p class="hint">
+				Dontprint uses a program called "k2pdfopt" to optimize the layout of articles before sending them to your e-reader. For more information about k2pdfopt, visit <a target="_blank" href="http://www.willus.com/k2pdfopt/">willus.com</a>.
+			</p>
+			Additional command line parameters to k2pdfopt (for experts):
+			<input type="text" id="k2pdfoptParams" class="largeinput">
+		</div>
+	</body>
+</html>

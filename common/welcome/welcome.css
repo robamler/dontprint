@@ -1,0 +1,139 @@
+.choice {
+	margin: 1em 0 1em 1em
+}
+
+.choice > tbody > tr > td {
+	vertical-align: top
+}
+
+.hint {
+	margin: 0.1em 0 1em 0;
+	color: #333;
+	font-size: 90%
+}
+
+#platform {
+	font-style: italic
+}
+
+label {
+	font-weight: bold
+}
+
+.next {
+	text-align: center
+}
+
+.next>input {
+	font-weight: bold
+}
+
+#stepModelPickerBody,
+#stepTransferMethod,
+#congrats,
+#select-platform,
+#download-progress,
+#warning-charges,
+#kindle-email-help,
+#transferMethodEmailContainer,
+#transferMethodDirectoryContainer,
+#verificationCodeWaitMessage {
+	display: none
+}
+
+#download-progress {
+	float: right;
+	margin-top: 1em;
+	font-size: 150%;
+}
+
+.screenshot {
+	display: block;
+	margin: 0.4em 0 1em 1em;
+	box-shadow: 1px 2px 10px 2px #ACB2AA;
+}
+
+li {
+	padding: 0.3em 0
+}
+
+#detect-screenshot {
+	margin: 0 auto 3ex auto;
+	display: block
+}
+
+#destDirContainer {
+	width: 35em;
+	display: -moz-box
+}
+
+#destDirInput,
+#postTransferCommandInput {
+	-moz-box-flex: 1
+}
+
+#postTransferCommandGroup {
+	margin-left: 1.5em
+}
+
+#postTransferContainer {
+	width: 33.5em;
+	display: -moz-box
+}
+
+#postTransferCommandSwitch {
+	margin-top: 2ex
+}
+
+#email-prefix {
+	text-align: right;
+	width: 12em
+}
+
+#email-other-container {
+	margin-top: 0.4ex;
+	display: none
+}
+
+#email-other {
+	width: 25em
+}
+
+#k2pdfopt-file-selector {
+	margin: 0.5em 0
+}
+
+#sendVerificationCodeBtn {
+	display: block;
+	margin: 0.5em 0 1em 0
+}
+
+#verificationCodeProgress {
+	display: none;
+	font-weight: bold
+}
+
+#verificationCode {
+	width: 5em
+}
+
+#questions-container {
+	margin: 1ex 0 2ex 0;
+	background-color: #fff
+}
+
+#image-copyright {
+	opacity: 0.5;
+	font-size: 70%;
+	text-align: right;
+	margin-bottom: 2ex;
+	margin-top: 1ex
+}
+
+#verificationCodeWaitMessage {
+	margin-top: 1ex;
+}
+
+#acceptEmailContainer {
+	display: none
+}

@@ -1,0 +1,76 @@
+html {
+	overflow: -moz-scrollbars-vertical
+}
+
+body {
+	font-family: "Trebuchet MS", Helvetica, sans-serif;
+	font-size: 18px
+}
+
+#container {
+	margin: 0 auto;
+	max-width: 1000px;
+	min-height: 100%;
+	padding: 0;
+	position: absolute;
+	text-align: left;
+	left: 1ex;
+	right: 1ex;
+	top: 0;
+	bottom: 0
+}
+
+h1 {
+	color: #30323b;
+	font-size: 180%;
+	margin-top: 0;
+	margin-left: 0;
+	padding-left: 0px;
+	font-weight: bold
+}
+
+h2 {
+	color: #30323b;
+	font-size: 150%;
+	margin: 1em 0 0.5em 0;
+	font-weight: bold
+}
+
+#icon {
+	position: absolute;
+	left: 0;
+	top: 4.5em;
+	background-color: #a2aac8
+}
+
+#rightcol {
+	position: absolute;
+	top: 2em;
+	left: 156px;
+	right: 0;
+	bottom: 0
+}
+
+#msg {
+	padding: 2ex;
+	background-color: #fbfcfd;
+	border: 3px solid #30323b;
+	border-radius: 1em;
+	min-height: 130px
+}
+
+#origin {
+	font-size: 80%;
+	text-align: right;
+	margin: 1em 0
+}
+
+#origin > a {
+	text-decoration: none;
+	color: #222
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0
+}

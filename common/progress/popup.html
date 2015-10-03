@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8" />
+	<base target="_blank">
+	<link rel="stylesheet" type="text/css" href="popup.css">
+	<script type="text/javascript" src="../jquery-1.9.1.min.js"></script>
+	<script src="progress-ui.js"></script>
+	<script src="popup.js"></script>
+</head>
+
+<body>
+	<div class="job">
+		<div class="jtitle">Retrieving article meta data...</div>
+		<table class="tasks">
+			<tr>
+				<td>
+					<div class="task">
+						<div class="bar"></div>
+						<div class="tlabel">download</div>
+					</div>
+				</td>
+				<td>
+					<div class="task">crop</div>
+				</td>
+				<td>
+					<div class="task">
+						<div class="bar"></div>
+						<div class="tlabel">convert</div>
+					</div>
+				</td>
+				<td id="sendtask">
+					<div class="task">
+						<div class="bar"></div>
+						<div class="tlabel">send</div>
+					</div>
+				</td>
+			</tr>
+		</table>
+	</div>
+	<div class="footer">
+		<a href="#" id="hideLink" title="Dontprint will continue to process the article even if you hide this popup.">Hide popup</a> |
+		<a href="#" id="showallLink" title="Click to see progress information for all running Dontprint jobs.">Show all</a> |
+		<a href="#" id="settingsLink" title="Click to configure Dontprint.">Settings</a><span id="abortLinkContainer"> |
+		<a href="#" id="abortLink" title="Click to stop processing this article.">Abort</a></span>
+		<a href="#" id="reloadLink">Reload page</a>
+	</div>
+</body>
+
+</html>

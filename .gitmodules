@@ -1,3 +1,9 @@
 [submodule "zotero"]
-	path = zotero
+	path = dependencies/zotero
 	url = https://github.com/robamler/zotero.git
+[submodule "zotero-connectors"]
+	path = dependencies/zotero-connectors
+	url = https://github.com/zotero/zotero-connectors.git
+[submodule "k2pdfopt-nacl"]
+	path = dependencies/k2pdfopt-nacl
+	url = https://github.com/robamler/k2pdfopt-nacl.git

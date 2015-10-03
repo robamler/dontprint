@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset=utf-8 />
+<title>Dontprint</title>
+<link rel="shortcut icon" href="../favicon.png">
+<link rel="stylesheet" type="text/css" href="pdfcrop.css">
+<script type="text/javascript" src="../jquery-1.9.1.min.js"></script>
+<script type="text/javascript" src="pdf.js"></script>
+<script type="text/javascript" src="pdfcrop.js"></script>
+</head>
+<body>
+
+<div id="view-container">
+
+<div id="leftpanel">
+	<div id="document-container">
+		<canvas id="pdfcanvas"></canvas>
+			<div id="margins">
+			<div id="m0" class="margin v"></div>
+			<div id="m1" class="margin h"></div>
+			<div id="m2" class="margin v"></div>
+			<div id="m3" class="margin h"></div>
+		</div>
+		<div id="region">
+			<div id="h0" class="handle v"><div></div></div>
+			<div id="h1" class="handle h"><div></div></div>
+			<div id="h2" class="handle v"><div></div></div>
+			<div id="h3" class="handle h"><div></div></div>
+		</div>
+		<div id="magnifyer">
+			<canvas id="magnifycanvas"></canvas>
+			<div id="magnifyoverlay"></div>
+			<div id="magnifierline"></div>
+			<img id="magnifyarrow" alt="" src="magnifyarrow.png" />
+		</div>
+	</div>
+	<div id="turnpages">
+		<a href="" class="btn" id="prevbtn">&nbsp;</a>
+		page <span id="pagenum"></span> of <span id="pagecount"></span>
+		<a href="" class="btn disabled" id="nextbtn">&nbsp;</a>
+	</div>
+</div>
+  
+<div id="rightpanel">
+	<div id="values">
+		<h2>Page range</h2>
+		<table id="pagerangetable">
+			<tr>
+				<td><input type="radio" name="pagerangeoptions" value="1-" id="allpages"></td>
+				<td><label for="allpages">All pages</label></td>
+			</tr>
+			<tr>
+				<td><input type="radio" name="pagerangeoptions" value="2-" id="coverpage"></td>
+				<td><label for="coverpage">All except first page</label></td>
+			</tr>
+			<tr>
+				<td><input type="radio" name="pagerangeoptions" value="1-" id="pagerange"></td>
+				<td><label for="pagerange">Pages</label> <input type="number" id="pagestart" required pattern="\s*\d+\s*" value="1" min="1" disabled> to <input type="number" id="pageend" required pattern="\s*\d+\s*" min="1" disabled></td>
+			</tr>
+		</table>
+		<hr>
+		<h2>Margins</h2>
+		<p>Drag the dashed red line or type in margins below (in <i>mm</i>).</p>
+		<div id="margininputs">
+			<div id="marginsrow1"><input id="i1" required pattern="\s*(\d+([.,]\d*)?|[.,]\d+)\s*"></div>
+			<div id="marginsrow2"><input id="i0" required pattern="\s*(\d+([.,]\d*)?|[.,]\d+)\s*"><input id="i2" required pattern="\s*(\d+([.,]\d*)?|[.,]\d+)\s*"></div>
+			<div id="marginsrow3"><input id="i3" required pattern="\s*(\d+([.,]\d*)?|[.,]\d+)\s*"></div>
+		</div>
+		<p id="margintip"><strong>Tip:</strong> You don't need to cut very close to the content. Any remaining white margin will be removed automatically. Just cut off <em>visible</em> margins, such as repeating headers and page numbers.</p>
+		<hr>
+		<h2>Advanced settings</h2>
+		<p>
+			Scale text by
+			<select id="scaleselect">
+				<option value="0.7">70% (shrink)</option>
+				<option value="0.8">80% (shrink)</option>
+				<option value="0.9">90% (shrink)</option>
+				<option value="1">100% (normal)</option>
+				<option value="1.1">110% (enlarge)</option>
+				<option value="1.2">120% (enlarge)</option>
+				<option value="1.3">130% (enlarge)</option>
+			</select>
+		</p>
+		<table id="miscoptions">
+			<tr id="remember-display">
+				<td><input type="checkbox" id="savetemplate"></td>
+				<td><label for="savetemplate">Remember settings for this journal (<span id="journalname"></span>).</label></td>
+			</tr>
+			<tr id="sendsettings-display">
+				<td><input type="checkbox" id="sendsettings" checked></td>
+				<td><label for="sendsettings">Send settings anonymously to the developer of Dontprint to help improve future versions (<a href="#" id="privacyLink">details</a>).</label></td>
+			</tr>
+			<tr id="additionalParams-display">
+				<td><input type="checkbox" id="additionalParamsCheckbox"></td>
+				<td><label for="additionalParamsCheckbox">Add additional command-line parameters to k2pdfopt:</label>
+				<input type="text" id="k2pdfoptParams">
+				</td>
+			</tr>
+		</table>
+		<div id="buttons">
+			<a href="#" id="abortbtn" class="btn">Cancel</a>
+			<a href="#" id="startbtn" class="btn">Start conversion</a>
+		</div>
+	</div>
+</div>
+
+</div>
+
+
+<div id="overlay"></div>
+
+<div id="privacyTooltip">
+<div id="privacyText">
+<img src="close.png" alt="x" id="closePrivacyTooltip" title="close">
+<p>If you check this box, Dontprint will send the following data anonymously to its developer:</p>
+<table>
+	<tr><th>Article title:</th><td id="tooltipTitle"></td></tr>
+	<tr><th>Journal:</th><td id="tooltipJournal"></td></tr>
+	<tr><th>DOI:</th><td id="tooltipDoi"></td></tr>
+	<tr><th>Website:</th><td id="tooltipWebsite"></td></tr>
+	<tr><th>Article date:</th><td id="tooltipDate"></td></tr>
+	<tr><th>Margins:</th><td id="tooltipMargins"></td></tr>
+	<tr><th>Pages:</th><td id="tooltipPages"></td></tr>
+	<tr><th>Scale:</th><td id="tooltipScale"></td></tr>
+	<tr><th>Parameters:</th><td id="tooltipParameters"></td></tr>
+</table>
+<p>This information is necessary to verify if the margins are correct. If they are, future versions of Dontprint will recognize articles from this journal and apply the correct margins automatically.</p>
+<p><strong>Please note:</strong> The above table contains <em><strong>all</strong></em> data that will be sent. Dontprint will <em><strong>not</strong></em> send any personal information (such as your e-mail address or any username or unique identifier). If you still prefer to never send any data at all, you can turn off this feature for good by choosing "Menu &rarr; Dontprint &rarr; Configure Dontprint &rarr; Advanced".</p>
+</div>
+<img src="triang.png" id="privacyTooltipTriang">
+</div>
+
+</body>
+</html>
