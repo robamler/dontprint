@@ -1,36 +1,35 @@
 "use strict";
 
-(function() {
-	var dp = null;
-	var returnHandlers = {
-		connect: onConnect,
-		sendVerificationCode: sendVerificationCodeCallback,
-		verifyEmailAddress: verifyEmailAddressCallback
-	};
-	var connector = chrome.runtime.connect({
-		name: "welcomePage"
-	});
-	connector.onMessage.addListener(onMessage);
+$(function() {
+	var dp = {};
+	var Dontprint = null;
 
-
-	function onMessage(message) {
-		returnHandlers[message.returnFrom].apply(this, message.args);
-	}
-
-
-	function onConnect(dontprint) {
-		dp = dontprint;
-
-		stepModelPicker();
-	}
-
-
-	function callRemote(funcName) {
-		connector.postMessage({
-			call: funcName,
-			args: Array.prototype.slice.call(arguments, 1)
+	PlatformTools.getComponentInternally("Dontprint").then(function(val) {
+		Dontprint = val;
+		return Dontprint.platformTools.getPrefs({
+			ereaderModel: "",
+			screenWidth: -1,
+			screenHeight: -1,
+			screenPpi: -1,
+			transferMethod: "",
+			recipientEmailPrefix: "",
+			recipientEmailSuffix: "",
+			recipientEmailOther: "",
+			verifiedEmails: [],
+			neverReportJournalSettings: false,
+			otherEreaderModel: "",
+			k2pdfoptParams: ""
 		});
-	}
+	}).then(function(prefs) {
+		dp.prefs = prefs;
+		return Dontprint.isTransferMethodValid(prefs);
+	}).then(function(isvalid) {
+		dp.transferMethodValid = isvalid;
+		return Dontprint.getEreaderModelDefaults();
+	}).then(function(modelDefaults) {
+		dp.EREADER_MODEL_DEFAULTS = modelDefaults;
+		stepModelPicker();
+	});
 
 
 	function stepModelPicker() {
@@ -164,19 +163,13 @@
 		} : screenSettings;
 		newvalues.ereaderModel = ModelPicker.selection;
 
-		callRemote("setPrefs", newvalues);
+		Dontprint.platformTools.setPrefs(newvalues);
 
 		stepTransferMethod();
 	}
 
 
 	function stepTransferMethod() {
-		if (dp.transferMethodValid) {
-			// This step is already completed due to sync
-			showCongrats();
-			return;
-		}
-
 		$('#stepModelPickerHeader').text($('#stepModelPickerHeader').text() + ' (done)').fadeTo(400, .4);
 		$('#stepModelPickerBody').slideUp();
 
@@ -249,7 +242,7 @@
 	function acceptTransferMethod() {
 		let prefs = validateTransferMethodSettings();
 		if (prefs) {
-			callRemote("setPrefs", prefs);
+			Dontprint.platformTools.setPrefs(prefs);
 			showCongrats();
 		}
 	}
@@ -260,30 +253,28 @@
 		if (!prefs) {
 			return false;
 		}
+
 		$("#sendVerificationCodeBtn").attr("disabled", "disabled");
+		$("#verificationCodeProgress").text("Sending verification code. Please wait...").slideDown();
+		$("#verificationCodeInputLine").slideDown();
+		$("#verificationCode").val("").focus();
 
-		callRemote("sendVerificationCode", prefs);
-	}
-
-
-	function sendVerificationCodeCallback(resp) {
-		if (resp.status === "sending") {
-			$("#verificationCodeProgress").text("Sending verification code to " + resp.email + ". Please wait...").slideDown();
-			$("#verificationCodeInputLine").slideDown();
-			$("#verificationCode").val("").focus();
-		} else if (resp.success) {
-			if (resp.returncode === 0) {
-				$("#verificationCodeProgress").text('Verification code sent. Please wait until a document with a four-digit verification code arrives on your e-reader and then enter the code below. It may take a couple of minutes until the document arrives on your e-reader and you may have to manually select "Sync" on your device.');
-				$("#sendVerificationCodeBtn").removeAttr("disabled").text("Resend verification code");
-			} else if (resp.returncode === 1) {
-				$("#verificationCodeProgress").text('The e-mail address had already been verified before. There is no need to reverify. Click "Accept and finish" below to conclude the setup.');
-				$("#verificationCodeInputLine").slideUp();
-				$("#acceptEmailContainer").slideDown();
+		Dontprint.sendVerificationCode(prefs).then(
+			function(response) {
+				if (response.returncode === 0) {
+					$("#verificationCodeProgress").text('Verification code sent. Please wait until a document with a four-digit verification code arrives on your e-reader and then enter the code below. It may take a couple of minutes until the document arrives on your e-reader and you may have to manually select "Sync" on your device.');
+					$("#sendVerificationCodeBtn").removeAttr("disabled").text("Resend verification code");
+				} else if (response.returncode === 1) {
+					$("#verificationCodeProgress").text('The e-mail address had already been verified before. There is no need to reverify. Click "Accept and finish" below to conclude the setup.');
+					$("#verificationCodeInputLine").slideUp();
+					$("#acceptEmailContainer").slideDown();
+				}
+			},
+			function(error) {
+				$("#sendVerificationCodeBtn").removeAttr("disabled");
+				$("#verificationCodeProgress").text("Error: " + error);
 			}
-		} else {
-			$("#sendVerificationCodeBtn").removeAttr("disabled");
-			$("#verificationCodeProgress").text("Error: " + resp.message);
-		}
+		);
 	}
 
 
@@ -296,21 +287,18 @@
 		}
 		$("#verifyEmailBtn").attr("disabled", "disabled");
 		$("#verificationCodeProgress").text("Checking verification code. Please wait...").slideDown();
-		callRemote("verifyEmailAddress", code);
+
+		Dontprint.verifyEmailAddress(code).then(
+			showCongrats,
+			function(error) {
+				$("#verifyEmailBtn").removeAttr("disabled");
+				$("#verificationCodeProgress").text("Error: " + error);
+			}
+		);
 	}
 
 
-	function verifyEmailAddressCallback(resp) {
-		if (resp.success) {
-			showCongrats();
-		} else {
-			$("#verifyEmailBtn").removeAttr("disabled");
-			$("#verificationCodeProgress").text("Error: " + resp.message);
-		}
-	}
-
-
-	function testEmailCallback(newtab) {
+	function testEmailCallback(newtab) { //TODO: where does this get called?
 		try {
 			$("#test-email-showresult").show();
 			newtab.tab.addEventListener("TabClose", function() {
@@ -376,4 +364,4 @@
 			close();
 		});
 	}
-}());
+});

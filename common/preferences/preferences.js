@@ -1,7 +1,6 @@
 ﻿"use strict";
 
 $(function() {
-	var dp = null;
 	var modelSettings = {};
 	var marginsPaneInitialized = false;
 	var marginsPaneInitializedSuccessfully = false;
@@ -10,39 +9,39 @@ $(function() {
 	var journalFilterList = null;
 	var selectedJournalFilter = null;
 	var originalSelectedJournalFilter = null;
+	var Dontprint = null;
+	var dp = {};
 
-	var returnHandlers = {
-		connect: onConnect,
-		getJournalFilters: onJournalFiltersReceived,
-		saveJournalSettings: onJournalFilterIdChanged
-	};
-	var connector = chrome.runtime.connect({name: "preferencesPage"});
-	connector.onMessage.addListener(onMessage);
-
-
-	function onMessage(message) {
-		if (message.returnFrom) {
-			returnHandlers[message.returnFrom].apply(this, message.args);
-		}
-	}
-
-
-	function callRemote(funcName) {
-		connector.postMessage({
-			call: funcName,
-			args: Array.prototype.slice.call(arguments, 1)
+	PlatformTools.getComponentInternally("Dontprint").then(function(val) {
+		Dontprint = val;
+		return Dontprint.platformTools.getPrefs({
+			ereaderModel: "",
+			screenWidth: -1,
+			screenHeight: -1,
+			screenPpi: -1,
+			transferMethod: "",
+			recipientEmailPrefix: "",
+			recipientEmailSuffix: "",
+			recipientEmailOther: "",
+			verifiedEmails: [],
+			neverReportJournalSettings: false,
+			otherEreaderModel: "",
+			k2pdfoptParams: ""
 		});
-	}
-
-
-	function onConnect(dontprint) {
-		dp = dontprint;
+	}).then(function(prefs) {
+		dp.prefs = prefs;
+		return Dontprint.isTransferMethodValid(prefs);
+	}).then(function(isvalid) {
+		dp.transferMethodValid = isvalid;
+		return Dontprint.getEreaderModelDefaults();
+	}).then(function(modelDefaults) {
+		dp.EREADER_MODEL_DEFAULTS = modelDefaults;
 		initTransferMethodPane();
 		initDevicePane();
 		initAdvancedPane();
 		$(window).bind("hashchange", hashchange);
 		hashchange();
-	}
+	});
 
 
 	function hashchange(e) {
@@ -69,7 +68,7 @@ $(function() {
 
 	function attachPref(property, prefName) {
 		function handler() {
-			callRemote("setPrefs", {[prefName]: this[property]});
+			Dontprint.platformTools.setPrefs({[prefName]: this[property]});
 		}
 
 		$("#" + prefName).prop(property, dp.prefs[prefName]).change(handler).keyup(handler);
@@ -96,12 +95,12 @@ $(function() {
 		$("#transferMethodEmail").click(function() {
 			$("#transferMethodEmailDetails").slideDown();
 			$("#transferMethodDirectoryDetails").slideUp();
-			callRemote("setPrefs", {transferMethod: "email"});
+			Dontprint.platformTools.setPrefs({transferMethod: "email"});
 		});
 		$("#transferMethodDirectory").click(function() {
 			$("#transferMethodEmailDetails").slideUp();
 			$("#transferMethodDirectoryDetails").slideDown();
-			callRemote("setPrefs", {transferMethod: "directory"});
+			Dontprint.platformTools.setPrefs({transferMethod: "directory"});
 		});
 		$("#showDownloadsFolder").click(function() {
 			chrome.downloads.showDefaultFolder();
@@ -154,7 +153,7 @@ $(function() {
 		$("#sendScreenSettingsOtherContainer").hide();
 		attachPref("value", "otherEreaderModel");
 
-		$("#sendTestEmailButton").click(transferTestDocument.bind(this, "TODO:measurement.pdf", Dontprint can transfer a small document to your e-reader that will assist you in finding out its exact screen size. Would you like to send this document now?"));
+		$("#sendTestEmailButton").click(transferTestDocument.bind(this, "TODO:measurement.pdf", "Dontprint can transfer a small document to your e-reader that will assist you in finding out its exact screen size. Would you like to send this document now?"));
 
 		modelSettings[dp.prefs.ereaderModel] = {
 			screenWidth: dp.prefs.screenWidth,
@@ -181,46 +180,44 @@ $(function() {
 		$("#deleteFilterBtn").click(deleteJournalFilter);
 		$(window).on("unload", saveOldJournalFilterSelection);
 
-		callRemote("getJournalFilters");
-	}
+		Dontprint.getJournalFilters().then(
+			function(sqlresult) {
+				marginsPaneInitializedSuccessfully = true;
 
+				var fields = ["id", "longname", "shortname", "minDate", "maxDate",  "coverpage", "k2pdfoptParams", "scale"];
+				var floatFields = ["m1", "m2", "m3", "m4"];
+				
+				journalFilters = sqlresult;
+				journalFilterList = $("#filterList");
+				journalFilterList.empty();
 
-	function onJournalFiltersReceived(successState, sqlresult) {
-		if (!successState) {
-			if (!marginsPaneInitializedSuccessfully) {
-				$("#filterList>option:first").text("An error occured");
-			}
-			return;
-		}
-		marginsPaneInitializedSuccessfully = true;
+				for (let i=0; i<journalFilters.length; i++) {
+					let filter = journalFilters[i];
+					journalFilterMap[filter.id] = i;
+					filter.enabled = 1;
+					floatFields.forEach(function(key) {
+						filter[key] = parseFloat(filter[key]);
+					});
+					let attr = {
+					    value: i,
+					    text: makeJournalFilterLabel(filter)
+					};
+					if (filter.id < 0) {
+						attr.class = "builtin";
+					}
+					journalFilterList.append($("<option>", attr));
+				}
 
-		var fields = ["id", "longname", "shortname", "minDate", "maxDate",  "coverpage", "k2pdfoptParams", "scale"];
-		var floatFields = ["m1", "m2", "m3", "m4"];
-		
-		journalFilters = sqlresult;
-		journalFilterList = $("#filterList");
-		journalFilterList.empty();
-
-		for (let i=0; i<journalFilters.length; i++) {
-			let filter = journalFilters[i];
-			journalFilterMap[filter.id] = i;
-			filter.enabled = 1;
-			floatFields.forEach(function(key) {
-				filter[key] = parseFloat(filter[key]);
+				journalFilterList.change(journalFilterSelect);
+				journalFilterList.val(0);
+				journalFilterSelect();
+			},
+			function(error) {
+				if (!marginsPaneInitializedSuccessfully) {
+					$("#filterList>option:first").text("An error occured: " + error);
+				}
+				return;
 			});
-			let attr = {
-			    value: i,
-			    text: makeJournalFilterLabel(filter)
-			};
-			if (filter.id < 0) {
-				attr.class = "builtin";
-			}
-			journalFilterList.append($("<option>", attr));
-		}
-
-		journalFilterList.change(journalFilterSelect);
-		journalFilterList.val(0);
-		journalFilterSelect();
 	}
 
 
@@ -357,25 +354,25 @@ $(function() {
 		
 		if (!equal) {
 			$('#filterList>option[value="' + journalFilterMap[selectedJournalFilter.id] + '"]').removeClass("builtin");
-			callRemote("saveJournalSettings", selectedJournalFilter);
+			Dontprint.saveJournalSettings(selectedJournalFilter).then(function(val) {
+				if (val.oldid === val.newid) {
+					return;
+				}
+				let index = null;
+
+				if (typeof val.oldid !== "number") {
+					// New journal filter. Must be the one added last to the
+					// list, unless several were added in quick succession
+					index = journalFilters.length - 1;
+				} else {
+					index = journalFilterMap[val.oldid];
+					delete journalFilterMap[val.oldid];
+				}
+
+				journalFilters[index].id = val.newid;
+				journalFilterMap[val.newid] = index;
+			});
 		}
-	}
-
-
-	function onJournalFilterIdChanged(oldid, newid) {
-		let index = null;
-
-		if (typeof oldid !== "number") {
-			// New journal filter. Must be the one added last to the
-			// list, unless several were added in quick succession
-			index = journalFilters.length - 1;
-		} else {
-			index = journalFilterMap[oldid];
-			delete journalFilterMap[oldid];
-		}
-
-		journalFilters[index].id = newid;
-		journalFilterMap[newid] = index;
 	}
 
 
@@ -405,7 +402,7 @@ $(function() {
 			return;
 		}
 		
-		callRemote("deleteJournalSettings", selectedJournalFilter.id, null);
+		Dontprint.deleteJournalSettings(selectedJournalFilter.id, null);
 		delete journalFilterMap[selectedJournalFilter.id];
 		journalFilters[$("#filterList").val()] = undefined; // Don't delete the entry from the array because we still want to reserve its index
 		let oldsel = $("#filterList>:selected");
@@ -466,7 +463,7 @@ $(function() {
 			$('#heightinput').val(userSettings.screenHeight);
 			$('#ppiinput').val(userSettings.screenPpi);
 			
-			callRemote("setPrefs", {ereaderModel: modelName});
+			Dontprint.platformTools.setPrefs({ereaderModel: modelName});
 			screenSettingsChange();  // write new screen size settings to preferences
 			
 	 		res.slideDown(400);
@@ -553,7 +550,7 @@ $(function() {
 			screenHeight: -1,
 			screenPpi: -1
 		} : modelSettings[modname];
-		callRemote("setPrefs", newvalues);
+		Dontprint.platformTools.setPrefs(newvalues);
 	}
 
 

@@ -1,10 +1,9 @@
 "use strict";
 
-var Dontprint = (function() {
+PlatformTools.exportComponent("Dontprint", function() {
 	const DATABASE_VERSION = "20150627";
 	var runningJobs = {};
 	var journaldb = null;
-	var filesystemPromise = null;
 	var progressListeners = {};
 	
 	const EREADER_MODEL_DEFAULTS = {
@@ -22,6 +21,30 @@ var Dontprint = (function() {
 		"other":					{screenWidth: 600,  screenHeight: 800,  screenPpi: 170}
 	};
 	
+
+	// Public interface	
+	return {
+		init,
+		runJob,
+		zoteroTranslatorDone,
+		getJobFromId,
+		cropPageDone,
+		resultPageLoaded,
+		sendVerificationCode,
+		verifyEmailAddress,
+		dontprintArticleFromPage,
+		connectPopupToJob,
+		openSettings,
+		showProgress,
+		abortJob,
+		getJournalFilters,
+		saveJournalSettings,
+		deleteJournalSettings,
+		isTransferMethodValid,
+		getEreaderModelDefaults
+	};
+
+
 	function updateJournalDb() {
 		let req = new XMLHttpRequest();
 		req.responseType = "json";
@@ -65,83 +88,8 @@ var Dontprint = (function() {
 		};
 
 		//TODO: is getUrl() really necessary here?
-		req.open("GET", chrome.runtime.getURL("builtinJournals.json"));
+		req.open("GET", PlatformTools.extensionScriptUrl("common/builtinJournals.json"));
 		req.send();
-	}
-
-
-	function onMessage(message, sender, sendResponse, port) {
-		if (sender.id === chrome.runtime.id && message && message.sender && message.sender === "Dontprint") {
-			if (!message.args) {
-				message.args = [];
-			}
-			message.args.push(sendResponse, port);
-			return exportedFunctions[message.call].apply(this, message.args);
-		}
-	}
-
-
-	function onConnect(port) {
-		if (port.sender.id === chrome.runtime.id) {
-			port.onMessage.addListener(function(message) {
-				message.sender = "Dontprint";
-				onMessage(
-					message,
-					port.sender,
-					function() {
-						port.postMessage({
-							returnFrom: message.call,
-							args: Array.prototype.slice.call(arguments)
-						});
-					},
-					port
-				);
-			});
-			if (disconnectors[port.name]) {
-				port.onDisconnect.addListener(disconnectors[port.name]);
-			}
-
-			if (connectors[port.name]) {
-				connectors[port.name](
-					function() {
-						port.postMessage({
-							returnFrom: "connect",
-							args: Array.prototype.slice.call(arguments)
-						});
-					},
-					port
-				);
-			}
-		}
-	}
-
-
-	function connectToWelcomeOrPreferencesPage(sendResponse) {
-		getPrefs({
-			ereaderModel: "",
-			screenWidth: -1,
-			screenHeight: -1,
-			screenPpi: -1,
-			transferMethod: "",
-			recipientEmailPrefix: "",
-			recipientEmailSuffix: "",
-			recipientEmailOther: "",
-			verifiedEmails: [],
-			neverReportJournalSettings: false,
-			otherEreaderModel: "",
-			k2pdfoptParams: ""
-		}).then(function(prefs) {
-			sendResponse({
-				prefs,
-				EREADER_MODEL_DEFAULTS,
-				transferMethodValid: isTransferMethodValid(prefs)
-			});
-		});
-	}
-
-
-	function connectToPopup(sendResponse) {
-		sendResponse();
 	}
 
 
@@ -163,7 +111,7 @@ var Dontprint = (function() {
 
 		setTimeout(
 			function() {
-				getPrefs({
+				PlatformTools.getPrefs({
 					sendScreenSettigns: false,
 					screenWidth: -1,
 					screenHeight: -1,
@@ -175,7 +123,7 @@ var Dontprint = (function() {
 						return;
 					}
 
-					setPrefs({sendScreenSettigns: false});
+					PlatformTools.setPrefs({sendScreenSettigns: false});
 
 					let url = buildURL(
 						'https://docs.google.com/forms/d/1YCclhAjI9iDOf9tQybcJuW4QYM8Ayr1K6HB8894GfrI/formResponse?draftResponse=[]%0D%0A&pageHistory=0',
@@ -196,48 +144,60 @@ var Dontprint = (function() {
 	}
 
 
-	function dontprintArticleFromPage(pageurl, tabId, windowId, sendResponse, port) {
+	function dontprintArticleFromPage(pageurl, tabId, windowId, listener) {
 		Dontprint.runJob({
 			jobType: "page",
 			pageurl: pageurl.split("#")[0],
 			tabId,
 			windowId,
 			title: "Retrieving article meta data...",
-			connectToPopup: sendResponse,
-			popupPort: port
+			progressListener: listener
 		});
 	}
 
 
-	function connectPopupToJob(jobId, sendResponse, port) {
+	function connectPopupToJob(jobId, listener) {
 		let job = runningJobs[jobId];
 		if (job) {
-			job.popupPort = port;
+			job.progressListener = listener;
 		}
-		sendResponse(job);
+		listener(job);
 	}
 
 
-	function getJobFromId(jobId, sendResponse) {
-		sendResponse(runningJobs[jobId]);
+	function getJobFromId(jobId) {
+		return runningJobs[jobId];
 	}
 
 
-	function getJournalFilters(sendResponse) {
-		spawnSqlTransaction(journaldb, function*(sql) {
-			try {
-				let result = yield sql("SELECT id, longname, shortname, minDate, maxDate, m1, m2, m3, m4, coverpage, k2pdfoptParams, scale FROM journals WHERE enabled=1 ORDER BY priority DESC, lastModified DESC");
-				sendResponse(true, Array.prototype.slice.call(result.rows));
-			} catch (e) {
-				sendResponse(false);
-			}
+	function getJournalFilters() {
+		return spawnSqlTransaction(journaldb, function*(sql) {
+			let result = yield sql("SELECT id, longname, shortname, minDate, maxDate, m1, m2, m3, m4, coverpage, k2pdfoptParams, scale FROM journals WHERE enabled=1 ORDER BY priority DESC, lastModified DESC");
+			return Array.prototype.slice.call(result.rows);
 		});
 	}
 
 
-	(function init() {
-		chrome.runtime.onMessage.addListener(onMessage);
-		chrome.runtime.onConnect.addListener(onConnect)
+	function init() {
+		// Make platformTools available to scripts that connect to this one
+		this.platformTools = PlatformTools;
+		// PlatformTools.exportFunctions({
+		// 	getJobFromId,
+		// 	cropPageDone,
+		// 	resultPageLoaded,
+		// 	sendVerificationCode,
+		// 	verifyEmailAddress,
+		// 	dontprintArticleFromPage,
+		// 	connectPopupToJob,
+		// 	openSettings,
+		// 	showProgress,
+		// 	abortJob,
+		// 	getJournalFilters,
+		// 	saveJournalSettings,
+		// 	deleteJournalSettings,
+		// 	isTransferMethodValid,
+		// 	getEreaderModelDefaults
+		// });
 
 		journaldb = openDatabase("journaldb", "", "Dontprint's k2pdfopt settings for known journals", 100 * 1024);
 
@@ -245,7 +205,7 @@ var Dontprint = (function() {
 			updateJournalDb();
 		}
 
-		getPrefs({
+		PlatformTools.getPrefs({
 			ereaderModel: "",
 			transferMethod: "",
 			recipientEmailPrefix: "",
@@ -253,13 +213,14 @@ var Dontprint = (function() {
 			recipientEmailOther: "",
 			verifiedEmails: []
 		}).then(function(prefs) {
+		console.log(prefs);
 			if (!prefs.ereaderModel || !isTransferMethodValid(prefs)) {
 				chrome.tabs.create({
-					url: "welcome/dontprint-welcome.html"
+					url: "common/welcome/dontprint-welcome.html"
 				});
 			}
 		});
-	}());
+	}
 
 // 	// ==== PUBLICLY VISIBLE METHODS ================================
 	
@@ -335,7 +296,7 @@ var Dontprint = (function() {
 
 
 	function* getScreenDimensions() {
-		let ret = yield getPrefs({
+		let ret = yield PlatformTools.getPrefs({
 			screenWidth: -1,
 			screenHeight: -1,
 			screenPpi: -1,
@@ -406,12 +367,12 @@ var Dontprint = (function() {
 	
 	
 	function showProgress(openerTabId) {
-		openSingletonTab("progress/progress.html", openerTabId, false);
+		openSingletonTab("common/progress/progress.html", openerTabId, false);
 	}
 	
 	
 	function openSettings(openerTabId) {
-		openSingletonTab("preferences/preferences.html", openerTabId, true);
+		openSingletonTab("common/preferences/preferences.html", openerTabId, true);
 	}
 
 
@@ -467,7 +428,7 @@ var Dontprint = (function() {
 	
 	
 	function sendTestEmail(callback) {
-		getPrefs({ereaderModel: "other"}).then(
+		PlatformTools.getPrefs({ereaderModel: "other"}).then(
 			function(ret) {
 				runJob({
 					title:		"Dontprint test document",
@@ -482,7 +443,7 @@ var Dontprint = (function() {
 	
 	
 	function* getRecipientEmail() {
-		let prefs = yield getPrefs({
+		let prefs = yield PlatformTools.getPrefs({
 			recipientEmailPrefix: null,
 			recipientEmailSuffix: null,
 			recipientEmailOther: null
@@ -509,68 +470,76 @@ var Dontprint = (function() {
 		}
 	}
 
-	
-	function sendVerificationCode(prefs, sendResponse) {
-		spawn(function*() {
-			yield setPrefs(prefs);
-			let email = yield getRecipientEmail();
-			if (!email) {
-				sendResponse({
-					success: false,
-					message: "No e-mail address set"
-				});
-			}
-			sendResponse({status: "sending", email});
 
-			let req = new XMLHttpRequest();
-			req.responseType = "json";
-			req.onload = function() {
-				sendResponse(req.response);
-				if (req.response.success && req.response.returncode === 1) {
-					// Email addres was already verified
-					rememberVerifiedEmail(email);
+	function getEreaderModelDefaults() {
+		return EREADER_MODEL_DEFAULTS;
+	}
+	
+	function sendVerificationCode(prefs) {
+		return new Promise(function (resolve, reject) {
+			spawn(function*() {
+				yield PlatformTools.setPrefs(prefs);
+				let email = yield getRecipientEmail();
+				if (!email) {
+					reject("No e-mail address set");
 				}
-			};
-			req.onerror = function(error) {
-				sendResponse({success: false, message: "Connection error. Are you connected to the internet?"});
-			};
-			req.open("POST", "http://dontprint.net/cgi-bin/send-verification-mail.pl", true);
-			req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-			req.send(buildURL("", {email}));
-		})();
+				let req = new XMLHttpRequest();
+				req.responseType = "json";
+				req.onload = function() {
+					if (req.response.success && req.response.returncode === 1) {
+						// Email addres was already verified
+						rememberVerifiedEmail(email);
+					}
+					if (req.response.success) {
+						resolve(req.response);
+					} else {
+						reject(req.response.message);
+					}
+				};
+				req.onerror = function(error) {
+					reject("Connection error. Are you connected to the internet?");
+				};
+				req.open("POST", "http://dontprint.net/cgi-bin/send-verification-mail.pl", true);
+				req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+				req.send(buildURL("", {email}));
+			})();
+		});
 	}
 	
 	
-	function verifyEmailAddress(code, sendResponse) {
-		spawn(function*() {
-			let email = yield getRecipientEmail();
-			if (!email) {
-				sendResponse({
-					success: false,
-					message: "No e-mail address set"
-				});
-			}
-
-			let req = new XMLHttpRequest();
-			req.responseType = "json";
-			req.onload = function() {
-				sendResponse(req.response);
-				if (req.response.success) {
-					rememberVerifiedEmail(email);
+	function verifyEmailAddress(code) {
+		return new Promise(function(resolve, reject) {
+			spawn(function*() {
+				let email = yield getRecipientEmail();
+				if (!email) {
+					reject("No e-mail address set");
 				}
-			};
-			req.onerror = function() {
-				sendResponse({success: false, message: "Connection error. Are you connected to the internet?"});
-			};
-			req.open("POST", "http://dontprint.net/cgi-bin/verify-email.pl", true);
-			req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-			req.send(buildURL("", {email, code}));
-		})();
+
+				let req = new XMLHttpRequest();
+				req.responseType = "json";
+				req.onload = function() {
+					if (req.response.success) {
+						rememberVerifiedEmail(email);
+					}
+					if (req.response.success) {
+						resolve(req.response);
+					} else {
+						reject(req.response.message);
+					}
+				};
+				req.onerror = function() {
+					reject("Connection error. Are you connected to the internet?");
+				};
+				req.open("POST", "http://dontprint.net/cgi-bin/verify-email.pl", true);
+				req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+				req.send(buildURL("", {email, code}));
+			})();
+		});
 	}
 	
 	
 	function rememberVerifiedEmail(email) {
-		getPrefs({verifiedEmails: []}).then(function(prefs) {
+		PlatformTools.getPrefs({verifiedEmails: []}).then(function(prefs) {
 			let em = email.toLocaleLowerCase();
 			if (prefs.verifiedEmails.indexOf(em) !== -1) {
 				return;
@@ -578,48 +547,10 @@ var Dontprint = (function() {
 			prefs.verifiedEmails.unshift(em);
 			// Remember only up to 10 e-mail addresses.
 			prefs.verifiedEmails = prefs.verifiedEmails.slice(0,10);
-			setPrefs(prefs);
+			PlatformTools.setPrefs(prefs);
 		});
 	}
 	
-
-	function initFilesystem() {
-		if (filesystemPromise === null) {
-			// Filesystem hasn't been used yet. Open it and delete all files.
-			filesystemPromise = new Promise(function(resolve, reject) {
-				webkitRequestFileSystem(
-					TEMPORARY, 15 * 1024 * 1024,
-					function(fs) {
-						let dirreader = fs.root.createReader();
-						dirreader.readEntries(
-							function processEntries(entries) {
-								function deleteEntries() {
-									if (entries.length == 0) {
-										dirreader.readEntries(processEntries);
-									} else {
-										let entry = entries.pop();
-										if (entry.isFile) {
-											entry.remove(deleteEntries);
-										} else if (entry.isDirectory) {
-											entry.removeRecursively(deleteEntries);
-										}
-									}
-								}
-
-								if (entries.length == 0) {
-									resolve(fs);
-								} else {
-									deleteEntries();
-								}
-							}
-						);
-					}
-				),
-				reject
-			});
-		}
-	}
-
 
 	function cleanupJob(job) {
 		if (!job.cleaned) {
@@ -638,27 +569,7 @@ var Dontprint = (function() {
 			}
 			// TODO: rerender pageaction if job.jobType === "page"
 
-			// Recursively remove al temporary files
-			filesystemPromise.then(function(fs) {
-				(function rmTmpFiles() {
-					if (job.tmpFiles.length !== 0) {
-						let entry = job.tmpFiles.pop();
-						if (typeof entry === "string") {
-							fs.root.getFile(
-								entry, null,
-								function(file) {
-									file.remove(rmTmpFiles);
-								},
-								rmTmpFiles
-							);
-						} else if (typeof entry === "object" && entry.remove && typeof entry.remove === "function") {
-							entry.remove(rmTmpFiles, rmTmpFiles);
-						} else {
-							rmTmpFiles();
-						}
-					}
-				})();
-			});
+			PlatformTools.rmTmpFiles(job.tmpFiles);
 		}
 	}
 
@@ -679,14 +590,7 @@ var Dontprint = (function() {
 
 		spawn(function*() {
 			try {
-				job.transferMethod = (yield getPrefs("transferMethod")).transferMethod;
-
-				if (job.connectToPopup) {
-					job.connectToPopup(job);
-					delete job.connectToPopup;
-				}
-
-				initFilesystem();
+				job.transferMethod = (yield PlatformTools.getPrefs("transferMethod")).transferMethod;
 
 				if (job.jobType !== "test") {
 					var naclLoaded = false;
@@ -704,7 +608,7 @@ var Dontprint = (function() {
 
 				if (job.pdfurl) {
 					let blob = yield downloadPdfUrl(job);
-					origPdfFile = yield saveFileOrBlob(blob, "original" + job.id + ".pdf");
+					origPdfFile = yield PlatformTools.saveTmpFileOrBlob(blob, "original" + job.id + ".pdf");
 					job.origPdfUrl = origPdfFile.toURL();
 					job.tmpFiles.push(origPdfFile);
 				}
@@ -866,25 +770,6 @@ var Dontprint = (function() {
 	}
 
 
-	function* saveFileOrBlob(fileOrBlob, filename) {
-		let fs = yield filesystemPromise;
-
-		let entry = yield new Promise(function(resolve, reject) {
-			fs.root.getFile(filename, {create: true}, resolve, reject);
-		});
-
-		return new Promise(function(resolve, reject) {
-			entry.createWriter(function(writer) {
-				writer.onwriteend = function() {
-					resolve(entry);
-				};
-				writer.onerror = reject;
-				writer.write(fileOrBlob);
-			});
-		});
-	}
-
-
 	function* cropMargins(job) {
 		updateJobState(job, "cropping");
 		
@@ -896,7 +781,7 @@ var Dontprint = (function() {
 			job.journalShortname = "";
 		}
 		
-		yield Dontprint.postTranslate(job);
+		// yield Dontprint.postTranslate(job);  TODO
 
 		job.crop = yield spawnSqlTransaction(journaldb, function*(sql) {
 			let dates = parseDateString(job.articleDate);
@@ -925,7 +810,7 @@ var Dontprint = (function() {
 					return null;
 				}
 			} else if (!shortnameresult || shortnameresult.length === 0) {
-				return longnameresult[1];
+				return longnameresult[0];
 			} else {
 				// found match for both longname and shortname
 				let spriority = parseFloat(shortnameresult[0].priority) + 0x200;
@@ -977,7 +862,7 @@ var Dontprint = (function() {
 			});
 			let openargs = {
 				windowId: job.windowId,
-				url: "pdfcrop/pdfcrop.html#" + job.id
+				url: "common/pdfcrop/pdfcrop.html#" + job.id
 			};
 			if (openertab) {
 				openargs.index = openertab.index + 1;
@@ -1056,7 +941,6 @@ var Dontprint = (function() {
 	
 	
 	/**
-	 * Asynchroneous function. Returns a promise.
 	 * Saves the data in job.crop to the database. Automatically
 	 * calculates the priority and decides whether to overwrite
 	 * an existing setting or to add a new entry. If crop.id < 0, then
@@ -1064,13 +948,15 @@ var Dontprint = (function() {
 	 * inserted and crop.id will be set to the new (positive) id.
 	 * @param  {function} crop
 	 *         The journal settings.
-	 * @param  {function} sendResponse
-	 *         If set and the operation causes a new entry to be
-	 *         created, then sendResponse will be called with the
-	 *         old and the new id of the journal filter as
-	 *         parameters.
+	 * @return {Promise}
+	 *         A promise that will be resolved with an object
+	 *         {oldid, newid}, which holds the old and the new id of the
+	 *         journal filter. If a new filter was added, then
+	 *         oldid === undefined and newid >= 0. If a builtin filter was
+	 *         modified, then oldid < 0 and newid >= 0. If a custom filter
+	 *         was modified, then oldid === newid >= 0.
 	 */
-	function saveJournalSettings(crop, sendResponse) {
+	function saveJournalSettings(crop) {
 		return spawnSqlTransaction(journaldb, function*(sql) {
 			if (crop.id < 0) {
 				// builtin filter; mark as deleted and then insert new filter
@@ -1108,9 +994,14 @@ var Dontprint = (function() {
 			});
 			
 			let insertresult = yield sql(sqlcommand, sqlparams);
+			let ret = {
+				oldid: crop.id,
+				newid: crop.id
+			};
 			if (insertresult && (crop.id < 0 || crop.id===undefined)) {
-				sendResponse(crop.id, insertresult.insertId);
+				ret.newid = insertresult.insertId;
 			}
+			return ret;
 		});
 	}
 	
@@ -1188,7 +1079,7 @@ var Dontprint = (function() {
 			"-o", "/temporary/converted" + job.id + ".pdf",
 			"/temporary/original" + job.id + ".pdf"
 		];
-		let globalArgs = (yield getPrefs({
+		let globalArgs = (yield PlatformTools.getPrefs({
 			k2pdfoptAdditionalParams: ""
 		})).k2pdfoptAdditionalParams.trim();
 		if (globalArgs) {
@@ -1228,10 +1119,7 @@ var Dontprint = (function() {
 			// Event listeners are freed automatically
 		}
 
-		let fs = yield filesystemPromise;
-		job.finalFile = yield new Promise(function(resolve, reject) {
-			fs.root.getFile("converted" + job.id + ".pdf", {create: false}, resolve, reject);
-		});
+		job.finalFile = yield PlatformTools.getTmpFile("converted" + job.id + ".pdf");
 	}
 
 
@@ -1329,9 +1217,10 @@ var Dontprint = (function() {
 
 
 	function* displayResult(job) {
+		console.log(job);//TODO
 		job.result.errorOperation = job.state;
 		updateJobState(job, job.result.success ? "success" : "error");
-		let prefs = yield getPrefs({
+		let prefs = yield PlatformTools.getPrefs({
 			transferMethod: "directory",
 			successPageInBackground: false
 		});
@@ -1342,7 +1231,7 @@ var Dontprint = (function() {
 		let openargs = {
 			windowId: job.windowId,
 			active: !(prefs.successPageInBackground && job.result.success),
-			url: "resultpage/" + prefs.transferMethod + "/" + job.state + ".html#" + job.id
+			url: "common/resultpage/" + prefs.transferMethod + "/" + job.state + ".html#" + job.id
 		};
 		if (openertab) {
 			openargs.index = openertab.index + 1;
@@ -1583,14 +1472,11 @@ var Dontprint = (function() {
 		}
 		
 		setTimeout(function() {
-			if (job.popupPort) {
+			if (job.progressListener) {
 				try {
-					job.popupPort.postMessage({
-						call: "updateJob",
-						args: [job]
-					});
+					job.progressListener(job);
 				} catch (e) {
-					delete job.popupPort;
+					delete job.progressListener;
 				}
 			}
 
@@ -1606,49 +1492,6 @@ var Dontprint = (function() {
 				}
 			}
 		}, 0);
-	}
-	
-	
-	/**
-	 * Asynchroneously get a single or several preferences.
-	 * @param  {string or array of string or object} keys
-	 *         Either a single key (as a string) or an array of keys
-	 *         or an object with keys and default values.
-	 * @return {Promise}
-	 *         Will be resolved with an object whose keys and values
-	 *         correspond to the retrieved settings.
-	 */
-	function getPrefs(keys) {
-		return new Promise(function(resolve, reject) {
-			chrome.storage.sync.get(keys, function(ret) {
-				if (chrome.runtime.lastError) {
-					reject(chrome.runtime.lastError);
-				} else {
-					resolve(ret);
-				}
-			});
-		});
-	}
-
-
-	/**
-	 * Asynchroneously set preferences.
-	 * @param  {object} items
-	 *         Keys and values of the preferences to set.
-	 * @return {Promise}
-	 *         Will be resolved if the operation is successful and
-	 *         rejected (with chrome.runtime.lastError) upon error.
-	 */
-	function setPrefs(keys) {
-		return new Promise(function(resolve, reject) {
-			chrome.storage.sync.set(keys, function() {
-				if (chrome.runtime.lastError) {
-					reject(chrome.runtime.lastError);
-				} else {
-					resolve();
-				}
-			});
-		});
 	}
 
 
@@ -1717,59 +1560,4 @@ var Dontprint = (function() {
 		
 		return { small: small, large: large };
 	}
-
-	// ==== EXPORT PUBLICLY VISIBLE METHODS =========================
-	
-	var exportedFunctions = {
-		getJobFromId,
-		cropPageDone,
-		resultPageLoaded,
-		setPrefs,
-		sendVerificationCode,
-		verifyEmailAddress,
-		dontprintArticleFromPage,
-		connectPopupToJob,
-		openSettings,
-		showProgress,
-		abortJob,
-		getJournalFilters,
-		saveJournalSettings,
-		deleteJournalSettings
-	};
-
-	var connectors = {
-		welcomePage: connectToWelcomeOrPreferencesPage,
-		preferencesPage: connectToWelcomeOrPreferencesPage,
-		popup: connectToPopup,
-		progress: connectToProgressTab
-	};
-
-	var disconnectors = {
-		progress: disconnectFromProgressPage,
-		preferencesPage: disconnectFromPreferencesPage
-	};
-
-	// TODO: Prefer adding a function to "exportedFunctions" over returning them here.
-	// Maybe we can get rid of the entire "Dontprint" namespace this way.
-	return {
-		// init,
-		// validatePreferences,
-		runJob,
-		zoteroTranslatorDone
-		// dontprintLocalFile,
-		// abortJob,
-		// showProgress,
-		// registerProgressListener,
-		// unregisterProgressListener,
-		// sendTestEmail,
-		// getRecipientEmail,
-		// reportScreenSettings,
-		// getRunningJobs: function() { return runningJobs; },
-		// getHostFromUrl,
-		// saveJournalSettings,
-		// deleteJournalSettings,
-		// EREADER_MODEL_DEFAULTS,
-		// getScreenDimensions,
-		// rememberVerifiedEmail
-	};
 }());

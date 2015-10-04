@@ -1,6 +1,7 @@
 "use strict";
 
 (function() {
+	console.log(chrome.extension.getBackgroundPage());
 	var items = {};
 	var wasRemoved = {};
 	var queue = null;

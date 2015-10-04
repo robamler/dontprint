@@ -1,0 +1,30 @@
+{
+	"name": "Dontprint",
+	"manifest_version": 2,
+	"version": "0.9",
+	"description": "Send scientific articles to your e-reader in an optimized layout.",
+	"page_action": {
+		"default_icon": {
+            "19": "common/icons/dontprint-19px.png",
+            "38": "common/icons/dontprint-38px.png"
+          },
+		"default_title": "Dontprint this article (send to e-reader)",
+		"default_popup": "common/progress/popup.html"
+	},
+	"permissions": ["http://*/*", "https://*/*", "tabs", "storage", "downloads"],
+	"background": {
+		"scripts": [
+			"platform/tools.js",
+			"common/dontprint.js"
+		],
+		"persistent": true
+	},
+	"homepage_url": "http://www.dontprint.net",
+	"icons": {
+		"16": "common/icons/dontprint-16px.png",
+		"32": "common/icons/dontprint-32px.png",
+		"48": "common/icons/dontprint-48px.png",
+		"128": "common/icons/dontprint-128px.png"
+	},
+	"options_page": "common/preferences/preferences.html"
+}

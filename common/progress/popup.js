@@ -9,33 +9,28 @@ $(function() {
 	var tabId = parseInt(hashdata[0]);
 	var jobId = parseInt(hashdata[1]);
 	var uistate = initUI();
-	var returnHandlers = {
-		connect: onConnect,
-		dontprintArticleFromPage: onPopupConnected,
-		connectPopupToJob: onPopupConnected
+	var returnHandlers = {//TODO
+		// connect: onConnect,
+		// dontprintArticleFromPage: onPopupConnected,
+		// connectPopupToJob: onPopupConnected
 	};
-	var exportedFunctions = {
+	var exportedFunctions = {//TODO
 		updateJob
 	};
-	var connector = chrome.runtime.connect({name: "popup"});
-	connector.onMessage.addListener(onMessage);
 
+	var Dontprint = null;
 
-	function onMessage(message) {
-		if (message.call) {
-			exportedFunctions[message.call].apply(this, message.args);
-		} else if (message.returnFrom) {
-			returnHandlers[message.returnFrom].apply(this, message.args);
+	PlatformTools.getComponentInternally("Dontprint").then(function(dp) {
+		console.log(dp);
+		console.log(jobId);
+		console.log(tabId);
+		Dontprint = dp;
+		if (isNaN(jobId)) {
+			runNewJob();
+		} else {
+			connectToJob();
 		}
-	}
-
-
-	function callRemote(funcName) {
-		connector.postMessage({
-			call: funcName,
-			args: Array.prototype.slice.call(arguments, 1)
-		});
-	}
+	});
 
 
 	function initUI() {
@@ -44,11 +39,11 @@ $(function() {
 			return false;
 		});
 		$("#showallLink").click(function() {
-			callRemote("showProgress", tabId);
+			Dontprint.showProgress(tabId);
 			return false;
 		});
 		$("#settingsLink").click(function() {
-			callRemote("openSettings", tabId);
+			Dontprint.openSettings(tabId);
 			return false;
 		});
 
@@ -69,15 +64,6 @@ $(function() {
 	}
 
 
-	function onConnect() {
-		if (isNaN(jobId)) {
-			runNewJob();
-		} else {
-			connectToJob();
-		}
-	}
-
-
 	function runNewJob() {
 		chrome.pageAction.setTitle({
 			tabId,
@@ -86,22 +72,22 @@ $(function() {
 		chrome.pageAction.setIcon({
 			tabId,
 			path: {
-				"19": "../images/dontprint-working-19px.png",
-				"38": "../images/dontprint-working-38px.png"
+				"19": "dontprint-busy-19px.png",
+				"38": "dontprint-busy-38px.png"
 			}
 		});
 
 		chrome.tabs.get(
 			tabId,
 			function (tab) {
-				callRemote("dontprintArticleFromPage", tab.url, tabId, tab.windowId);
+				Dontprint.dontprintArticleFromPage(tab.url, tabId, tab.windowId, updateJob);
 			}
 		);
 	}
 
 
 	function connectToJob() {
-		callRemote("connectPopupToJob", jobId);
+		Dontprint.connectPopupToJob(jobId);
 	}
 
 
@@ -122,10 +108,7 @@ $(function() {
 		jobId = job.id;
 		$("#abortLink").click(function() {
 			$("#abortLink").text("Aborting...");
-			window.setTimeout(
-				callRemote.bind(this, "abortJob", job.id),
-				0
-			);
+			Dontprint.abortJob(job.id);
 			return false;
 		});
 		if (job.transferMethod === "directory") {

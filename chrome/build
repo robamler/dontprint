@@ -1,0 +1,9 @@
+#!/bin/bash
+
+rm -r zotero-connector
+cd ../dependencies/zotero-connectors/
+./build.sh
+cd ../../chrome
+cp -r ../dependencies/zotero-connectors/build/chrome/ zotero-connector
+
+./mk-manifest.py

@@ -94,7 +94,7 @@ function initializeModels() {
 	var allmodels = [];
 	ModelPicker.questions['START'].filter.forEach(function(mod) {
 		allmodels.push(mod);
-		ModelPicker.models[mod].node = $('<div class="model" name="' + mod + '"><img src="../ereader-models/' + mod + '.png"/><div>' + ModelPicker.models[mod].label + '</div></div>');
+		ModelPicker.models[mod].node = $('<div class="model" name="' + mod + '"><img src="../model-picker/' + mod + '.png"/><div>' + ModelPicker.models[mod].label + '</div></div>');
 		// set title attribute programmatically to avoid escaping \n and "
 		ModelPicker.models[mod].node.attr('title', ModelPicker.models[mod].label + '\n' + ModelPicker.models[mod].hint);
 		ModelPicker.models[mod].node.mousedown(function() {
