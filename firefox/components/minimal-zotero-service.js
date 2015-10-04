@@ -1,1 +1,1 @@
-../zotero/components/zotero-service.js
+../../dependencies/zotero-connectors/src/zotero/components/zotero-service.js
