@@ -4,8 +4,8 @@ PlatformTools.exportComponent("Dontprint", function() {
 	const DATABASE_VERSION = "20150627";
 	var runningJobs = {};
 	var journaldb = null;
-	var progressListeners = {};
-	
+	var progressListeners = new Set();
+
 	const EREADER_MODEL_DEFAULTS = {
 		"kindle-paperwhite":		{screenWidth: 718,  screenHeight: 963,  screenPpi: 212},
 		"kindle-touch":				{screenWidth: 557,  screenHeight: 721,  screenPpi: 167},
@@ -20,14 +20,17 @@ PlatformTools.exportComponent("Dontprint", function() {
 		"kindle-voyage":			{screenWidth: 1046, screenHeight: 1412, screenPpi: 300},
 		"other":					{screenWidth: 600,  screenHeight: 800,  screenPpi: 170}
 	};
-	
 
-	// Public interface	
+
+	// Public interface
 	return {
 		init,
 		runJob,
 		zoteroTranslatorDone,
 		getJobFromId,
+		getAllRunningJobs,
+		addProgressListener,
+		removeProgressListener,
 		cropPageDone,
 		resultPageLoaded,
 		sendVerificationCode,
@@ -45,18 +48,16 @@ PlatformTools.exportComponent("Dontprint", function() {
 	};
 
 
-	function updateJournalDb() {
+	function updateJournalDb(oldversion, newversion, runUpdateTransaction) {
 		let req = new XMLHttpRequest();
 		req.responseType = "json";
 
 		req.onload = function() {
 			let builtinJournals = req.response;
 
-			journaldb.changeVersion(
-				journaldb.version,
-				DATABASE_VERSION,
-				function(t) {
-					t.executeSql(
+			runUpdateTransaction(
+				function*(sql) {
+					yield sql(
 						"CREATE TABLE IF NOT EXISTS journals (" +
 							"id INTEGER PRIMARY KEY ASC ON CONFLICT REPLACE," +
 							"priority INTEGER," +
@@ -75,14 +76,14 @@ PlatformTools.exportComponent("Dontprint", function() {
 							'scale TEXT DEFAULT "1"' +
 						")"
 					);
-					t.executeSql("CREATE TABLE IF NOT EXISTS deletedBuiltinJournals (id INTEGER PRIMARY KEY ON CONFLICT IGNORE)");
+					yield sql("CREATE TABLE IF NOT EXISTS deletedBuiltinJournals (id INTEGER PRIMARY KEY ON CONFLICT IGNORE)");
 
 					for (let i=0; i<builtinJournals.length; i++) {
-						t.executeSql("INSERT INTO journals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", builtinJournals[i]);
+						yield sql("INSERT INTO journals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", builtinJournals[i]);
 					}
 
 					// Disable any builtin journals that had already been deleted by the user.
-					t.executeSql("UPDATE journals SET enabled=0, priority=priority & ~2097152 WHERE id IN (SELECT id FROM deletedBuiltinJournals)");
+					yield sql("UPDATE journals SET enabled=0, priority=priority & ~2097152 WHERE id IN (SELECT id FROM deletedBuiltinJournals)");
 				}
 			);
 		};
@@ -93,14 +94,18 @@ PlatformTools.exportComponent("Dontprint", function() {
 	}
 
 
-	function connectToProgressTab(sendResponse, port) {
-		progressListeners[port.sender.tab.id] = port;
-		sendResponse(runningJobs);
+	function getAllRunningJobs() {
+		return runningJobs;
 	}
 
 
-	function disconnectFromProgressPage(port) {
-		delete progressListeners[port.sender.tab.id];
+	function addProgressListener(listener) {
+		progressListeners.add(listener);
+	}
+
+
+	function removeProgressListener(listener) {
+		progressListeners.delete(listener);
 	}
 
 
@@ -171,7 +176,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 
 
 	function getJournalFilters() {
-		return spawnSqlTransaction(journaldb, function*(sql) {
+		return journaldb.transaction(function*(sql) {
 			let result = yield sql("SELECT id, longname, shortname, minDate, maxDate, m1, m2, m3, m4, coverpage, k2pdfoptParams, scale FROM journals WHERE enabled=1 ORDER BY priority DESC, lastModified DESC");
 			return Array.prototype.slice.call(result.rows);
 		});
@@ -181,29 +186,16 @@ PlatformTools.exportComponent("Dontprint", function() {
 	function init() {
 		// Make platformTools available to scripts that connect to this one
 		this.platformTools = PlatformTools;
-		// PlatformTools.exportFunctions({
-		// 	getJobFromId,
-		// 	cropPageDone,
-		// 	resultPageLoaded,
-		// 	sendVerificationCode,
-		// 	verifyEmailAddress,
-		// 	dontprintArticleFromPage,
-		// 	connectPopupToJob,
-		// 	openSettings,
-		// 	showProgress,
-		// 	abortJob,
-		// 	getJournalFilters,
-		// 	saveJournalSettings,
-		// 	deleteJournalSettings,
-		// 	isTransferMethodValid,
-		// 	getEreaderModelDefaults
-		// });
 
-		journaldb = openDatabase("journaldb", "", "Dontprint's k2pdfopt settings for known journals", 100 * 1024);
-
-		if (journaldb.version !== DATABASE_VERSION) {
-			updateJournalDb();
-		}
+		PlatformTools.openSqlDatabase({
+			dbname: "journaldb",
+			targetVersion: "DATABASE_VERSION",
+			description: "Dontprint's k2pdfopt settings for known journals",
+			estimatedSize: 100 * 1024,
+			updateVersionCallback: updateJournalDb
+		}).then(function(db) {
+			journaldb = db;
+		});
 
 		PlatformTools.getPrefs({
 			ereaderModel: "",
@@ -213,7 +205,6 @@ PlatformTools.exportComponent("Dontprint", function() {
 			recipientEmailOther: "",
 			verifiedEmails: []
 		}).then(function(prefs) {
-		console.log(prefs);
 			if (!prefs.ereaderModel || !isTransferMethodValid(prefs)) {
 				chrome.tabs.create({
 					url: "common/welcome/dontprint-welcome.html"
@@ -783,7 +774,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 		
 		// yield Dontprint.postTranslate(job);  TODO
 
-		job.crop = yield spawnSqlTransaction(journaldb, function*(sql) {
+		job.crop = yield journaldb.transaction(function*(sql) {
 			let dates = parseDateString(job.articleDate);
 			try {
 				if (job.journalLongname) {
@@ -935,7 +926,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 		if (sql) {
 			return run(sql);
 		} else {
-			return spawnSqlTransaction(journaldb, run);
+			return journaldb.transaction(run);
 		}
 	}
 	
@@ -957,7 +948,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 	 *         was modified, then oldid === newid >= 0.
 	 */
 	function saveJournalSettings(crop) {
-		return spawnSqlTransaction(journaldb, function*(sql) {
+		return journaldb.transaction(function*(sql) {
 			if (crop.id < 0) {
 				// builtin filter; mark as deleted and then insert new filter
 				yield deleteJournalSettings(crop.id, sql);
@@ -1480,17 +1471,14 @@ PlatformTools.exportComponent("Dontprint", function() {
 				}
 			}
 
-			for (let id in progressListeners) {
+			progressListeners.forEach(function(listener) {
 				try {
-					progressListeners[id].postMessage({
-						call: "updateJob",
-						args: [job]
-					});
+					listener(job);
 				} catch (e) {
 					// apparently, progressTab has been closed without unregistering the listener
-					delete progressListeners[id];
+					progressListeners.delete(job);
 				}
-			}
+			});
 		}, 0);
 	}
 

@@ -1,57 +1,35 @@
 "use strict";
 
-(function() {
-	console.log(chrome.extension.getBackgroundPage());
+$(function() {
 	var items = {};
 	var wasRemoved = {};
 	var queue = null;
-	var successMessage = {
-		email: '<div class="success">The document has been successfully sent to your e-reader.</div>',
-		directory: '<div class="success">The document has been successfully converted and saved.</div>'
-	};
-
-	var returnHandlers = {
-		connect: onConnect
-	};
-	var exportedFunctions = {
-		updateJob
-	};
-	var connector = chrome.runtime.connect({name: "progress"});
-	connector.onMessage.addListener(onMessage);
+	var Dontprint = null;
 
 
-	function onMessage(message) {
-		if (message.call) {
-			exportedFunctions[message.call].apply(this, message.args);
-		} else if (message.returnFrom) {
-			returnHandlers[message.returnFrom].apply(this, message.args);
-		}
-	}
+	PlatformTools.getComponentInternally("Dontprint").then(function(dp) {
+		Dontprint = dp;
 
-
-	function callRemote(funcName) {
-		connector.postMessage({
-			call: funcName,
-			args: Array.prototype.slice.call(arguments, 1)
-		});
-	}
-
-
-	function onConnect(jobs) {
+		let jobs = Dontprint.getAllRunningJobs();
 		queue = $("#queue");
 		queue.empty();
-		for (var id in jobs) {
+		for (let id in jobs) {
 			addJob(jobs[id]);
 		}
-	};
+
+		Dontprint.addProgressListener(updateJob);
+		$(window).unload(function(event) {
+			Dontprint.removeProgressListener(updateJob);
+		});
+	});
 
 
 	function addJob(job) {
-		var jobNode = $('<div class="job"><a href="#" class="del" title="click to abort job"></a><div class="jtitle">Retrieving article meta data...</div><table class="tasks"><tr><td><div class="task"><div class="bar"></div><div class="tlabel">download</div></div></td><td><div class="task">crop</div></td><td><div class="task"><div class="bar"></div><div class="tlabel">convert</div></div></td>' + (job.transferMethod==="email" ? '<td><div class="task"><div class="bar"></div><div class="tlabel">send</div></div></td>' : '') + '</tr></table></div>');
+		let jobNode = $('<div class="job"><a href="#" class="del" title="click to abort job"></a><div class="jtitle">Retrieving article meta data...</div><table class="tasks"><tr><td><div class="task"><div class="bar"></div><div class="tlabel">download</div></div></td><td><div class="task">crop</div></td><td><div class="task"><div class="bar"></div><div class="tlabel">convert</div></div></td>' + (job.transferMethod==="email" ? '<td><div class="task"><div class="bar"></div><div class="tlabel">send</div></div></td>' : '') + '</tr></table></div>');
 
-		var tasks = jobNode.find('.task');
-		var bars = jobNode.find('.bar');
-		var item = {
+		let tasks = jobNode.find('.task');
+		let bars = jobNode.find('.bar');
+		let item = {
 			jobNode:		jobNode,
 			titleNode:		jobNode.find(".jtitle"),
 			delBtn:			jobNode.find('.del'),
@@ -77,14 +55,11 @@
 	}
 
 
-	/**
-	 * Assumes that the state never moves backward.
-	 */
 	function updateJob(job) {
 		if (wasRemoved[job.id]) {
 			return;
 		}
-		var item = items[job.id];
+		let item = items[job.id];
 		if (item === undefined) {
 			addJob(job);
 			return;
@@ -95,7 +70,7 @@
 
 
 	function removeItem(jobId) {
-		var item = items[jobId];
+		let item = items[jobId];
 		if (item !== undefined) {
 			delete items[jobId];
 			wasRemoved[jobId] = true;
@@ -115,4 +90,4 @@
 			removeItem(jobId);
 		}, 60000);
 	}
-}());
+});

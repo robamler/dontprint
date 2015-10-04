@@ -14,7 +14,9 @@
 	"permissions": ["http://*/*", "https://*/*", "tabs", "storage", "downloads"],
 	"background": {
 		"scripts": [
-			"platform/tools.js",
+			"platform-tools/core.js",
+			"platform-tools/concurrency.js",
+			"platform-tools/sql.js",
 			"common/dontprint.js"
 		],
 		"persistent": true

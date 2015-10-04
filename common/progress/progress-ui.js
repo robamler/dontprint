@@ -1,5 +1,8 @@
 "use strict";
 
+/**
+ * Assumes that the state never moves backward.
+ */
 function updateJobUi(job, uistate, hideSoon, removeItem, onDone) {
 	if (uistate.jobNode.hasClass("complete")) {
 		return;
@@ -36,13 +39,17 @@ function updateJobUi(job, uistate, hideSoon, removeItem, onDone) {
 		case "error":
 			uistate.jobNode.addClass("complete");
 			uistate.jobNode.append($('<div class="error">An error occured. <input type="button" value="details"></div>'));
-			uistate.jobNode.find("input").click(callRemote.bind("raiseErrorTab", this, job.id));
+			uistate.jobNode.find("input").click(callRemote.bind("raiseErrorTab", this, job.id)); // TODO
 			onDone(job.id);
 			break;
 
 		case "success":
 			uistate.jobNode.addClass("complete");
-			uistate.jobNode.append($(successMessage[job.transferMethod]));
+			if (job.transferMethod === "email") {
+				uistate.jobNode.append($('<div class="success">The document has been successfully sent to your e-reader.</div>'));
+			} else {
+				uistate.jobNode.append($('<div class="success">The document has been successfully converted and saved.</div>'));
+			}
 			onDone(job.id);
 			hideSoon(job.id);
 			break;

@@ -9,9 +9,11 @@ if (window.PlatformTools === undefined) {
 /**
  * Get a reference to a component of the same extension that has previously
  * been exported with PlatformTools.exportComponent(). Use this function
- * only outside of injected scripts. 
+ * only outside of injected scripts.
  * @param  {string} name
- *         The name of the 
+ *         The name of the component to connect to. Must be the same name
+ *         that was passed to PlatformTools.exportComponent() when the
+ *         component was exported.
  * @return {Promise}
  *         A promise that will be resolved with the requested component.
  */

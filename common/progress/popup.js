@@ -9,11 +9,6 @@ $(function() {
 	var tabId = parseInt(hashdata[0]);
 	var jobId = parseInt(hashdata[1]);
 	var uistate = initUI();
-	var returnHandlers = {//TODO
-		// connect: onConnect,
-		// dontprintArticleFromPage: onPopupConnected,
-		// connectPopupToJob: onPopupConnected
-	};
 	var exportedFunctions = {//TODO
 		updateJob
 	};
@@ -21,9 +16,6 @@ $(function() {
 	var Dontprint = null;
 
 	PlatformTools.getComponentInternally("Dontprint").then(function(dp) {
-		console.log(dp);
-		console.log(jobId);
-		console.log(tabId);
 		Dontprint = dp;
 		if (isNaN(jobId)) {
 			runNewJob();

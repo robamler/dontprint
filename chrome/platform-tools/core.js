@@ -12,7 +12,6 @@ if (window.PlatformTools === undefined) {
 	var rpcCount = 0;
 	var connection = null;
 
-	// Public functions
 	var publicInterface = {
 		exportComponent,
 		extensionScriptUrl,
