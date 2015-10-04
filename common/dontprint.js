@@ -43,6 +43,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 		getJournalFilters,
 		saveJournalSettings,
 		deleteJournalSettings,
+		sendScreenSettings,
 		isTransferMethodValid,
 		getEreaderModelDefaults
 	};
@@ -109,43 +110,27 @@ PlatformTools.exportComponent("Dontprint", function() {
 	}
 
 
-	function disconnectFromPreferencesPage(port) {
-		// Wait for 5 seconds before checking if we are allowed to
-		// send screen settings because we might still be saving
-		// the settings.
-
-		setTimeout(
-			function() {
-				PlatformTools.getPrefs({
-					sendScreenSettigns: false,
-					screenWidth: -1,
-					screenHeight: -1,
-					screenPpi: -1,
-					ereaderModel: "",
-					otherEreaderModel: ""
-				}).then(function(prefs) {
-					if (!prefs.sendScreenSettigns) {
-						return;
-					}
-
-					PlatformTools.setPrefs({sendScreenSettigns: false});
-
-					let url = buildURL(
-						'https://docs.google.com/forms/d/1YCclhAjI9iDOf9tQybcJuW4QYM8Ayr1K6HB8894GfrI/formResponse?draftResponse=[]%0D%0A&pageHistory=0',
-						{
-							'entry.1501323902':	prefs.ereaderModel + (prefs.ereaderModel==="other" ? " (" + prefs.otherEreaderModel + ")" : ""),
-							'entry.1922726083':	prefs.screenWidth,
-							'entry.651002044':	prefs.screenHeight,
-							'entry.2016260998':	prefs.screenPpi
-						}
-					);
-					let req = new XMLHttpRequest();
-					req.open("GET", url, true);
-					req.send();
-				});
-			},
-			5000
-		);
+	function sendScreenSettings() {
+		PlatformTools.getPrefs({
+			screenWidth: -1,
+			screenHeight: -1,
+			screenPpi: -1,
+			ereaderModel: "",
+			otherEreaderModel: ""
+		}).then(function(prefs) {
+			let url = buildURL(
+				'https://docs.google.com/forms/d/1YCclhAjI9iDOf9tQybcJuW4QYM8Ayr1K6HB8894GfrI/formResponse?draftResponse=[]%0D%0A&pageHistory=0',
+				{
+					'entry.1501323902':	prefs.ereaderModel + (prefs.ereaderModel==="other" ? " (" + prefs.otherEreaderModel + ")" : ""),
+					'entry.1922726083':	prefs.screenWidth,
+					'entry.651002044':	prefs.screenHeight,
+					'entry.2016260998':	prefs.screenPpi
+				}
+			);
+			let req = new XMLHttpRequest();
+			req.open("GET", url, true);
+			req.send();
+		});
 	}
 
 
@@ -213,78 +198,6 @@ PlatformTools.exportComponent("Dontprint", function() {
 		});
 	}
 
-// 	// ==== PUBLICLY VISIBLE METHODS ================================
-	
-// 	function init() {
-// 		Components.utils.import("resource://gre/modules/FileUtils.jsm");
-// 		Components.utils.import("resource://gre/modules/Sqlite.jsm")
-// 		Components.utils.import("resource://gre/modules/Task.jsm");
-// 		Components.utils.import("resource://EXTENSION/subprocess.jsm");
-// 		Components.utils.import("resource://gre/modules/AddonManager.jsm");
-// 		Components.utils.import("resource://gre/modules/Timer.jsm");
-// 		Components.utils.import("resource://gre/modules/Downloads.jsm");
-// 		console = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {}).console;
-// 		try {
-// 			// Gecko >= 25
-// 			Components.utils.import("resource://gre/modules/Promise.jsm");
-// 		} catch (e) {
-// 			try {
-// 				// Gecko 21 to 24
-// 				Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js");
-// 			} catch (e) {
-// 				// Gecko 17 to 20
-// 				Components.utils.import("resource://gre/modules/commonjs/promise/core.js");
-// 			}
-// 		}
-		
-// 		prefs = Components.classes["@mozilla.org/preferences-service;1"]
-// 						.getService(Components.interfaces.nsIPrefService)
-// 						.getBranch("extensions.dontprint.");
-		
-// 		// Add Dontprint button to menu panel
-// 		try {
-// 			Components.utils.import("resource:///modules/CustomizableUI.jsm");
-// 			let that = this;
-// 			CustomizableUI.createWidget({
-// 				id: 'dontprint-toolbaritem',
-// 				type: 'view',
-// 				viewId: 'dontprint-toolbaritem-view',
-// 				label: 'Dontprint',
-// 				tooltiptext: 'Show tools provided by addon "Dontprint"',
-// 				defaultArea: CustomizableUI.AREA_PANEL,
-// 				onViewShowing: function(event) {
-// 					event.target.ownerDocument.defaultView.DontprintBrowser.onDontprintMenuShow(event);
-// 				}
-// 			});
-// 		} catch (e) { } // FF < 29
-		
-// 		// Initialize database in file "dontprint/db3.sqlite" in the profile directory
-// 		// FileUtils.getFile() creates the directory (but not the file) if necessary
-// 		let dbfile = FileUtils.getFile("ProfD", ["dontprint", "db3.sqlite"]);
-// 		databasePath = dbfile.path;
-		
-// 		Task.spawn(function() {
-// 			try {
-// 				// Sqlite.openConnection() creates the file if necessary
-// 				var conn = yield Sqlite.openConnection({path: databasePath});
-// 				if (!(yield conn.tableExists("settings"))) {
-// 					yield conn.executeTransaction(updateDatabase);
-// 				} else {
-// 					let sqlresult = yield conn.execute("SELECT value FROM settings WHERE key='dbversion'");
-// 					if (sqlresult.length === 0 || sqlresult[0].getResultByName("value") < DATABASE_VERSION) {
-// 						yield conn.executeTransaction(updateDatabase);
-// 					}
-// 				}
-// 			} finally {
-// 				yield conn.close();
-// 			}
-// 		});
-		
-// 		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
-// 						.getService(Components.interfaces.mozIJSSubScriptLoader);
-// 		loader.loadSubScript("chrome://dontprint/content/post-translation.js");
-// 	}
-
 
 	function* getScreenDimensions() {
 		let ret = yield PlatformTools.getPrefs({
@@ -303,7 +216,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 	}
 	
 	
-// 	function dontprintLocalFile() {
+// 	function dontprintLocalFile() { //TODO
 // 		let Dontprint = Components.classes['@robamler.github.com/dontprint;1']
 // 						.getService().wrappedJSObject;
 // 		let win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
@@ -358,66 +271,15 @@ PlatformTools.exportComponent("Dontprint", function() {
 	
 	
 	function showProgress(openerTabId) {
-		openSingletonTab("common/progress/progress.html", openerTabId, false);
+		PlatformTools.openSingletonTab("common/progress/progress.html", openerTabId, false);
 	}
 	
 	
 	function openSettings(openerTabId) {
-		openSingletonTab("common/preferences/preferences.html", openerTabId, true);
+		PlatformTools.openSingletonTab("common/preferences/preferences.html", openerTabId, true);
 	}
 
 
-	function openSingletonTab(url, openerTabId, globalSingleton) {
-		spawn(function*() {
-			let openargs = {url};
-			let openerTab = yield new Promise(function(res, rej) {
-				chrome.tabs.get(openerTabId, res);
-			});
-
-			if (openerTab || globalSingleton) {
-				// check if we can reuse an existing progress tab in this window
-				let existing = yield new Promise(function(res, rej) {
-					let absUrl = chrome.extension.getURL(url);
-					let queryargs = {
-						url: [absUrl, absUrl + "#*"]
-					};
-					if (!globalSingleton) {
-						queryargs.windowId = openerTab.windowId;
-					}
-					chrome.tabs.query(queryargs,res);
-				});
-
-				if (existing.length) {
-					console.log(existing[0]);
-					if (existing[0].windowId !== openerTab.windowId) {
-						existing[0] = yield new Promise(function(res, rej) {
-							chrome.tabs.move(
-								existing[0].id,
-								{
-									windowId: openerTab.windowId,
-									index: openerTab.index + 1
-								},
-								res
-							);
-						});
-					}
-					console.log(existing[0]);
-					chrome.tabs.highlight({
-						windowId: existing[0].windowId,
-						tabs: existing[0].index
-					});
-					return;
-				}
-
-				openargs.windowId = openerTab.windowId;
-				openargs.index = openerTab.index + 1;
-			}
-
-			chrome.tabs.create(openargs);
-		})();
-	}
-	
-	
 	function sendTestEmail(callback) {
 		PlatformTools.getPrefs({ereaderModel: "other"}).then(
 			function(ret) {
@@ -426,7 +288,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 					jobType:	"test",
 					pdfurl:		"http://dontprint.net/test-documents/" + ret.ereaderModel + ".pdf",
 					tmpFiles:	[],
-					callback:	callback
+					callback:	callback //TODO: call this at end of job
 				});
 			}
 		);
@@ -465,10 +327,11 @@ PlatformTools.exportComponent("Dontprint", function() {
 	function getEreaderModelDefaults() {
 		return EREADER_MODEL_DEFAULTS;
 	}
-	
+
+
 	function sendVerificationCode(prefs) {
 		return new Promise(function (resolve, reject) {
-			spawn(function*() {
+			PlatformTools.spawn(function*() {
 				yield PlatformTools.setPrefs(prefs);
 				let email = yield getRecipientEmail();
 				if (!email) {
@@ -493,14 +356,14 @@ PlatformTools.exportComponent("Dontprint", function() {
 				req.open("POST", "http://dontprint.net/cgi-bin/send-verification-mail.pl", true);
 				req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 				req.send(buildURL("", {email}));
-			})();
+			});
 		});
 	}
 	
 	
 	function verifyEmailAddress(code) {
 		return new Promise(function(resolve, reject) {
-			spawn(function*() {
+			PlatformTools.spawn(function*() {
 				let email = yield getRecipientEmail();
 				if (!email) {
 					reject("No e-mail address set");
@@ -524,7 +387,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 				req.open("POST", "http://dontprint.net/cgi-bin/verify-email.pl", true);
 				req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 				req.send(buildURL("", {email, code}));
-			})();
+			});
 		});
 	}
 	
@@ -579,7 +442,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 		job.tmpFiles = [];
 		updateJobState(job, "queued");
 
-		spawn(function*() {
+		PlatformTools.spawn(function*() {
 			try {
 				job.transferMethod = (yield PlatformTools.getPrefs("transferMethod")).transferMethod;
 
@@ -651,7 +514,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 					cleanupJob(job);
 				}
 			}
-		})();
+		});
 	}
 
 
@@ -1208,7 +1071,6 @@ PlatformTools.exportComponent("Dontprint", function() {
 
 
 	function* displayResult(job) {
-		console.log(job);//TODO
 		job.result.errorOperation = job.state;
 		updateJobState(job, job.result.success ? "success" : "error");
 		let prefs = yield PlatformTools.getPrefs({
@@ -1216,20 +1078,12 @@ PlatformTools.exportComponent("Dontprint", function() {
 			successPageInBackground: false
 		});
 
-		let openertab = yield new Promise(function(res, rej) {
-			chrome.tabs.get(job.tabId, res);
-		});
-		let openargs = {
-			windowId: job.windowId,
-			active: !(prefs.successPageInBackground && job.result.success),
-			url: "common/resultpage/" + prefs.transferMethod + "/" + job.state + ".html#" + job.id
-		};
-		if (openertab) {
-			openargs.index = openertab.index + 1;
-		}
-		let newtab = yield new Promise(function(res, rej) {
-			chrome.tabs.create(openargs, res);
-		});
+		let newtab = yield PlatformTools.openTab(
+			"common/resultpage/" + prefs.transferMethod + "/" + job.state + ".html#" + job.id,
+			job.windowId,
+			job.tabId,
+			!(prefs.successPageInBackground && job.result.success)
+		);
 
 		// yield new Promise(function(res, rej) {
 		// 	job.resultPageCallback = res;
@@ -1332,106 +1186,8 @@ PlatformTools.exportComponent("Dontprint", function() {
 			job.translatorFail("Dontprint cannot find a PDF document that is associated with this web page. Navigate your browser to a web page that clearly describes a single specific article before you click the Dontprint icon.");
 		}
 	}
-	
-	
-// 	// ==== HELPER FUNCTIONS ========================================================
-	
-	function spawn(generatorFunc) {
-		return function() {
-			function iterate(generator) {
-				function continuer(verb, arg) {
-					try {
-						var result = generator[verb](arg);
-					} catch (err) {
-						return Promise.reject(err);
-					}
-					if (result.done) {
-						return Promise.resolve(result.value);
-					} else {
-						if (typeof result.value === "object" && result.value.next && typeof result.value.next === "function") {
-							return iterate(result.value).then(onFulfilled, onRejected);
-						} else {
-							return Promise.resolve(result.value).then(onFulfilled, onRejected);
-						}
-					}
-				}
-				let onFulfilled = continuer.bind(continuer, "next");
-				let onRejected = continuer.bind(continuer, "throw");
-				return onFulfilled();
-			}
 
-			let gen = generatorFunc.apply(this, arguments);
-			return iterate(gen);
-		};
-	}
-	
-	/**
-	 * Execute a transaction on a database and return a promise.
-	 * Obtains a transaction for the database db and then spawns the
-	 * function* generatorFunc passing it a function "sql". The body of
-	 * generatorFunc will typically yield for one or more executions of
-	 * the sql function, i.e. it will contain calls of the form
-	 *   "let queryresult = yield sql(sqlstring, args)"
-	 * Here, sqlstring is a query string that may contain "?" placeholders
-	 * and args is an optional array of values to be inserted for the
-	 * placeholders.
-	 * Note: The body of generatorFunc MUST NOT contain any "yield"
-	 * statements that don't queue up any SQL queries (if it does, the SQL
-	 * transaction may be committed before generatorFunction terminates).
-	 *
-	 * @param  {Database} db
-	 *         The database.
-	 * @param  {function*(sql)} generatorFunc
-	 *         A generator function that MUST NOT contain any yield
-	 *         statements that are not of the form
-	 *         "yield sql(sqlstring, args)".
-	 *         If the SQL query succeeds, the return value of the yield
-	 *         statement is the query result. If it fails, an error is
-	 *         thrown.
-	 * @param  {bool} readonly
-	 *         Optional argument; set to true if the true if the
-	 *         transaction does not change the database. Defaults to false.
-	 * @return {Promise}
-	 *         A promise that will be resolved with the return value of
-	 *         generatorFunc or rejected in case of an error.
-	 */
-	function spawnSqlTransaction(db, generatorFunc, readonly) {
-		let overallRet = null;
-		
-		return new Promise(function(resolve, reject) {
-			db[readonly ? "readTransaction" : "transaction"](
-				function (t) {
-					function sql(sqlstring, args) {
-						return new Promise(function(resolve, reject) {
-							t.executeSql(
-								sqlstring,
-								args,
-								function(t2, ret) {
-									resolve(ret);
-								},
-								function(t2, err) {
-									reject(err);
-								}
-							);
-						});
-					}
 
-					spawn(generatorFunc)(sql).then(
-						function (ret) {
-							overallRet = ret;
-						},
-						reject
-					);
-				},
-				reject,
-				function() {
-					resolve(overallRet);
-				}
-			);
-		});
-	}
-	
-	
 	/**
 	 * return value if value isn't undefined; otherwise, return defaultTo or empty string
 	 */
@@ -1476,7 +1232,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 					listener(job);
 				} catch (e) {
 					// apparently, progressTab has been closed without unregistering the listener
-					progressListeners.delete(job);
+					progressListeners.delete(listener);
 				}
 			});
 		}, 0);

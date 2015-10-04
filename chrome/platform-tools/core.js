@@ -18,7 +18,8 @@ if (window.PlatformTools === undefined) {
 		getPrefs,
 		setPrefs,
 		saveTmpFileOrBlob,
-		getTmpFile
+		getTmpFile,
+		rmTmpFiles
 	};
 
 	for (let i in publicInterface) {
@@ -185,14 +186,14 @@ if (window.PlatformTools === undefined) {
 	}
 
 
-	function rmTmpFiles(filenames) {
+	function rmTmpFiles(files) {
 		return new Promise(function(resolve, reject) {
 			getTmpFilesystem().then(function(fs) {
 				(function rmTmpFiles() {
-					if (filenames.length === 0) {
+					if (files.length === 0) {
 						resolve();
 					} else {
-						let entry = filenames.pop();
+						let entry = files.pop();
 						if (typeof entry === "string") {
 							fs.root.getFile(
 								entry, null,

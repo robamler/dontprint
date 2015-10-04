@@ -149,7 +149,7 @@ $(function() {
 
 
 	function initDevicePane() {
-		attachPref("checked", "sendScreenSettigns");
+		$("#sendScreenSettigns").prop("checked", false);
 		$("#sendScreenSettingsOtherContainer").hide();
 		attachPref("value", "otherEreaderModel");
 
@@ -178,7 +178,7 @@ $(function() {
 		$("#maxdateSwitch").change(dateSwitchClicked.bind(this, "max"));
 		$("#newFilterBtn").click(newJournalFilter);
 		$("#deleteFilterBtn").click(deleteJournalFilter);
-		$(window).on("unload", saveOldJournalFilterSelection);
+		$(window).on("unload", unload);
 
 		Dontprint.getJournalFilters().then(
 			function(sqlresult) {
@@ -218,6 +218,14 @@ $(function() {
 				}
 				return;
 			});
+	}
+
+
+	function unload() {
+		saveOldJournalFilterSelection();
+		if ($('#sendScreenSettigns').prop("checked")) {
+			Dontprint.sendScreenSettings();
+		}
 	}
 
 

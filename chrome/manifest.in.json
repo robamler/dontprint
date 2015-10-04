@@ -17,6 +17,7 @@
 			"platform-tools/core.js",
 			"platform-tools/concurrency.js",
 			"platform-tools/sql.js",
+			"platform-tools/tabs.js",
 			"common/dontprint.js"
 		],
 		"persistent": true
