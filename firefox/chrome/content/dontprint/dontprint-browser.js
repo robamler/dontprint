@@ -17,7 +17,7 @@ window.DontprintBrowser = (function() {
 	function init() {
 		Dontprint = Components.classes['@robamler.github.com/dontprint;1']
 					.getService().wrappedJSObject;
-		
+
 		try {
 			// Firefox 20+
 			Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
@@ -89,8 +89,11 @@ window.DontprintBrowser = (function() {
 			}
 		}, false, true);
 
+
+		Dontprint.initOnPlatform();
+
 		// Test whether Zotero is installed
-		Dontprint.isZoteroInstalled().then(function(haszotero) {
+		Dontprint.isZoteroInstalled.then(function(haszotero) {
 			zoteroInstalled = haszotero;
 			if (zoteroInstalled) {
 				// Programmatically insert a "Dontprint" button into the Zotero pane
@@ -329,7 +332,7 @@ window.DontprintBrowser = (function() {
 		}
 		
 		// update the status icons
-		alreadyProcessing = showDontprintIcon && Dontprint.isQueuedUrl(gBrowser.selectedBrowser.contentDocument.location.href);
+		alreadyProcessing = false; //TODO: showDontprintIcon && Dontprint.isQueuedUrl(gBrowser.selectedBrowser.contentDocument.location.href);
 		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
 		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
 	}

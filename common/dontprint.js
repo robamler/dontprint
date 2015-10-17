@@ -408,11 +408,9 @@ PlatformTools.exportComponent("Dontprint", function() {
 
 	function cleanupJob(job) {
 		if (!job.cleaned) {
-			console.log("cleaning up");
 			job.cleaned = true;
 			delete runningJobs[job.id];
 			if (job.pageurl) {
-			console.log("removing from joblist");
 				Zotero.Connector_Browser.dontprintJobDone(job.id, job.pageurl);
 			}
 
@@ -489,8 +487,8 @@ PlatformTools.exportComponent("Dontprint", function() {
 					yield moveFileToDestDir(job, authorAndTitle);
 				}
 			} catch (e) {
-				console.log("Dontprint encountered an error:");
-				console.log(e);
+				PlatformTools.debug("Dontprint encountered an error:");
+				PlatformTools.debug(e);
 				job.result = {
 					success: false,
 					message: e.toString()
@@ -1304,4 +1302,4 @@ PlatformTools.exportComponent("Dontprint", function() {
 		
 		return { small: small, large: large };
 	}
-}());
+});

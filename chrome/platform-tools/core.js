@@ -7,19 +7,17 @@ if (window.PlatformTools === undefined) {
 
 (function() {
 	var tmpFilesystem = null;
-	var exportedFunctions = {};
-	var rpcPromises = {};
-	var rpcCount = 0;
-	var connection = null;
 
 	var publicInterface = {
+		platform: "chrome",
 		exportComponent,
 		extensionScriptUrl,
 		getPrefs,
 		setPrefs,
 		saveTmpFileOrBlob,
 		getTmpFile,
-		rmTmpFiles
+		rmTmpFiles,
+		debug
 	};
 
 	for (let i in publicInterface) {
@@ -35,19 +33,21 @@ if (window.PlatformTools === undefined) {
 	 * "init", it will be called once the component is exported. In this
 	 * call, the execution context ("this") will be set to the component
 	 * itself.
-	 * Note taht injected scripts cannot export components at this time.
+	 * Note that injected scripts cannot export components at this time.
 	 * @param  {string} name
 	 *         An identifier under which the component shall be exported.
 	 *         Other parts of the system will be able to access the
 	 *         component by passing this name to platform.getComponent().
-	 * @param  {object} comp
-	 *         The component object. This object's interface will be
+	 * @param  {function} builder
+	 *         A function that, when invoked without parameters, returns
+	 *         the component object. This object's interface will be
 	 *         made available to all other parts of the extension.
 	 */
-	function exportComponent(name, comp) {
+	function exportComponent(name, builder) {
 		// On Google Chrome, each extension's background page runs in its
 		// own execution context (window). So simply attach all exported
 		// components to the background page's window object.
+		let comp = builder();
 		chrome.runtime.getBackgroundPage(function(bgpage) {
 			bgpage[name] = comp;
 			if (typeof comp.init === "function") {
@@ -226,5 +226,15 @@ if (window.PlatformTools === undefined) {
 			port.onMessage.addListener(onMessageOnPort);
 			port.postMessage("connected");
 		}
+	}
+
+
+	/**
+	 * Print a debug message to the background page's console.
+	 * @param  {any} msg
+	 *         The debug message.
+	 */
+	function debug(msg) {
+		console.log(msg);
 	}
 }());
