@@ -51,7 +51,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 
 	function updateJournalDb(oldversion, newversion, runUpdateTransaction) {
-		let req = new XMLHttpRequest();
+		let req = PlatformTools.xhr();
 		req.responseType = "json";
 
 		req.onload = function() {
@@ -128,7 +128,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					'entry.2016260998':	prefs.screenPpi
 				}
 			);
-			let req = new XMLHttpRequest();
+			let req = PlatformTools.xhr();
 			req.open("GET", url, true);
 			req.send();
 		});
@@ -339,7 +339,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				if (!email) {
 					reject("No e-mail address set");
 				}
-				let req = new XMLHttpRequest();
+				let req = PlatformTools.xhr();
 				req.responseType = "json";
 				req.onload = function() {
 					if (req.response.success && req.response.returncode === 1) {
@@ -371,7 +371,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					reject("No e-mail address set");
 				}
 
-				let req = new XMLHttpRequest();
+				let req = PlatformTools.xhr();
 				req.responseType = "json";
 				req.onload = function() {
 					if (req.response.success) {
@@ -451,7 +451,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					var naclPromise = loadK2pdfoptNaclModule(job);
 					naclPromise.then(function() {
 						naclLoaded = true;
-					})
+					});
 				}
 
 				if (job.jobType === "page") {
@@ -461,9 +461,8 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				let origPdfFile = null;
 
 				if (job.pdfurl) {
-					let blob = yield downloadPdfUrl(job);
-					origPdfFile = yield PlatformTools.saveTmpFileOrBlob(blob, "original" + job.id + ".pdf");
-					job.origPdfUrl = origPdfFile.toURL();
+					let origPdfFile = yield downloadPdfUrl(job);
+					// origPdfFile = yield PlatformTools.saveTmpFileOrBlob(blob, "original" + job.id + ".pdf");
 					job.tmpFiles.push(origPdfFile);
 				}
 
@@ -563,7 +562,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	function* runZoteroTranslator(job) {
 		updateJobState(job, "translating");
 
-		let translatorPromise = Promise(function(resolve, reject) {
+		let translatorPromise = new Promise(function(resolve, reject) {
 			job.translatorSuccess = resolve;
 			job.translatorFail = reject;
 		});
@@ -577,14 +576,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					throw "No translators available for this web site.";
 				}
 
-				// var pdfFile = FileUtils.getFile("TmpD", ["dontprint-original.pdf"]);
-				// pdfFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
-				// job.tmpFiles = [pdfFile.path];
-				
 				let translate = new Dontprint.Zotero.Translate.Dontprint();
 				job.document = job.tab.page.translate.document;
 				translate.setDocument(job.tab.page.translate.document);
-				// translate.setDestFile(pdfFile);
 				translate.setTranslator(job.translator || job.tab.page.translators[0]);
 				delete job.translator;
 				delete job.tab;
@@ -611,12 +605,8 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 				let item = yield metaDataPromise;
 				zoteroTranslatorDone(job, item);
-
-				// if (!pdfFile.exists() || pdfFile.fileSize === 0) {
-				// 	throw "Unable to download article. Maybe it is behind a captcha (try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again).";
-				// }
 			} else {
-				Dontprint.Zotero.Connector_Browser.dontprintRunZoteroTranslator(job.tabId, job.id, job.pageurl);
+				Zotero.Connector_Browser.dontprintRunZoteroTranslator(job.tabId, job.id, job.pageurl);
 			}
 
 			yield translatorPromise;
@@ -665,7 +655,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	}
 
 
-	function downloadPdfUrl(job) {
+	function* downloadPdfUrl(job) {
 		updateJobState(job, "downloading");
 
 		if (!job.title) {		
@@ -681,34 +671,24 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			job.title = title;
 		}
 
-		return new Promise(function(resolve, reject) {
-			let req = new XMLHttpRequest();
-			req.responseType = "blob";
-
-			req.addEventListener("progress", function(evt) {
-				if (evt.lengthComputable && evt.total>0) {
-					job.downloadProgress = evt.loaded/evt.total;
+		try {
+			var file = yield PlatformTools.downloadTmpFile(
+				job.pdfurl,
+				"original" + job.id + ".pdf",
+				function(progress) {
+					job.downloadProgress = progress;
 					updateJobState(job);
 				}
-			}, false);
+			);
+		} catch (e) {
+			if (typeof e === "number") {
+				throw "Unable to download article. Maybe it is behind a captcha. (Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again.)";
+			} else {throw e;
+				throw "Error downloading PDF file. Are you connected to the internet? Original error message: " + e.toString();
+			}
+		}
 
-			req.addEventListener("error", function(evt) {
-				reject("Error downloading PDF file. Are you connected to the internet? Original error message: " + evt.toString());
-			}, false);
-
-			req.onreadystatechange = function (evt) {
-				if (req.readyState == 4) {
-					if(req.status == 200) {
-						resolve(req.response);
-					} else {
-						reject("Unable to download article. Maybe it is behind a captcha. (Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again.)");
-					}
-				}
-			};
-
-			req.open("GET", job.pdfurl);
-			req.send();
-		});
+		return file;
 	}
 
 
@@ -967,7 +947,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				'entry.1375537145':	job.title
 			}
 		);
-		var req = new XMLHttpRequest();
+		var req = PlatformTools.xhr();
 		req.open("GET", url, true);
 		req.send();
 		// Don't set onload handler because we don't really care about the response
@@ -1080,7 +1060,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		
 		try {
 			yield new Promise(function(resolve, reject) {
-				let req = new XMLHttpRequest();
+				let req = PlatformTools.xhr();
 				req.upload.addEventListener(
 					"progress",
 					function uploadProgressListener(e) {

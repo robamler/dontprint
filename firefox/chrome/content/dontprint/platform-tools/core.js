@@ -12,7 +12,9 @@ if (typeof PlatformTools === "undefined") { //TODO
 		getMainComponent,
 		getPrefs,
 		setPrefs,
-		debug
+		downloadTmpFile,
+		debug,
+		xhr
 	};
 
 	for (let i in publicInterface) {
@@ -21,6 +23,8 @@ if (typeof PlatformTools === "undefined") { //TODO
 
 	var exportedComponents = {};
 
+	Components.utils.import("resource://gre/modules/Downloads.jsm");
+	Components.utils.import("resource://gre/modules/FileUtils.jsm");
 	var console = Components.utils.import("resource://gre/modules/devtools/Console.jsm", {}).console;
 	var prefs = null;
 	var extensionName = null;
@@ -76,5 +80,40 @@ if (typeof PlatformTools === "undefined") { //TODO
 
 	function debug(msg) {
 		console.log(msg);
+	}
+
+
+	function* downloadTmpFile(url, targetFilename, progressListener) {
+		let file = FileUtils.getFile("TmpD", targetFilename.split("/"));
+		file.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+
+		try {
+			var download = yield Downloads.createDownload({
+				source: url,
+				target: file
+			});
+
+			if (progressListener) {
+				download.onchange = function() {
+					progressListener(that.download.progress / 100);
+				};
+			}
+
+			yield download.start();
+		} finally {
+			download.finalize();
+		}
+
+		if (!file.exists() || file.fileSize === 0) {
+			throw -1;
+		}
+
+		return file;
+	}
+
+
+	function xhr() {
+		return Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
+			.createInstance(Components.interfaces.nsIXMLHttpRequest);
 	}
 }());

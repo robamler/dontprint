@@ -14,10 +14,12 @@ if (window.PlatformTools === undefined) {
 		extensionScriptUrl,
 		getPrefs,
 		setPrefs,
-		saveTmpFileOrBlob,
 		getTmpFile,
+		saveTmpFileOrBlob,
+		downloadTmpFile,
 		rmTmpFiles,
-		debug
+		debug,
+		xhr
 	};
 
 	for (let i in publicInterface) {
@@ -160,11 +162,7 @@ if (window.PlatformTools === undefined) {
 
 
 	function* saveTmpFileOrBlob(fileOrBlob, filename) {
-		let fs = yield getTmpFilesystem();
-
-		let entry = yield new Promise(function(resolve, reject) {
-			fs.root.getFile(filename, {create: true}, resolve, reject);
-		});
+		let entry = yield getTmpFile(filename, true);
 
 		return new Promise(function(resolve, reject) {
 			entry.createWriter(function(writer) {
@@ -178,10 +176,43 @@ if (window.PlatformTools === undefined) {
 	}
 
 
-	function* getTmpFile(filename) {
+	function* downloadTmpFile(url, targetFilename, progressListener) {
+		let blob = yield new Promise(function(resolve, reject) {
+			let req = PlatformTools.xhr();
+			req.responseType = "blob";
+
+			if (progressListener) {
+				req.addEventListener("progress", function(evt) {
+					if (evt.lengthComputable && evt.total>0) {
+						progressListener(evt.loaded / evt.total);
+					}
+				}, false);
+			}
+
+			req.addEventListener("error", reject, false);
+
+			req.onreadystatechange = function (evt) {
+				if (req.readyState == 4) {
+					if (req.status == 200) {
+						resolve(req.response);
+					} else {
+						reject(req.status);
+					}
+				}
+			};
+
+			req.open("GET", url);
+			req.send();
+		});
+
+		return yield PlatformTools.saveTmpFileOrBlob(blob, targetFilename);
+	}
+
+
+	function* getTmpFile(filename, create) {
 		let fs = yield getTmpFilesystem();
 		return new Promise(function(resolve, reject) {
-			fs.root.getFile(filename, {create: false}, resolve, reject);
+			fs.root.getFile(filename, {create: !!create}, resolve, reject);
 		});
 	}
 
@@ -236,5 +267,13 @@ if (window.PlatformTools === undefined) {
 	 */
 	function debug(msg) {
 		console.log(msg);
+	}
+
+
+	/**
+	 * Return a new XMLHttpRequest.
+	 */
+	function xhr() {
+		return new XMLHttpRequest();
 	}
 }());
