@@ -15,7 +15,7 @@ $(function() {
 
 	var Dontprint = null;
 
-	PlatformTools.getComponentInternally("Dontprint").then(function(dp) {
+	PlatformTools.getMainComponentInternally("Dontprint").then(function(dp) {
 		Dontprint = dp;
 		if (isNaN(jobId)) {
 			runNewJob();

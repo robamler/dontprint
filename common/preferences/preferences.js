@@ -12,7 +12,7 @@ $(function() {
 	var Dontprint = null;
 	var dp = {};
 
-	PlatformTools.getComponentInternally("Dontprint").then(function(val) {
+	PlatformTools.getMainComponentInternally("Dontprint").then(function(val) {
 		Dontprint = val;
 		return Dontprint.platformTools.getPrefs({
 			ereaderModel: "",

@@ -1,4 +1,5 @@
 window.DontprintBrowser = (function() {
+	var tabObjects = new WeakMap();
 	var dontprintThisPageImg = null;
 	var dontprintProgressImg = null;
 	var dontprintFromZoteroBtn = null;
@@ -9,6 +10,7 @@ window.DontprintBrowser = (function() {
 	var isInPrivateBrowsingMode = false;
 	var registeredZoteroButtons = [];
 	var zoteroInstalled = undefined;
+	var oldZoteroBrowserTab;
 	
 	const itemTypeBlacklist = ["multiple", "blogPost", "forumPost", "presentation", "webpage"];
 	
@@ -130,10 +132,27 @@ window.DontprintBrowser = (function() {
 				Zotero_Browser.updateStatusCallback = updateDontprintIconVisibility;
 			}
 
+			// Replace Zotero_Browser.Tab with a wrapper class that keeps
+			// a WeakMap of all active tab objects. This allows us to access
+			// the tab objects from Dontprint.
+			if (!Zotero_Browser.Tab.prototype.isDontprintReplacement) {
+				oldZoteroBrowserTab = Zotero_Browser.Tab;
+				DontprintTab.prototype = Object.create(Zotero_Browser.Tab.prototype);
+				DontprintTab.prototype.constructor = DontprintTab;
+				DontprintTab.prototype.isDontprintReplacement = true;
+				Zotero_Browser.Tab = DontprintTab;
+			}
+
 			updateDontprintIconVisibility();
 		});
 	}
 	
+
+	function DontprintTab(browser) {
+		oldZoteroBrowserTab.call(this, browser);
+		tabObjects.set(browser, this);
+	}
+
 	
 	/**
 	 * Dontprint the PDFs attached to the selected items in the zotero pane.
@@ -351,11 +370,15 @@ window.DontprintBrowser = (function() {
 	 * Gets a data object given a browser window object (copied from Zotero_Browser)
 	 */
 	function _getTabObject(browser) {
-		if(!browser) return false;
-		if(!browser.zoteroBrowserData) {
-			browser.zoteroBrowserData = new Zotero_Browser.Tab(browser);
+		if (!browser) {
+			return false;
 		}
-		return browser.zoteroBrowserData;
+		let ret = tabObjects.get(browser);
+		if (ret) {
+			return ret;
+		} else {
+			return new Zotero_Browser.Tab(browser);
+		}
 	}
 	
 	

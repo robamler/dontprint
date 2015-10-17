@@ -1,10 +1,11 @@
 "use strict";
 
-PlatformTools.exportComponent("Dontprint", function() {
+PlatformTools.registerMainComponent("Dontprint", function() {
 	const DATABASE_VERSION = "20150627";
 	var runningJobs = {};
 	var journaldb = null;
 	var progressListeners = new Set();
+	var Dontprint = null;
 
 	const EREADER_MODEL_DEFAULTS = {
 		"kindle-paperwhite":		{screenWidth: 718,  screenHeight: 963,  screenPpi: 212},
@@ -169,6 +170,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 
 
 	function init() {
+		Dontprint = this;
 		// Make platformTools available to scripts that connect to this one
 		this.platformTools = PlatformTools;
 
@@ -411,7 +413,7 @@ PlatformTools.exportComponent("Dontprint", function() {
 			job.cleaned = true;
 			delete runningJobs[job.id];
 			if (job.pageurl) {
-				Zotero.Connector_Browser.dontprintJobDone(job.id, job.pageurl);
+				Zotero.Connector_Browser.dontprintJobDone(job.id, job.pageurl, job.tabId);
 			}
 
 			if (job.naclModule) {
@@ -561,13 +563,65 @@ PlatformTools.exportComponent("Dontprint", function() {
 	function* runZoteroTranslator(job) {
 		updateJobState(job, "translating");
 
+		let translatorPromise = Promise(function(resolve, reject) {
+			job.translatorSuccess = resolve;
+			job.translatorFail = reject;
+		});
+
+		// TODO: Set a timeout and cancel translation attempt if it
+		// doesn't seem to work.
+		// TODO: Set job.abortCurrentTask
 		try {
-			yield new Promise(function(resolve, reject) {
-				job.translatorSuccess = resolve;
-				job.translatorFail = reject;
-				Zotero.Connector_Browser.dontprintRunZoteroTranslator(job.tabId, job.id, job.pageurl);
-			});
+			if (PlatformTools.platform === "firefox") {
+				if (!job.tab || !job.tab.page.translators || !job.tab.page.translators.length) {
+					throw "No translators available for this web site.";
+				}
+
+				// var pdfFile = FileUtils.getFile("TmpD", ["dontprint-original.pdf"]);
+				// pdfFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+				// job.tmpFiles = [pdfFile.path];
+				
+				let translate = new Dontprint.Zotero.Translate.Dontprint();
+				job.document = job.tab.page.translate.document;
+				translate.setDocument(job.tab.page.translate.document);
+				// translate.setDestFile(pdfFile);
+				translate.setTranslator(job.translator || job.tab.page.translators[0]);
+				delete job.translator;
+				delete job.tab;
+				translate.clearHandlers("done");
+				translate.clearHandlers("itemDone");
+				
+				var metaDataPromise = new Promise(
+					function(resolve, reject) {
+						translate.dontprintSetDoneHandler(resolve);
+					}
+				);
+				
+				translate.setHandler("error", function(obj, error) {
+					job.translatorFail("Unable to download article. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again. Original error message: " + error.toString());
+					Dontprint.platformTools.debug(error);
+				});
+				
+				translate.dontprintSetErrorHandler(job.translatorFail);
+
+				//TODO: test what happens when user clicks "save to zotero" shortly after clicking "dontprint" (or vice versa)
+				translate.translate(null);
+
+				job.abortCurrentTask = job.translatorFail.bind(undefined, "canceled");
+
+				let item = yield metaDataPromise;
+				zoteroTranslatorDone(job, item);
+
+				// if (!pdfFile.exists() || pdfFile.fileSize === 0) {
+				// 	throw "Unable to download article. Maybe it is behind a captcha (try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again).";
+				// }
+			} else {
+				Dontprint.Zotero.Connector_Browser.dontprintRunZoteroTranslator(job.tabId, job.id, job.pageurl);
+			}
+
+			yield translatorPromise;
 		} finally {
+			delete job.abortCurrentTask;
 			delete job.translatorSuccess;
 			delete job.translatorFail;
 			delete job.translatorFunction;
@@ -575,6 +629,42 @@ PlatformTools.exportComponent("Dontprint", function() {
 	}
 	
 	
+	function zoteroTranslatorDone(job, item) {
+		Dontprint.platformTools.debug(item);
+		job.title = checkUndefined(item.title, "Untitled document");
+		job.articleCreators = item.creators;
+		job.authorsStr = getAuthorsString(item.creators);
+		job.journalLongname = checkUndefined(item.publicationTitle);
+		job.journalShortname = checkUndefined(item.journalAbbreviation);
+		job.doi = checkUndefined(item.DOI);
+		job.articleVolume = item.volume;
+		job.articleIssue = item.issue;
+		job.articlePages = item.pages;
+		job.articleDate = checkUndefined(item.date);
+
+		let type = (item.itemType ? item.itemType : "webpage");
+		if (type === "note") {
+			//TODO: error
+		} else if (type == "attachment") {	// handle attachments differently
+			//TODO
+		} else if (item.attachments) {
+			for (let i=0; i<item.attachments.length; i++) {
+				let att = item.attachments[i];
+				if (att.mimeType && att.mimeType === "application/pdf") {
+					job.pdfurl = att.url;
+					break;
+				}
+			}
+		}
+
+		if (job.pdfurl) {
+			job.translatorSuccess();
+		} else {
+			job.translatorFail("Dontprint cannot find a PDF document that is associated with this web page. Navigate your browser to a web page that clearly describes a single specific article before you click the Dontprint icon.");
+		}
+	}
+
+
 	function downloadPdfUrl(job) {
 		updateJobState(job, "downloading");
 
@@ -1133,55 +1223,6 @@ PlatformTools.exportComponent("Dontprint", function() {
 		
 		default: // too many authors to list them all
 			return formatName(creators[0]) + " et al.";
-		}
-	}
-
-
-	function zoteroTranslatorDone(item, tabId) {
-		let job = null;
-
-		for (let i in runningJobs) {
-			let el = runningJobs[i];
-			if (typeof el === "object" && el.tabId === tabId && el.state === "translating") {
-				job = el;
-				break;
-			}
-		}
-
-		if (!job) {
-			return;
-		}
-
-		job.title = checkUndefined(item.title, "Untitled document");
-		job.articleCreators = item.creators;
-		job.authorsStr = getAuthorsString(item.creators);
-		job.journalLongname = checkUndefined(item.publicationTitle);
-		job.journalShortname = checkUndefined(item.journalAbbreviation);
-		job.doi = checkUndefined(item.DOI);
-		job.articleVolume = item.volume;
-		job.articleIssue = item.issue;
-		job.articlePages = item.pages;
-		job.articleDate = checkUndefined(item.date);
-
-		let type = (item.itemType ? item.itemType : "webpage");
-		if (type === "note") {
-			//TODO: error
-		} else if (type == "attachment") {	// handle attachments differently
-			//TODO
-		} else if (item.attachments) {
-			for (let i=0; i<item.attachments.length; i++) {
-				let att = item.attachments[i];
-				if (att.mimeType && att.mimeType === "application/pdf") {
-					job.pdfurl = att.url;
-					break;
-				}
-			}
-		}
-
-		if (job.pdfurl) {
-			job.translatorSuccess();
-		} else {
-			job.translatorFail("Dontprint cannot find a PDF document that is associated with this web page. Navigate your browser to a web page that clearly describes a single specific article before you click the Dontprint icon.");
 		}
 	}
 

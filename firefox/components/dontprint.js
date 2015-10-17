@@ -9,7 +9,7 @@ function Dontprint() {
 	loader.loadSubScript("chrome://dontprint/content/common/dontprint.js", context, "UTF-8");
 	loader.loadSubScript("chrome://dontprint/content/dontprint-firefox-specifics.js", context, "UTF-8");
 
-	this.wrappedJSObject = context.PlatformTools.getExportedComponent("Dontprint");
+	this.wrappedJSObject = context.PlatformTools.getMainComponent();
 }
 
 

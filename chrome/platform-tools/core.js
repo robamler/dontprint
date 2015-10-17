@@ -10,7 +10,7 @@ if (window.PlatformTools === undefined) {
 
 	var publicInterface = {
 		platform: "chrome",
-		exportComponent,
+		registerMainComponent,
 		extensionScriptUrl,
 		getPrefs,
 		setPrefs,
@@ -43,7 +43,7 @@ if (window.PlatformTools === undefined) {
 	 *         the component object. This object's interface will be
 	 *         made available to all other parts of the extension.
 	 */
-	function exportComponent(name, builder) {
+	function registerMainComponent(name, builder) {
 		// On Google Chrome, each extension's background page runs in its
 		// own execution context (window). So simply attach all exported
 		// components to the background page's window object.
@@ -71,9 +71,9 @@ if (window.PlatformTools === undefined) {
 
 	/**
 	 * Asynchroneously get a single or several preferences.
-	 * @param  {string or array of string or object} keys
-	 *         Either a single key (as a string) or an array of keys
-	 *         or an object with keys and default values.
+	 * @param  {object} keys
+	 *         An object with keys and default values. The type of the
+	 *         default value defines the type of the preference.
 	 * @return {Promise}
 	 *         Will be resolved with an object whose keys and values
 	 *         correspond to the retrieved settings.

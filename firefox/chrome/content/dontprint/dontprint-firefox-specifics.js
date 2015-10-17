@@ -3,7 +3,7 @@
 Components.utils.import("resource://gre/modules/Timer.jsm");
 
 (function() {
-	let Dontprint = PlatformTools.getExportedComponent("Dontprint");
+	let Dontprint = PlatformTools.getMainComponent();
 
 	let zoteroInstalledResolveFunction = null;
 	let initialized = false;
@@ -47,6 +47,10 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 			// Load Dontprint's own translator (may only be loaded *after* loading Zotero, regardless
 			// of whether we use an actual zotero plugin or the included Zotero xpcom module)
 			loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/translate-dontprint.js", context, "UTF-8");
+
+			// Attach Zotero object to Dontprint so that it can be accessed
+			// from functions in the Dontprint main component.
+			Dontprint.Zotero = context.Zotero;
 
 			zoteroInstalledResolveFunction(zoteroInstalled);
 		});

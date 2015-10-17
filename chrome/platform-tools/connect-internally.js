@@ -17,7 +17,7 @@ if (window.PlatformTools === undefined) {
  * @return {Promise}
  *         A promise that will be resolved with the requested component.
  */
-PlatformTools.getComponentInternally = function(name) {
+PlatformTools.getMainComponentInternally = function(name) {
 	return new Promise(function(resolve, reject) {
 		chrome.runtime.getBackgroundPage(function(bgpage) {
 			resolve(bgpage[name]);
