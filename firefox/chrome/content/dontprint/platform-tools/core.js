@@ -10,6 +10,7 @@ if (typeof PlatformTools === "undefined") { //TODO
 		platform: "firefox",
 		registerMainComponent,
 		getMainComponent,
+		extensionScriptUrl,
 		getPrefs,
 		setPrefs,
 		downloadTmpFile,
@@ -29,14 +30,13 @@ if (typeof PlatformTools === "undefined") { //TODO
 	var prefs = null;
 	var extensionName = null;
 	var mainComponent = null;
-	const prefFunctions = {
+	var prefFunctions = {
 		"string": "Char",
 		"number": "Int",
 		"boolean": "Bool"
 	};
 
 	return;
-
 	function registerMainComponent(name, builder) {
 		extensionName = name;
 		prefs = Components.classes["@mozilla.org/preferences-service;1"]
@@ -48,6 +48,11 @@ if (typeof PlatformTools === "undefined") { //TODO
 
 	function getMainComponent() {
 		return mainComponent;
+	}
+
+
+	function extensionScriptUrl(relativePath) {
+		return "chrome://" + extensionName.toLowerCase() + "/content/" + relativePath;
 	}
 
 
@@ -95,7 +100,7 @@ if (typeof PlatformTools === "undefined") { //TODO
 
 			if (progressListener) {
 				download.onchange = function() {
-					progressListener(that.download.progress / 100);
+					progressListener(download.progress / 100);
 				};
 			}
 

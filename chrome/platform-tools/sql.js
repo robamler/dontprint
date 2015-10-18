@@ -51,28 +51,26 @@ if (window.PlatformTools === undefined) {
 					});
 
 					try {
-						let updateResult = Promise.resolve(
-							options.updateVersionCallback(
-								dbhandle.version,
-								options.targetVersion,
-								function runUpdateTransaction(generatorFunction) {
-									return new Promise(function(res, rej) {
-										dbhandle.changeVersion(
-											dbhandle.version,
-											options.targetVersion,
-											makeTransactionCallback(generatorFunction, res1),
-											function(err) {
-												rej(err);
-												reject(err);
-											},
-											function() {
-												res(executionPromise);
-												resolve(updateResult);
-											}
-										);
-									})
-								}
-							)
+						options.updateVersionCallback(
+							dbhandle.version,
+							options.targetVersion,
+							function runUpdateTransaction(generatorFunction) {
+								return new Promise(function(res, rej) {
+									dbhandle.changeVersion(
+										dbhandle.version,
+										options.targetVersion,
+										makeTransactionCallback(generatorFunction, res1),
+										function(err) {
+											rej(err);
+											reject(err);
+										},
+										function() {
+											res(executionPromise);
+											resolve(publicMembers);
+										}
+									);
+								})
+							}
 						);
 					} catch (e) {
 						reject(e);

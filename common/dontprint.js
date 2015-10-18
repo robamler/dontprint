@@ -170,13 +170,18 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 
 	function init() {
+		if (this.initialized) {
+			return;
+		}
+		this.initialized = true;
 		Dontprint = this;
 		// Make platformTools available to scripts that connect to this one
 		this.platformTools = PlatformTools;
 
 		PlatformTools.openSqlDatabase({
+			filename: "dontprint/db3.sqlite",
 			dbname: "journaldb",
-			targetVersion: "DATABASE_VERSION",
+			targetVersion: DATABASE_VERSION,
 			description: "Dontprint's k2pdfopt settings for known journals",
 			estimatedSize: 100 * 1024,
 			updateVersionCallback: updateJournalDb
