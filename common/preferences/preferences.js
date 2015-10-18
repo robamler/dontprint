@@ -11,11 +11,13 @@ $(function() {
 	var originalSelectedJournalFilter = null;
 	var Dontprint = null;
 	var dp = {};
+	var k2pdfoptInstalledVersion = null;
+	var k2pdfoptNewVersion = null;
 
-	PlatformTools.getMainComponentInternally("Dontprint").then(function(val) {
+	PlatformTools.getMainComponentInternally("Dontprint", "@robamler.github.com/dontprint;1").then(function(val) {
 		Dontprint = val;
 		return Dontprint.platformTools.getPrefs({
-			ereaderModel: "",
+			ereaderModel: "other",
 			screenWidth: -1,
 			screenHeight: -1,
 			screenPpi: -1,
@@ -26,7 +28,12 @@ $(function() {
 			verifiedEmails: [],
 			neverReportJournalSettings: false,
 			otherEreaderModel: "",
-			k2pdfoptParams: ""
+			k2pdfoptParams: "",
+			k2pdfoptPath: "",
+			k2pdfoptPlatform: "unknown",
+			postTransferCommandEnabled: false,
+			postTransferCommand: "",
+			destDir: ""
 		});
 	}).then(function(prefs) {
 		dp.prefs = prefs;
@@ -40,13 +47,16 @@ $(function() {
 		initDevicePane();
 		initAdvancedPane();
 		$(window).bind("hashchange", hashchange);
+		if (Dontprint.platformTools.platform !== "firefox") {
+			$(".firefox-only").hide();
+		}
 		hashchange();
 	});
 
 
 	function hashchange(e) {
-		let pane = [];
-		let m = location.hash.match(/^#(\w+)/);
+		var pane = [];
+		var m = location.hash.match(/^#(\w+)/);
 		if (m) {
 			pane = $("#pane-" + m[1]);
 		}
@@ -54,7 +64,8 @@ $(function() {
 			pane = $(".pane:eq(0)");
 		}
 
-		let paneName = pane.attr("id").substr(5);
+		pane.blur();
+		var paneName = pane.attr("id").substr(5);
 		$(".pane").not("#pane-" + paneName).removeClass("selected");
 		pane.addClass("selected");
 		$(".content").not("#content-" + paneName).removeClass("selected");
@@ -106,15 +117,112 @@ $(function() {
 			chrome.downloads.showDefaultFolder();
 		});
 
-		// $("#sendVerificationCodeBtn).click(TODO)
-		// TODO: confirmVerificationCodeBtn
+		$("#sendVerificationCodeBtn").click(sendVerificationCode);
+		$("#confirmVerificationCodeBtn").click(confirmVerificationCode);
 
-		$("#testEmailSettingsBtn").click(transferTestDocument.bind(this, "TODO:congrat.pdf", "Dontprint can send a small test document to your e-reader's e-mail address. Would you like to send this document now?"));
+		$("#testEmailSettingsBtn").click(function() {
+			transferTestDocument(
+				$(this),
+				"email-test",
+				"Dontprint can send a small test document to your e-reader's e-mail address. Would you like to send this document now?"
+			)
+		});
+
+		if (Dontprint.platformTools.platform === "firefox") {
+			$("#whereToSave").text("a directory");
+			$("#whereIsMyDownloadsFolder").hide();
+
+			$("#chooseDestDirButton").click(chooseDestDir);
+			attachPref("value", "destDir");
+			attachPref("checked", "postTransferCommandEnabled");
+			attachPref("value", "postTransferCommand");
+			$("#postTransferCommand").prop("disabled", !dp.prefs.postTransferCommandEnabled);
+			$("#postTransferCommandEnabled").change(function() {
+				$("#postTransferCommand").prop("disabled", !this.checked);
+				if (this.checked) {
+					$("#postTransferCommand").focus();
+				}
+			});
+		}
+	}
+
+
+	function sendVerificationCode() {
+		$("#sendVerificationCodeBtn").attr("disabled", "disabled");
+		$("#verificationProgress").text("Sending verification code. Please wait...");
+		Dontprint.sendVerificationCode().then(
+			function(response) {
+				if (response.returncode === 0) {
+					$("#verificationProgress").text('Verification code sent. Please wait until a document with a four-digit verification code arrives on your e-reader and then enter the code below. It may take a couple of minutes until the document arrives on your e-reader and you may have to manually select "Sync" on your device.');
+				} else if (response.returncode === 1) {
+					// E-mail address already verified.
+					Dontprint.platformTools.getPrefs({
+						verifiedEmails: []
+					}).then(function(prefs) {
+						dp.prefs.verifiedEmails = prefs.verifiedEmails;
+						checkEmailVerificationStatus();
+						$("#verificationProgress").html('(Dontprint will send a small document with a four-digit verification code to your device. The e-mail will be sent from <em>noreply@dontprint.net</em>.)');
+						$("#sendVerificationCodeBtn").removeAttr("disabled");
+					});
+				}
+			},
+			function(error) {
+				$("#sendVerificationCodeBtn").removeAttr("disabled");
+				$("#verificationProgress").text("Error: " + error);
+			}
+		);
+	}
+
+
+	function confirmVerificationCode() {
+		var code = $("#verificationCode").val();
+		if (!/^\d{4}$/.test(code)) {
+			alert("The verification code must consist of four digits.");
+			$("#verificationCode").focus();
+			return false;
+		}
+
+		$("#confirmVerificationCodeBtn").attr("disabled", "disabled");
+		$("#verificationProgress").text("Checking verification code. Please wait...");
+		Dontprint.verifyEmailAddress(code).then(
+			function() {
+				Dontprint.platformTools.getPrefs({
+					verifiedEmails: []
+				}).then(function(prefs) {
+					dp.prefs.verifiedEmails = prefs.verifiedEmails;
+					checkEmailVerificationStatus();
+					$("#verificationProgress").html('(Dontprint will send a small document with a four-digit verification code to your device. The e-mail will be sent from <em>noreply@dontprint.net</em>.)');
+					$("#confirmVerificationCodeBtn").removeAttr("disabled");
+				});
+			},
+			function(error) {
+				$("#confirmVerificationCodeBtn").removeAttr("disabled");
+				$("#verificationProgress").text("Error: " + error);
+			}
+		);
+	}
+
+
+	function chooseDestDir() {
+		var nsIFilePicker = Components.interfaces.nsIFilePicker;
+		var nsILocalFile = Components.interfaces.nsILocalFile;
+		var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+		fp.init(window, "Select directory to save converted PDF files", nsIFilePicker.modeGetFolder);
+		try {
+			var f = Components.classes["@mozilla.org/file/local;1"].createInstance(nsILocalFile);
+			f.initWithPath($("#destDir").val());
+			fp.displayDirectory = f;
+		} catch (e) {}
+		var rv = fp.show();
+		if (rv == nsIFilePicker.returnOK || rv == nsIFilePicker.returnReplace) {
+			$("#destDir").val(fp.file.path);
+			Dontprint.platformTools.setPrefs({destDir: fp.file.path});
+		}
 	}
 
 
 	function emailSuffixChange(element) {
-		let suffix = $("#recipientEmailSuffix").val();
+		var suffix = $("#recipientEmailSuffix").val();
 		if (suffix === "@kindle.com" || suffix === "@kindle.cn") {
 			$("#warning-suffix").text(suffix);
 			$("#warning-charges").show();
@@ -123,21 +231,22 @@ $(function() {
 		}
 
 		$("#emailOtherContainer")[suffix==="other" ? "show" : "hide"]();
+		$("#recipientEmailPrefix").prop("disabled", suffix==="other");
 
 		checkEmailVerificationStatus();
 	}
 
 
 	function checkEmailVerificationStatus() {
-		let email = "";
-		let suffix = $("#recipientEmailSuffix").val();
+		var email = "";
+		var suffix = $("#recipientEmailSuffix").val();
 		if (suffix === "other") {
 			email = $("#recipientEmailOther").val();
 		} else {
 			email = $("#recipientEmailPrefix").val() + suffix;
 		}
 
-		let verified = dp.prefs.verifiedEmails.indexOf(email) !== -1;
+		var verified = dp.prefs.verifiedEmails.indexOf(email) !== -1;
 		if (verified) {
 			$("#verificationStatus").addClass("verificationStatusOk");
 			$("#verificationProgress,#verificationCodeContainer").hide();
@@ -153,7 +262,13 @@ $(function() {
 		$("#sendScreenSettingsOtherContainer").hide();
 		attachPref("value", "otherEreaderModel");
 
-		$("#sendTestEmailButton").click(transferTestDocument.bind(this, "TODO:measurement.pdf", "Dontprint can transfer a small document to your e-reader that will assist you in finding out its exact screen size. Would you like to send this document now?"));
+		$("#sendTestEmailButton").click(function() {
+			transferTestDocument(
+				$(this),
+				"measurement-only",
+				"Dontprint can transfer a small document to your e-reader that will assist you in finding out its exact screen size. Would you like to send this document now?"
+			)
+		});
 
 		modelSettings[dp.prefs.ereaderModel] = {
 			screenWidth: dp.prefs.screenWidth,
@@ -187,18 +302,23 @@ $(function() {
 				var fields = ["id", "longname", "shortname", "minDate", "maxDate",  "coverpage", "k2pdfoptParams", "scale"];
 				var floatFields = ["m1", "m2", "m3", "m4"];
 				
-				journalFilters = sqlresult;
+				journalFilters = new Array(sqlresult.length);
 				journalFilterList = $("#filterList");
 				journalFilterList.empty();
 
-				for (let i=0; i<journalFilters.length; i++) {
-					let filter = journalFilters[i];
-					journalFilterMap[filter.id] = i;
+				for (var i=0; i<sqlresult.length; i++) {
+					var origfilter = sqlresult[i];
+					var filter = {};
 					filter.enabled = 1;
-					floatFields.forEach(function(key) {
-						filter[key] = parseFloat(filter[key]);
+					fields.forEach(function(key) {
+						filter[key] = origfilter.getResultByName(key);
 					});
-					let attr = {
+					floatFields.forEach(function(key) {
+						filter[key] = parseFloat(origfilter.getResultByName(key));
+					});
+					journalFilterMap[filter.id] = i;
+					journalFilters[i] = filter;
+					var attr = {
 					    value: i,
 					    text: makeJournalFilterLabel(filter)
 					};
@@ -271,7 +391,7 @@ $(function() {
 
 
 	function deformatDate(datestr) {
-		let ret = parseFloat(datestr.replace(/^([+-]?\d{1,4})-(\d\d)-(\d\d)$/, "$1$2$3"));
+		var ret = parseFloat(datestr.replace(/^([+-]?\d{1,4})-(\d\d)-(\d\d)$/, "$1$2$3"));
 		return isNaN(ret) ? 0 : ret;
 	}
 
@@ -281,7 +401,7 @@ $(function() {
 		
 		selectedJournalFilter = journalFilters[$("#filterList").val()];
 		originalSelectedJournalFilter = {};
-		for (let key in selectedJournalFilter) {
+		for (var key in selectedJournalFilter) {
 			originalSelectedJournalFilter[key] = selectedJournalFilter[key];
 		};
 		
@@ -319,7 +439,7 @@ $(function() {
 
 	function updateSelectedFilter() {
 		updateVisibleFilterData();
-		$("#filterList>:selected").text(makeJournalFilterLabel(selectedJournalFilter));
+		$('#filterList>option[value="' + journalFilterMap[selectedJournalFilter.id] + '"]').text(makeJournalFilterLabel(selectedJournalFilter));
 	}
 
 
@@ -366,7 +486,7 @@ $(function() {
 				if (val.oldid === val.newid) {
 					return;
 				}
-				let index = null;
+				var index = null;
 
 				if (typeof val.oldid !== "number") {
 					// New journal filter. Must be the one added last to the
@@ -387,7 +507,7 @@ $(function() {
 	function newJournalFilter() {
 		selectedJournalFilter = null;
 		
-		let filter = {
+		var filter = {
 			enabled:1, longname:"", shortname:"", minDate:0, maxDate:0,
 			m1:5, m2:5, m3:5, m4:5, coverpage:0, k2pdfoptParams:"", scale:"1"
 		};
@@ -413,8 +533,8 @@ $(function() {
 		Dontprint.deleteJournalSettings(selectedJournalFilter.id, null);
 		delete journalFilterMap[selectedJournalFilter.id];
 		journalFilters[$("#filterList").val()] = undefined; // Don't delete the entry from the array because we still want to reserve its index
-		let oldsel = $("#filterList>:selected");
-		let newsel = oldsel.next();
+		var oldsel = $("#filterList>:selected");
+		var newsel = oldsel.next();
 		if (!newsel.length) {
 			newsel = oldsel.prev();
 		}
@@ -431,6 +551,103 @@ $(function() {
 	function initAdvancedPane() {
 		attachPref("checked", "neverReportJournalSettings");
 		attachPref("value", "k2pdfoptParams");
+
+		if (Dontprint.platformTools.platform === "firefox") {
+			attachPref("value", "k2pdfoptPath");
+
+			$("#checkForK2pdfoptUpdateButton").click(checkForK2pdfoptUpdate);
+			$("#updateK2pdfoptButton").click(updateK2pdfopt);
+			$("#updateK2pdfoptManuallyButton").click(updateK2pdfoptManually);
+
+			if (dp.prefs.k2pdfoptPlatform.substr(0,7) === "unknown") {
+				dp.prefs.k2pdfoptPlatform = "src";
+				$("#updateK2pdfoptButton").hide();
+			}
+
+			Dontprint.detectK2pdfoptVersion().then(
+				function(versionString) {
+					k2pdfoptInstalledVersion = versionString;
+					$("#k2pdfoptInstalledVersion").text("version " + versionString);
+					$("#checkForK2pdfoptUpdateButton").removeAttr("disabled");
+				},
+				function() {
+					k2pdfoptInstalledVersion = "0";
+					$("#k2pdfoptInstalledVersion").text("(Error: k2pdfopt not found)");
+					checkForK2pdfoptUpdate();
+				}
+			);
+		}
+	}
+
+
+	function checkForK2pdfoptUpdate() {
+		$("#checkForK2pdfoptUpdateButton").attr("disabled", "disabled");
+		$("#checkForK2pdfoptUpdateButton").text("Checking for updates...");
+		
+		function reqListener() {
+			k2pdfoptNewVersion = this.response.k2pdfoptVersions[dp.prefs.k2pdfoptPlatform];
+			if (Dontprint.compareVersionStrings(k2pdfoptNewVersion, k2pdfoptInstalledVersion) > 0) {
+				$("#checkForK2pdfoptUpdateButton").hide();
+				$("#k2pdfoptUpdateVersion_label").text("version " + k2pdfoptNewVersion);
+				$("#k2pdfoptUpdateInformation").show();
+			} else {
+				$("#checkForK2pdfoptUpdateButton").text("No update available.");
+			}
+		}
+
+		var req = Dontprint.platformTools.xhr();
+		req.onload = reqListener;
+		req.responseType = "json";
+		req.open("get", "http://dontprint.net/k2pdfopt/versions.json", true);
+		req.send();
+	}
+
+
+	function updateK2pdfopt() {
+		$("#updateK2pdfoptButton, #updateK2pdfoptManuallyButton").hide();
+		var statusDisplay = $("#k2pdfoptInstalledVersion");
+		statusDisplay.text("K2pdfopt is being updated to version " + k2pdfoptNewVersion + "...");
+
+		var leafFilename = dp.prefs.k2pdfoptPlatform.substr(0,4)==="win_" ? "k2pdfopt.exe" : "k2pdfopt";
+
+		Dontprint.platformTools.spawn(function*() {
+			try {
+				var file = yield Dontprint.platformTools.downloadTmpFile(
+					"http://dontprint.net/k2pdfopt/" + dp.prefs.k2pdfoptPlatform + "/" + leafFilename,
+					leafFilename,
+					function(progress) {
+						statusDisplay.text("K2pdfopt is being updated to version " + k2pdfoptNewVersion + " (" + Math.round(progress*100) + "% done)...");
+					}
+				);
+			} catch (e) {
+				statusDisplay.text("An error occured while trying to update k2pdfopt. Are you connected to the internet?");
+				return;
+			}
+
+			// This can only be reached if platform is not "unknown.*". Therefore,
+			// the old version of k2pdfopt must have been originally downloaded
+			// by Dontprint, so we may overwrite it.
+			try {
+				file.permissions = 509 // For unix: executable file (octal representation: 775)
+				Dontprint.platformTools.debug(file);
+				Dontprint.platformTools.debug(dp.prefs.k2pdfoptPath);
+				var m = dp.prefs.k2pdfoptPath.match(/^(.*)[\\/](.*)$/);
+				var destdir = Components.classes["@mozilla.org/file/local;1"].
+				           createInstance(Components.interfaces.nsILocalFile);
+				destdir.initWithPath(m[1]);
+				Dontprint.platformTools.debug(destdir);
+				file.moveTo(destdir, m[2]);
+				statusDisplay.text("Update to version " + k2pdfoptNewVersion + " completed.");
+			} catch (e) {
+ 				statusDisplay.text("Error: The downloaded file seems to be currupted." + e.toString());
+			}
+		});
+	}
+
+
+	function updateK2pdfoptManually() {
+		$("#updateK2pdfoptButton, #updateK2pdfoptManuallyButton").hide();
+		$("#k2pdfoptUpdateManuallyInstructions, #k2pdfoptManualUpdatePathRow").show();
 	}
 
 
@@ -462,7 +679,7 @@ $(function() {
 				$('#otherEreaderModel').val("");
 			}
 			var userSettings = modelSettings[modelName] ? modelSettings[modelName] : modelDefaults;
-			for (let key in userSettings) {
+			for (var key in userSettings) {
 				if (userSettings[key] === -1) {
 					userSettings[key] = modelDefaults[key];
 				}
@@ -484,16 +701,16 @@ $(function() {
 
 
 	function filterChangeListener() {
-		let left = null;
-		let right = null;
-		let count = 0;
-		let otherAllowed = ModelPicker.models[ModelPicker.questions['START'].filter[1]].enabled;
-		for (let mod in ModelPicker.models) {
+		var left = null;
+		var right = null;
+		var count = 0;
+		var otherAllowed = ModelPicker.models[ModelPicker.questions['START'].filter[1]].enabled;
+		for (var mod in ModelPicker.models) {
 			if (ModelPicker.models[mod].enabled) {
 				count++;
 				if (otherAllowed || mod!=="other") {
-					let l = ModelPicker.models[mod].node.position().left;
-					let r = l + ModelPicker.models[mod].node.outerWidth();
+					var l = ModelPicker.models[mod].node.position().left;
+					var r = l + ModelPicker.models[mod].node.outerWidth();
 					if (left===null || l<left) {
 						left = l;
 					}
@@ -511,8 +728,8 @@ $(function() {
 
 
 	function scrollModelsTo(left, right) {
-		let width = $('#model-select-container').innerWidth();
-		let scrollPos = $('#model-select-container').scrollLeft();
+		var width = $('#model-select-container').innerWidth();
+		var scrollPos = $('#model-select-container').scrollLeft();
 		if (left<0 && right<width-30) {
 			$('#model-select-container').animate({
 				scrollLeft: scrollPos - Math.min(width-right-30, 30-left)
@@ -526,22 +743,22 @@ $(function() {
 
 
 	function screenSettingsChange() {
-		let modname = ModelPicker.selection;
-		let defs = dp.EREADER_MODEL_DEFAULTS[modname];
+		var modname = ModelPicker.selection;
+		var defs = dp.EREADER_MODEL_DEFAULTS[modname];
 		if (!defs) {
 			// nothing was selected
 			return;
 		}
 		if (!modelSettings[modname]) {
-			for (let key in defs) {
+			for (var key in defs) {
 				modelSettings[modname] = {};
 				modelSettings[modname][key] = defs[key];
 			}
 		}
-		let alldefaults = true;
+		var alldefaults = true;
 		function checkChange(el, preference) {
 			if (el.get(0).validity.valid) {
-				modelSettings[modname][preference] = el.val();
+				modelSettings[modname][preference] = parseInt(el.val());
 			}
 			if (modelSettings[modname][preference] != defs[preference]) {
 				alldefaults = false;
@@ -553,7 +770,7 @@ $(function() {
 		checkChange($('#ppiinput'), 'screenPpi');
 		
 		// Store -1 if ALL values are default. This way, they will implicitly be updated if defaults change.
-		let newvalues = alldefaults ? {
+		var newvalues = alldefaults ? {
 			screenWidth: -1,
 			screenHeight: -1,
 			screenPpi: -1
@@ -562,19 +779,33 @@ $(function() {
 	}
 
 
-	function transferTestDocument(button, url, question) {
+	function transferTestDocument(button, directory, question) {
 		if (confirm(question)) {
-			button.prop("disabled", true);
+			var pdfurl = "http://dontprint.net/test-documents/" + Dontprint.platformTools.platform + "/" + directory + "/" + dp.prefs.ereaderModel + ".pdf";
+			button.attr("disabled", "disabled");
 			button.text("Please wait...");
-			// Dontprint.testDocument(function() {
-			// 	that.textContent = "Document transferred.";
-			// }); TODO
+			Dontprint.runJob({
+				jobType: "test",
+				title: "Dontprint test document",
+				pdfurl,
+				progressListener: function(job) {
+					switch (job.state) {
+						case "success":
+							button.text("Done.");
+							break;
+
+						case "error":
+							button.text("An error occured.");
+							break;
+					}
+				}
+			});
 		}
 	}
 
 
 	$('#sendScreenSettingsDetails').click(function() {
-		let model = ModelPicker.selection === "other" ? "other (" + ($('#otherEreaderModel').val() === "" ? "unknown" : $('#otherEreaderModel').val()) + ")" : ModelPicker.models[ModelPicker.selection].label;
+		var model = ModelPicker.selection === "other" ? "other (" + ($('#otherEreaderModel').val() === "" ? "unknown" : $('#otherEreaderModel').val()) + ")" : ModelPicker.models[ModelPicker.selection].label;
 		alert(
 			"If you check this box then Dontprint will send the following data to its developer:" +
 			"\n - e-reader model: " + model +

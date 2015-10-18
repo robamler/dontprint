@@ -7,6 +7,7 @@ function Dontprint() {
 	loader.loadSubScript("chrome://dontprint/content/platform-tools/core.js", context, "UTF-8");
 	loader.loadSubScript("chrome://dontprint/content/platform-tools/concurrency.js", context, "UTF-8");
 	loader.loadSubScript("chrome://dontprint/content/platform-tools/sql.js", context, "UTF-8");
+	loader.loadSubScript("chrome://dontprint/content/platform-tools/tabs.js", context, "UTF-8");
 	loader.loadSubScript("chrome://dontprint/content/common/dontprint.js", context, "UTF-8");
 	loader.loadSubScript("chrome://dontprint/content/dontprint-firefox-specifics.js", context, "UTF-8");
 

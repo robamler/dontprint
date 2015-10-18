@@ -98,14 +98,40 @@
 				<tr>
 					<td><input type="radio" id="transferMethodDirectory" name="transferMethod" value="directory"></td>
 					<td>
-						<label for="transferMethodDirectory"><strong>Save documents to your "Downloads" folder (choose this option if your e-reader does not support e-mail transfer)</strong></label>
+						<label for="transferMethodDirectory"><strong>Save documents to <span id="whereToSave">your "Downloads" folder</span> (choose this option if your e-reader does not support e-mail transfer)</strong></label>
 					</td>
 				</tr>
 				<tr>
 					<td></td>
 					<td>
 						<div id="transferMethodDirectoryDetails" class="hint">
-							(<a href="#" id="showDownloadsFolder">Where is my "Downloads" folder?</a>)
+							<div id="whereIsMyDownloadsFolder">(<a href="#" id="showDownloadsFolder">Where is my "Downloads" folder?</a>)</div>
+							<table class="formtable firefox-only">
+								<tr>
+									<th><label for="destDir">Save to directory:</label></th>
+									<td style="width:100%;max-width:30em">
+										<input type="text" id="destDir" style="width:100%">
+									</td>
+									<td>
+										<button id="chooseDestDirButton" style="margin-left:1em">Choose</button>
+									</td>
+								</tr>
+								<tr>
+									<th>
+										<input type="checkbox" id="postTransferCommandEnabled">
+										<label for="postTransferCommandEnabled">Execute command after saving the file:</label>
+									</th>
+									<td colspan="2">
+										<input type="text" id="postTransferCommand" style="width:100%">
+									</td>
+								</tr>
+								<tr>
+									<td></td>
+									<td colspan="2">
+										<div class="hint">(Use an absolute path of an executable file, optionally followed by arguments. You can use %u to refer to the file path of the new PDF file.)</div>
+									</td>
+								</tr>
+							</table>
 						</div>
 					</td>
 				</tr>
@@ -144,16 +170,16 @@
 			</p>
 			<table class="formtable" style="width:100%;max-width:60em">
 				<tr>
-					<th style="width:100%;padding-right:2em"><h2>1. Pick a journal filter</h2></th>
-					<th style="width:initial"><h2>2. Modify settings for the selected filter</h2></th>
+					<th style="width:100%"><h2>1. Pick a journal filter</h2></th>
+					<th style="width:initial;padding-left:25px"><h2>2. Modify settings for the selected filter</h2></th>
 				</tr>
 				<tr>
-					<td style="width:initial;padding-right:2em;vertical-align:top;height:100%">
+					<td style="width:initial;vertical-align:top;height:100%;position:relative">
 						<select id="filterList" size="10">
 							<option value="">Loading filter list...</option>
 						</select>
 					</td>
-					<td style="width:initial;vertical-align:top">
+					<td style="width:initial;vertical-align:top;padding-left:25px">
 						<table class="formtable">
 							<tr>
 								<th><label for="journalLongname">Journal title:</th></th>
@@ -184,7 +210,7 @@
 								<th>Margins (mm):</th>
 								<td id="margininputs">
 									<div id="marginsrow1"><input id="m2Input" required  type="number" step="0.1" min="0"></div>
-									<div id="marginsrow2"><input id="m1Input" required  type="number" step="0.1" min="0"><input id="m3Input" required  type="number" step="0.1" min="0"></div>
+									<div id="marginsrow2"><input id="m1Input" required  type="number" step="0.1" min="0">&nbsp;&nbsp;&nbsp;<input id="m3Input" required  type="number" step="0.1" min="0"></div>
 									<div id="marginsrow3"><input id="m4Input" required  type="number" step="0.1" min="0"></div>
 								</td>
 							</tr>
@@ -248,6 +274,34 @@
 			<p class="hint">
 				Dontprint uses a program called "k2pdfopt" to optimize the layout of articles before sending them to your e-reader. For more information about k2pdfopt, visit <a target="_blank" href="http://www.willus.com/k2pdfopt/">willus.com</a>.
 			</p>
+			<div class="firefox-only">
+				<table class="formtable">
+					<tr>
+						<th>Installed version of k2pdfopt:</th>
+						<td>
+							<span id="k2pdfoptInstalledVersion">Checking...</span>
+							<button id="checkForK2pdfoptUpdateButton" disabled>Check for update</button>
+						</td>
+					</tr>
+					<tr id="k2pdfoptUpdateInformation">
+						<th>Available update:</th>
+						<td>
+							<span id="k2pdfoptUpdateVersion_label"></span>
+							<button id="updateK2pdfoptButton">Update now</button>
+							<button id="updateK2pdfoptManuallyButton">Update manually</button>
+						</td>
+					</tr>
+					<tr id="k2pdfoptUpdateManuallyInstructions">
+						<td colspan="2" class="hint">To update k2pdfopt manually, download the latest version from <a href="http://www.willus.com/k2pdfopt/download/" target="_blank">willus.com</a> and make sure you have execution rights for the downloaded file. Then, enter the path to the executable file in the textbox below.</td>
+					</tr>
+					<tr id="k2pdfoptManualUpdatePathRow">
+						<th><label for="k2pdfoptPath">Path to to k2pdfopt executable:</label></th>
+						<td>
+							<input type="text" id="k2pdfoptPath" style="width:100%;max-width:40em">
+						</td>
+					</tr>
+				</table>
+			</div>
 			Additional command line parameters to k2pdfopt (for experts):
 			<input type="text" id="k2pdfoptParams" class="largeinput">
 		</div>

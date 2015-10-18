@@ -208,6 +208,7 @@ hr {
 }
 
 #filterList {
+	position: absolute;
 	width: 100%;
 	height: 100%;
 }
@@ -251,4 +252,10 @@ input#i0 {
 
 .builtin {
 	color: #555;
+}
+
+#k2pdfoptUpdateInformation,
+#k2pdfoptUpdateManuallyInstructions,
+#k2pdfoptManualUpdatePathRow {
+	display: none;
 }

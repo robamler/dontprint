@@ -1,4 +1,4 @@
-ModelPicker = {
+var ModelPicker = {
 	initialized: false,
 	selection: null,
 	models: {

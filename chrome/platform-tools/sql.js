@@ -14,7 +14,6 @@ if (window.PlatformTools === undefined) {
 		PlatformTools[i] = publicInterface[i];
 	}
 
-	return;
 
 	function openSqlDatabase(options) {
 		var dbhandle;
@@ -126,27 +125,48 @@ if (window.PlatformTools === undefined) {
 				);
 			});
 		}
+	}
 
 
-		function makeTransactionCallback(generatorFunction, res) {
-			return function (transaction) {
-				function sql(sqlstring, args) {
-					return new Promise(function(resolve, reject) {
-						transaction.executeSql(
-							sqlstring,
-							args,
-							function(t2, ret) {
+	function makeTransactionCallback(generatorFunction, res) {
+		return function (transaction) {
+			function sql(sqlstring, args) {
+				return new Promise(function(resolve, reject) {
+					transaction.executeSql(
+						sqlstring,
+						args,
+						function(t2, result) {
+							if (typeof result === "object" && result.rows) {
+								let newrows = new Array(result.rows.length);
+								for (let i=0; i<result.rows.length; i++) {
+									newrows[i] = new SqlResultRow(result.rows[i]);
+								}
+								let ret = {rows: newrows};
+								try {
+									ret.insertId = result.insertId;
+								} catch (e) {}
 								resolve(ret);
-							},
-							function(t2, err) {
-								reject(err);
+							} else {
+								resolve(result);
 							}
-						);
-					});
-				}
-
-				res(PlatformTools.spawn(generatorFunction, sql));
+						},
+						function(t2, err) {
+							reject(err);
+						}
+					);
+				});
 			}
+
+			res(PlatformTools.spawn(generatorFunction, sql));
 		}
 	}
+
+
+	function SqlResultRow(rowData) {
+		this._rowData = rowData;
+	}
+
+	SqlResultRow.prototype.getResultByName = function(name) {
+		return this._rowData[name];
+	};
 }());

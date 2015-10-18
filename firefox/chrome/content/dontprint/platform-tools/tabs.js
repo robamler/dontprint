@@ -7,7 +7,6 @@ if (typeof PlatformTools === "undefined") {
 
 (function() {
 	var publicInterface = {
-		extensionScriptUrl,
 		openTab
 	};
 
@@ -16,15 +15,6 @@ if (typeof PlatformTools === "undefined") {
 	}
 
 	return;
-
-
-	function extensionScriptUrl(relativePath) {
-		if (relativePath.indexOf("://") !== -1) {
-			return relativePath;
-		} else {
-			return "chrome://" + extensionName.toLowerCase() + "/content/" + relativePath;
-		}
-	}
 
 
 	function windowForTab(tab) {

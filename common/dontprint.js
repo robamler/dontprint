@@ -164,7 +164,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	function getJournalFilters() {
 		return journaldb.transaction(function*(sql) {
 			let result = yield sql("SELECT id, longname, shortname, minDate, maxDate, m1, m2, m3, m4, coverpage, k2pdfoptParams, scale FROM journals WHERE enabled=1 ORDER BY priority DESC, lastModified DESC");
-			return Array.prototype.slice.call(result.rows);
+			return result.rows;
 		});
 	}
 
@@ -313,9 +313,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	
 	function* getRecipientEmail() {
 		let prefs = yield PlatformTools.getPrefs({
-			recipientEmailPrefix: null,
-			recipientEmailSuffix: null,
-			recipientEmailOther: null
+			recipientEmailPrefix: "",
+			recipientEmailSuffix: "",
+			recipientEmailOther: ""
 		});
 
 		if (prefs.recipientEmailSuffix === "other") {
@@ -348,30 +348,36 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	function sendVerificationCode(prefs) {
 		return new Promise(function (resolve, reject) {
 			PlatformTools.spawn(function*() {
-				yield PlatformTools.setPrefs(prefs);
-				let email = yield getRecipientEmail();
-				if (!email) {
-					reject("No e-mail address set");
+				try {
+					if (prefs) {
+						yield PlatformTools.setPrefs(prefs);
+					}
+					let email = yield getRecipientEmail();
+					let req = PlatformTools.xhr();
+					req.responseType = "json";
+					req.onload = function() {
+						let p = Promise.resolve();
+						if (req.response.success && req.response.returncode === 1) {
+							// Email addres was already verified
+							p = rememberVerifiedEmail(email);
+						}
+						p.then(function() {
+							if (req.response.success) {
+								resolve(req.response);
+							} else {
+								reject(req.response.message);
+							}
+						});
+					};
+					req.onerror = function(error) {
+						reject("Connection error. Are you connected to the internet?");
+					};
+					req.open("POST", "http://dontprint.net/cgi-bin/send-verification-mail.pl", true);
+					req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+					req.send(buildURL("", {email}));
+				} catch (e) {
+					reject(e);
 				}
-				let req = PlatformTools.xhr();
-				req.responseType = "json";
-				req.onload = function() {
-					if (req.response.success && req.response.returncode === 1) {
-						// Email addres was already verified
-						rememberVerifiedEmail(email);
-					}
-					if (req.response.success) {
-						resolve(req.response);
-					} else {
-						reject(req.response.message);
-					}
-				};
-				req.onerror = function(error) {
-					reject("Connection error. Are you connected to the internet?");
-				};
-				req.open("POST", "http://dontprint.net/cgi-bin/send-verification-mail.pl", true);
-				req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-				req.send(buildURL("", {email}));
 			});
 		});
 	}
@@ -380,36 +386,34 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	function verifyEmailAddress(code) {
 		return new Promise(function(resolve, reject) {
 			PlatformTools.spawn(function*() {
-				let email = yield getRecipientEmail();
-				if (!email) {
-					reject("No e-mail address set");
-				}
+				try {
+					let email = yield getRecipientEmail();
 
-				let req = PlatformTools.xhr();
-				req.responseType = "json";
-				req.onload = function() {
-					if (req.response.success) {
-						rememberVerifiedEmail(email);
-					}
-					if (req.response.success) {
-						resolve(req.response);
-					} else {
-						reject(req.response.message);
-					}
-				};
-				req.onerror = function() {
-					reject("Connection error. Are you connected to the internet?");
-				};
-				req.open("POST", "http://dontprint.net/cgi-bin/verify-email.pl", true);
-				req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-				req.send(buildURL("", {email, code}));
+					let req = PlatformTools.xhr();
+					req.responseType = "json";
+					req.onload = function() {
+						if (req.response.success) {
+							resolve(rememberVerifiedEmail(email));
+						} else {
+							reject(req.response.message);
+						}
+					};
+					req.onerror = function() {
+						reject("Connection error. Are you connected to the internet?");
+					};
+					req.open("POST", "http://dontprint.net/cgi-bin/verify-email.pl", true);
+					req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+					req.send(buildURL("", {email, code}));
+				} catch (e) {
+					reject(e);
+				}
 			});
 		});
 	}
 	
 	
 	function rememberVerifiedEmail(email) {
-		PlatformTools.getPrefs({verifiedEmails: []}).then(function(prefs) {
+		return PlatformTools.getPrefs({verifiedEmails: []}).then(function(prefs) {
 			let em = email.toLocaleLowerCase();
 			if (prefs.verifiedEmails.indexOf(em) !== -1) {
 				return;
@@ -417,7 +421,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			prefs.verifiedEmails.unshift(em);
 			// Remember only up to 10 e-mail addresses.
 			prefs.verifiedEmails = prefs.verifiedEmails.slice(0,10);
-			PlatformTools.setPrefs(prefs);
+			return PlatformTools.setPrefs(prefs);
 		});
 	}
 	
@@ -475,15 +479,13 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				let origPdfFile = null;
 
 				if (job.pdfurl) {
-					let origPdfFile = yield downloadPdfUrl(job);
+					origPdfFile = yield downloadPdfUrl(job);
 					// origPdfFile = yield PlatformTools.saveTmpFileOrBlob(blob, "original" + job.id + ".pdf");
 					job.tmpFiles.push(origPdfFile);
 				}
 
 				if (job.jobType === "test") {
-					//TODO
-// 					job.convertedFilePath = job.originalFilePath;
-// 					job.finalFilename = 'Dontprint test document.pdf';
+					job.finalFile = origPdfFile;
 				} else {
 					yield cropMargins(job);
 					yield convertDocument(job, naclLoaded, naclPromise);
@@ -719,7 +721,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		
 		// yield Dontprint.postTranslate(job);  TODO
 
-		job.crop = yield journaldb.transaction(function*(sql) {
+		let bestFilter = yield journaldb.transaction(function*(sql) {
 			let dates = parseDateString(job.articleDate);
 			try {
 				if (job.journalLongname) {
@@ -749,22 +751,27 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				return longnameresult[0];
 			} else {
 				// found match for both longname and shortname
-				let spriority = parseFloat(shortnameresult[0].priority) + 0x200;
-				let lpriority = parseFloat(longnameresult[0].priority) + 0x1000;
+				let spriority = parseFloat(shortnameresult[0].getResultByName("priority")) + 0x200;
+				let lpriority = parseFloat(longnameresult[0].getResultByName("priority")) + 0x1000;
 				return spriority > lpriority ? shortnameresult[0] : longnameresult[0];
 			}
 		}, true);
 
-		if (job.crop) {
-			job.crop.rememberPreset = false;  // if crop window needs to be shown, then by default don't remember settings
-		} else {
-			job.crop = {
-				rememberPreset:true, id:0, enabled:false,
-				minDate:0, maxDate:0,
-				m1:5, m2:5, m3:5, m4:5,
-				coverpage:false, k2pdfoptParams: "", scale: "1"
-			};
+		job.crop = {
+			rememberPreset:true, id:0, enabled:false,
+			minDate:0, maxDate:0,
+			m1:5, m2:5, m3:5, m4:5,
+			coverpage:false, k2pdfoptParams: "", scale: "1",
+			longname: "", shortname: ""
 		}
+
+		if (bestFilter) {
+			for (let key in job.crop) {
+				job.crop[key] = bestFilter.getResultByName(key);
+			}
+			job.crop.rememberPreset = false;  // if crop window needs to be shown, then by default don't remember settings
+		}
+
 		if (!job.crop.longname) {
 			job.crop.longname = job.journalLongname;
 		}
@@ -934,7 +941,14 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				oldid: crop.id,
 				newid: crop.id
 			};
-			if (insertresult && (crop.id < 0 || crop.id===undefined)) {
+			if (insertresult && !(crop.id >= 0)) {
+				if (typeof insertresult.insertId === "undefined") {
+					// insertId is only set by Chrome. For Firefox, we use the
+					// following ugly heuristic.
+					// NOTE: using conn.lastInsertRowID doesn't work. It returns undefined.
+					let sqlresult = yield sql("SELECT id FROM journals ORDER BY id DESC LIMIT 1");
+					insertresult.insertId = sqlresult.rows[0].getResultByName("id");
+				}
 				ret.newid = insertresult.insertId;
 			}
 			return ret;
@@ -1075,6 +1089,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		try {
 			yield new Promise(function(resolve, reject) {
 				let req = PlatformTools.xhr();
+				req.responseType = "json";
 				req.upload.addEventListener(
 					"progress",
 					function uploadProgressListener(e) {
@@ -1085,8 +1100,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				);
 				req.onload = function() {
 					try {
-						req.upload.removeEventListener(uploadProgressListener);
-						job.result = JSON.parse(req.responseText);
+						job.result = req.response;
 						if (job.result.success) {
 							resolve(job.result);
 						} else if (job.result.errno === 3) {
@@ -1104,14 +1118,20 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				req.onabort = function() {
 					reject("canceled");
 				};
-				req.open('POST', url, true);
-				req.send(job.finalFile);
 
 				job.abortCurrentTask = function() {
 					// Setting job.abortCurrentTask = req.abort won't work.
 					// With this function wrapper, it works.
 					req.abort();
 				};
+
+				job.finalFile.file(
+					function(file) {
+						req.open('POST', url, true);
+						req.send(file);
+					},
+					reject
+				);
 			});
 		} finally {
 			delete job.abortCurrentTask;

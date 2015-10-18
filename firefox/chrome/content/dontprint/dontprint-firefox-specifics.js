@@ -7,10 +7,14 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 
 	let zoteroInstalledResolveFunction = null;
 	let initialized = false;
+	let k2pdfoptTestTimeout = null;
 
 	Dontprint.isZoteroInstalled = new Promise(function(resolve, reject) {
 		zoteroInstalledResolveFunction = resolve;
 	});
+
+	Components.utils.import("resource://EXTENSION/subprocess.jsm");
+
 
 	Dontprint.initOnPlatform = function() {
 		if (initialized) {
@@ -55,4 +59,87 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 			zoteroInstalledResolveFunction(zoteroInstalled);
 		});
 	}
+
+
+	Dontprint.detectK2pdfoptVersion = function() {
+		if (k2pdfoptTestTimeout !== "null") {
+			clearTimeout(k2pdfoptTestTimeout);
+		}
+		let currentLine = "";
+		let lineNumber = 0;
+		let found = false;
+
+		return Dontprint.platformTools.getPrefs({
+			"k2pdfoptPath": ""
+		}).then(function(prefs) {
+			if (prefs.k2pdfoptPath === "") {
+				return Promise.reject("k2pdfoptPath is not set");
+			}
+
+			return new Promise(function(resolve, reject) {
+				try {
+					let p = subprocess.call({
+						command: prefs.k2pdfoptPath,
+						arguments: ['-ui-', '-x', '-a-', '-?'],
+						stdout: function(data) {
+							if (lineNumber < 5 || !found) {
+								let lines = data.split(/[\n\r]+/);
+								lines[0] = currentLine + lines[0];
+								currentLine = lines.pop();
+								for (let i=0; i<Math.min(lines.length, 5-lineNumber); i++) {
+									let m = lines[i].match(/^\s*k2pdfopt\s+v(\d+(\.\d+)*)\s/);
+									if (m) {
+										found = true;
+										if (Dontprint.compareVersionStrings(m[1], "1.51") >= 0) {
+											resolve(m[1]);
+										} else {
+											reject("Outdated version: " + m[1]);
+										}
+									}
+									lineNumber++;
+								}
+							}
+						},
+						done: function(result) {
+							if (!found) {
+								reject("Cannot parse version string.");
+							}
+						},
+						mergeStderr: false
+					});
+				} catch (e) {
+					let errstr = e.toString();
+					if (errstr.length > 120) {
+						errstr = errstr.substr(0, 100) + "...";
+					}
+					reject(errstr);
+				} finally {
+					if (typeof p === "object") {
+						k2pdfoptTestTimeout = setTimeout(p.kill, 5000);  // 5 seconds
+					}
+				}
+			});
+		});
+	};
+
+
+	/**
+	 * Returns -1 if v2 is newer than v1, +1 if v1 is newer than v2
+	 * and 0 if they are equal.
+	 */
+	Dontprint.compareVersionStrings = function(v1, v2) {
+		let a1 = v1.split(".");
+		let a2 = v2.split(".");
+		for (let i=0; i<Math.min(a1.length, a2.length); i++) {
+			if (a1[i] < a2[i])
+				return -1;
+			if (a1[i] > a2[i])
+				return 1;
+		}
+		if (a1.length < a2.length)
+			return -1;
+		if (a1.length > a2.length)
+			return 1;
+		return 0;
+	};
 }());

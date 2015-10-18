@@ -111,7 +111,7 @@ if (typeof PlatformTools === "undefined") { //TODO
 			if (typeof iterator === "object" && typeof iterator.next === "function") {
 				let i = iterator.next();
 				while (!i.done) {
-					i = iterator.next(yield i.value);
+					i = iterator.next({rows: yield i.value});
 				}
 				ret = i.value;
 			} else {
@@ -122,7 +122,7 @@ if (typeof PlatformTools === "undefined") { //TODO
 				let iterator = postExecutionGeneratorFunc(conn.execute.bind(conn));
 				let i = iterator.next();
 				while (!i.done) {
-					i = iterator.next(yield i.value);
+					i = iterator.next({rows: yield i.value});
 				}
 			}
 			return ret;

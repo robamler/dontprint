@@ -7,7 +7,6 @@ if (window.PlatformTools === undefined) {
 
 (function() {
 	var publicInterface = {
-		extensionScriptUrl,
 		openTab
 	};
 
@@ -25,18 +24,6 @@ if (window.PlatformTools === undefined) {
 		} else {
 			return url;
 		}
-	}
-
-
-	/**
-	 * Return an absolute URL to a file that is packaged with the extension.
-	 * @param  {string} relativePath
-	 *         Path to the file, relative to chrome-platform.js
-	 * @return {string}
-	 *         An absolute URL to the file, which can be used in an XHR.
-	 */
-	function extensionScriptUrl(relativePath) {
-		return chrome.runtime.getURL(relativePath);
 	}
 
 

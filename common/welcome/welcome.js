@@ -4,7 +4,7 @@ $(function() {
 	var dp = {};
 	var Dontprint = null;
 
-	PlatformTools.getMainComponentInternally("Dontprint").then(function(val) {
+	PlatformTools.getMainComponentInternally("Dontprint", "@robamler.github.com/dontprint;1").then(function(val) {
 		Dontprint = val;
 		return Dontprint.platformTools.getPrefs({
 			ereaderModel: "",

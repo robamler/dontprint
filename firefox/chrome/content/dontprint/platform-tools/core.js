@@ -8,6 +8,7 @@ if (typeof PlatformTools === "undefined") { //TODO
 (function() {
 	var publicInterface = {
 		platform: "firefox",
+		extensionScriptUrl,
 		registerMainComponent,
 		getMainComponent,
 		getPrefs,
@@ -32,10 +33,22 @@ if (typeof PlatformTools === "undefined") { //TODO
 	var prefFunctions = {
 		"string": "Char",
 		"number": "Int",
-		"boolean": "Bool"
+		"boolean": "Bool",
+		"object": "Char"
 	};
 
 	return;
+
+
+	function extensionScriptUrl(relativePath) {
+		if (relativePath.indexOf("://") !== -1) {
+			return relativePath;
+		} else {
+			return "chrome://" + extensionName.toLowerCase() + "/content/" + relativePath;
+		}
+	}
+
+
 	function registerMainComponent(name, builder) {
 		extensionName = name;
 		prefs = Components.classes["@mozilla.org/preferences-service;1"]
@@ -57,6 +70,9 @@ if (typeof PlatformTools === "undefined") { //TODO
 			let def = keys[key];
 			try {
 				ret[key] = prefs["get" + prefFunctions[typeof def] + "Pref"](key);
+				if (typeof def === "object") {
+					ret[key] = JSON.parse(ret[key]);
+				}
 			} catch (e) {
 				ret[key] = def;
 			}
@@ -68,7 +84,11 @@ if (typeof PlatformTools === "undefined") { //TODO
 	function setPrefs(keys) {
 		try {
 			for (let key in keys) {
-				prefs["set" + prefFunctions[typeof def] + "Pref"](key, keys[key]);
+				let val = keys[key];
+				if (typeof val === "object") {
+					val = JSON.stringify(val);
+				}
+				prefs["set" + prefFunctions[typeof val] + "Pref"](key, val);
 			}
 			return Promise.resolve();
 		} catch (e) {
