@@ -10,7 +10,6 @@ if (typeof PlatformTools === "undefined") { //TODO
 		platform: "firefox",
 		registerMainComponent,
 		getMainComponent,
-		extensionScriptUrl,
 		getPrefs,
 		setPrefs,
 		downloadTmpFile,
@@ -48,11 +47,6 @@ if (typeof PlatformTools === "undefined") { //TODO
 
 	function getMainComponent() {
 		return mainComponent;
-	}
-
-
-	function extensionScriptUrl(relativePath) {
-		return "chrome://" + extensionName.toLowerCase() + "/content/" + relativePath;
 	}
 
 

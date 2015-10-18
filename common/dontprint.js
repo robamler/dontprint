@@ -278,12 +278,21 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	
 	
 	function showProgress(openerTabId) {
-		PlatformTools.openSingletonTab("common/progress/progress.html", openerTabId, false);
+		PlatformTools.openTab({
+			url: "common/progress/progress.html",
+			openerTab: openerTabId,
+			singleton: true
+		});
 	}
 	
 	
 	function openSettings(openerTabId) {
-		PlatformTools.openSingletonTab("common/preferences/preferences.html", openerTabId, true);
+		PlatformTools.openTab({
+			url: "common/preferences/preferences.html",
+			openerTab: openerTabId,
+			singleton: true,
+			globalSingleton: true
+		});
 	}
 
 
@@ -1151,12 +1160,11 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			successPageInBackground: false
 		});
 
-		let newtab = yield PlatformTools.openTab(
-			"common/resultpage/" + prefs.transferMethod + "/" + job.state + ".html#" + job.id,
-			job.windowId,
-			job.tabId,
-			!(prefs.successPageInBackground && job.result.success)
-		);
+		let newtab = yield PlatformTools.openTab({
+			url: "common/resultpage/" + prefs.transferMethod + "/" + job.state + ".html#" + job.id,
+			openerTab: job.tabId,
+			inBackground: prefs.successPageInBackground && job.result.success
+		});
 
 		// yield new Promise(function(res, rej) {
 		// 	job.resultPageCallback = res;

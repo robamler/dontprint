@@ -358,11 +358,7 @@ window.DontprintBrowser = (function() {
 	
 	
 	function configureDontprint() {
-		window.openDialog(
-			'chrome://dontprint/content/options/options.xul',
-			'dontprint-prefs',
-			'chrome,titlebar,toolbar,dialog=yes'
-		).focus();  // focus the window if it was already open
+		Dontprint.openSettings(gBrowser.selectedTab);
 	}
 	
 	
