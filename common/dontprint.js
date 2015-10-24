@@ -135,24 +135,25 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	}
 
 
-	function dontprintArticleFromPage(pageurl, tabId, windowId, listener) {
+	function dontprintArticleFromPage(pageurl, tabId, windowId, onConnected, listener) {
 		Dontprint.runJob({
 			jobType: "page",
 			pageurl: pageurl.split("#")[0],
 			tabId,
 			windowId,
 			title: "Retrieving article meta data...",
-			progressListener: listener
+			progressListener: listener,
+			popupConnector: onConnected
 		});
 	}
 
 
-	function connectPopupToJob(jobId, listener) {
+	function connectPopupToJob(jobId, onConnected, listener) {
 		let job = runningJobs[jobId];
 		if (job) {
 			job.progressListener = listener;
 		}
-		listener(job);
+		onConnected(job);
 	}
 
 
@@ -477,6 +478,11 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					transferMethod: ""
 				})).transferMethod;
 
+				if (job.popupConnector) {
+					job.popupConnector(job);
+					delete job.popupConnector;
+				}
+
 				if (job.jobType !== "test") {
 					var k2pdfopt = Dontprint.loadK2pdfopt(job);
 				}
@@ -779,7 +785,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 		if (!job.crop.enabled) {
 			// pass "neverReportJournalSettings" to crop dialog
-			job.neverReportJournalSettings = false; // TODO: get from settings
+			job.neverReportJournalSettings = (yield PlatformTools.getPrefs({
+				neverReportJournalSettings: false
+			})).neverReportJournalSettings;
 
 			let openertab = yield new Promise(function(res, rej) {
 				chrome.tabs.get(job.tabId, res);

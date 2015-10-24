@@ -8,7 +8,7 @@ $(function() {
 	var hashdata = location.hash.substr(1).split("|");
 	var tabId = parseInt(hashdata[0]);
 	var jobId = parseInt(hashdata[1]);
-	var uistate = initUI();
+	var uistate = null;
 	var exportedFunctions = {//TODO
 		updateJob
 	};
@@ -17,6 +17,9 @@ $(function() {
 
 	PlatformTools.getMainComponentInternally("Dontprint", "@robamler.github.com/dontprint;1").then(function(dp) {
 		Dontprint = dp;
+
+		uistate = initUI();
+
 		if (isNaN(jobId)) {
 			runNewJob();
 		} else {
@@ -72,14 +75,14 @@ $(function() {
 		chrome.tabs.get(
 			tabId,
 			function (tab) {
-				Dontprint.dontprintArticleFromPage(tab.url, tabId, tab.windowId, updateJob);
+				Dontprint.dontprintArticleFromPage(tab.url, tabId, tab.windowId, onPopupConnected, updateJob);
 			}
 		);
 	}
 
 
 	function connectToJob() {
-		Dontprint.connectPopupToJob(jobId);
+		Dontprint.connectPopupToJob(jobId, onPopupConnected, updateJob);
 	}
 
 
@@ -112,8 +115,11 @@ $(function() {
 
 
 	function updateJob(job) {
-		updateJobUi(job, uistate, function(){}, window.close, onDone);
+		updateJobUi(job, uistate, noop, noop, onDone);
 	}
+
+
+	function noop() {}
 
 
 	function onDone() {

@@ -39,7 +39,7 @@ function updateJobUi(job, uistate, hideSoon, removeItem, onDone) {
 		case "error":
 			uistate.jobNode.addClass("complete");
 			uistate.jobNode.append($('<div class="error">An error occured. <input type="button" value="details"></div>'));
-			uistate.jobNode.find("input").click(callRemote.bind("raiseErrorTab", this, job.id)); // TODO
+			uistate.jobNode.find("input").click(Dontprint.raiseErrorTab.bind(undefined, job.id)); // TODO
 			onDone(job.id);
 			break;
 

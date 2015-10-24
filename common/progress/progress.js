@@ -10,10 +10,10 @@ $(function() {
 	PlatformTools.getMainComponentInternally("Dontprint", "@robamler.github.com/dontprint;1").then(function(dp) {
 		Dontprint = dp;
 
-		let jobs = Dontprint.getAllRunningJobs();
+		var jobs = Dontprint.getAllRunningJobs();
 		queue = $("#queue");
 		queue.empty();
-		for (let id in jobs) {
+		for (var id in jobs) {
 			addJob(jobs[id]);
 		}
 
@@ -25,11 +25,11 @@ $(function() {
 
 
 	function addJob(job) {
-		let jobNode = $('<div class="job"><a href="#" class="del" title="click to abort job"></a><div class="jtitle">Retrieving article meta data...</div><table class="tasks"><tr><td><div class="task"><div class="bar"></div><div class="tlabel">download</div></div></td><td><div class="task">crop</div></td><td><div class="task"><div class="bar"></div><div class="tlabel">convert</div></div></td>' + (job.transferMethod==="email" ? '<td><div class="task"><div class="bar"></div><div class="tlabel">send</div></div></td>' : '') + '</tr></table></div>');
+		var jobNode = $('<div class="job"><a href="#" class="del" title="click to abort job"></a><div class="jtitle">Retrieving article meta data...</div><table class="tasks"><tr><td><div class="task"><div class="bar"></div><div class="tlabel">download</div></div></td><td><div class="task">crop</div></td><td><div class="task"><div class="bar"></div><div class="tlabel">convert</div></div></td>' + (job.transferMethod==="email" ? '<td><div class="task"><div class="bar"></div><div class="tlabel">send</div></div></td>' : '') + '</tr></table></div>');
 
-		let tasks = jobNode.find('.task');
-		let bars = jobNode.find('.bar');
-		let item = {
+		var tasks = jobNode.find('.task');
+		var bars = jobNode.find('.bar');
+		var item = {
 			jobNode:		jobNode,
 			titleNode:		jobNode.find(".jtitle"),
 			delBtn:			jobNode.find('.del'),
@@ -44,7 +44,7 @@ $(function() {
 		};
 
 		item.delBtn.click(function() {
-			callRemote("abortJob", job.id);
+			Dontprint.abortJob(job.id);
 			return false;
 		});
 
@@ -59,7 +59,7 @@ $(function() {
 		if (wasRemoved[job.id]) {
 			return;
 		}
-		let item = items[job.id];
+		var item = items[job.id];
 		if (item === undefined) {
 			addJob(job);
 			return;
@@ -70,7 +70,7 @@ $(function() {
 
 
 	function removeItem(jobId) {
-		let item = items[jobId];
+		var item = items[jobId];
 		if (item !== undefined) {
 			delete items[jobId];
 			wasRemoved[jobId] = true;
