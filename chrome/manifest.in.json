@@ -18,7 +18,8 @@
 			"platform-tools/concurrency.js",
 			"platform-tools/sql.js",
 			"platform-tools/tabs.js",
-			"common/dontprint.js"
+			"common/dontprint.js",
+			"dontprint-chrome-specifics.js"
 		],
 		"persistent": true
 	},

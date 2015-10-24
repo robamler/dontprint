@@ -127,7 +127,10 @@ if (typeof PlatformTools === "undefined") { //TODO
 			throw -1;
 		}
 
-		return file;
+		return {
+			fullPath: file.path,
+			mozFile: file
+		};
 	}
 
 

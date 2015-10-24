@@ -442,7 +442,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			job.cleaned = true;
 			delete runningJobs[job.id];
 			if (job.pageurl) {
-				Zotero.Connector_Browser.dontprintJobDone(job.id, job.pageurl, job.tabId);
+				Zotero.Connector_Browser.dontprintJobDone(job); // TODO: this is chrome specific
 			}
 
 			if (job.naclModule) {
@@ -476,33 +476,24 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				job.transferMethod = (yield PlatformTools.getPrefs("transferMethod")).transferMethod;
 
 				if (job.jobType !== "test") {
-					var naclLoaded = false;
-					var naclPromise = loadK2pdfoptNaclModule(job);
-					naclPromise.then(function() {
-						naclLoaded = true;
-					});
+					var k2pdfopt = Dontprint.loadK2pdfopt(job);
 				}
 
 				if (job.jobType === "page") {
 					yield runZoteroTranslator(job);
 				}
 
-				let origPdfFile = null;
-
 				if (job.pdfurl) {
-					origPdfFile = yield downloadPdfUrl(job);
-					// origPdfFile = yield PlatformTools.saveTmpFileOrBlob(blob, "original" + job.id + ".pdf");
-					job.tmpFiles.push(origPdfFile);
+					job.origPdfFile = yield downloadPdfUrl(job);
+					job.tmpFiles.push(job.origPdfFile);
 				}
 
 				if (job.jobType === "test") {
-					job.finalFile = origPdfFile;
+					job.finalFile = job.origPdfFile;
 				} else {
 					yield cropMargins(job);
-					yield convertDocument(job, naclLoaded, naclPromise);
-					if (origPdfFile) {
-						origPdfFile.remove(function(){});
-					}
+					yield convertDocument(job, k2pdfopt);
+					job.tmpFiles.push(job.finalFile);
 				}
 
 				let authorAndTitle = job.title.replace(/[^a-zA-Z0-9 \-,]+/g, "_");
@@ -541,48 +532,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				}
 			}
 		});
-	}
-
-
-	function loadK2pdfoptNaclModule(job) {
-		return new Promise(function(resolve, reject) {
-			function err() {
-				reject();
-				job.abortCurrentTask();
-			}
-
-			let naclListenerDiv = document.createElement("div");
-			naclListenerDiv.addEventListener("error", err, true);
-			naclListenerDiv.addEventListener("load", resolve, true);
-			naclListenerDiv.addEventListener("crash", err, true);
-			naclListenerDiv.addEventListener("message", onNaclMessage.bind(this, job.id), true);
-
-			job.naclModule = document.createElement("embed");
-			job.naclModule.setAttribute("width", 0);
-			job.naclModule.setAttribute("height", 0);
-			job.naclModule.setAttribute("path", ".");
-			job.naclModule.setAttribute("src", "k2pdfopt/k2pdfopt.nmf");
-			job.naclModule.setAttribute("type", "application/x-pnacl");
-			naclListenerDiv.appendChild(job.naclModule);
-
-			document.getElementsByTagName("body")[0].appendChild(naclListenerDiv);
-		});
-	}
-
-
-	function onNaclMessage(jobId, evt) {
-		if (evt.data && evt.data.category) {
-			let job = runningJobs[jobId];
-
-			if (evt.data.category === "status") {
-				if (evt.data.msg === "done") {
-					job.naclDoneCallback();
-				}
-			} else if (evt.data.category === "progress") {
-				job.convertProgress = 0.1 + 0.9 * evt.data.current / (evt.data.total + 1);
-				updateJobState(job);
-			}
-		}
 	}
 
 
@@ -631,9 +580,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				job.abortCurrentTask = job.translatorFail.bind(undefined, "canceled");
 
 				let item = yield metaDataPromise;
-				zoteroTranslatorDone(job, item);
+				zoteroTranslatorDone(job.id, item);
 			} else {
-				Zotero.Connector_Browser.dontprintRunZoteroTranslator(job.tabId, job.id, job.pageurl);
+				Zotero.Connector_Browser.dontprintRunZoteroTranslator(job);
 			}
 
 			yield translatorPromise;
@@ -646,8 +595,8 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	}
 	
 	
-	function zoteroTranslatorDone(job, item) {
-		Dontprint.platformTools.debug(item);
+	function zoteroTranslatorDone(jobId, item) {
+		let job = runningJobs[jobId];
 		job.title = checkUndefined(item.title, "Untitled document");
 		job.articleCreators = item.creators;
 		job.authorsStr = getAuthorsString(item.creators);
@@ -769,7 +718,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		}, true);
 
 		job.crop = {
-			rememberPreset:true, id:0, enabled:false,
+			id:0, enabled:false,
 			minDate:0, maxDate:0,
 			m1:5, m2:5, m3:5, m4:5,
 			coverpage:false, k2pdfoptParams: "", scale: "1",
@@ -781,6 +730,8 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				job.crop[key] = bestFilter.getResultByName(key);
 			}
 			job.crop.rememberPreset = false;  // if crop window needs to be shown, then by default don't remember settings
+		} else {
+			job.crop.rememberPreset = true;  // By default, remember settings (don't set this in the default object above, because if bestFilter exists, we don't want to apply "getResultByName" on this key)
 		}
 
 		if (!job.crop.longname) {
@@ -999,25 +950,8 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	}
 	
 	
-	function* convertDocument(job, naclLoaded, naclPromise) {
+	function* convertDocument(job, k2pdfopt) {
 		updateJobState(job, "converting");
-
-		if (!naclLoaded) {
-			// If NaCl module is still loading, use the first 10% of the
-			// convert progress bar to show remaining NaCl load progress.
-			let firstLoadStatus = null;
-			job.naclModule.parentNode.addEventListener("progress", function(evt) {
-				if (evt.lengthComputable && evt.total>0) {
-					if (firstLoadStatus === null) {
-						firstLoadStatus = evt.loaded;
-					} else {
-						job.convertProgress = 0.1 * (evt.loaded-firstLoadStatus) / (evt.total-firstLoadStatus);
-						updateJobState(job);
-					}
-				}
-			}, true);
-			yield naclPromise;
-		}
 
 		let dims = yield getScreenDimensions();
 		var scale = parseFloat(job.crop.scale);
@@ -1036,9 +970,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			"-mt", "" + parseFloat(job.crop.m2)/25.4,
 			"-mr", "" + parseFloat(job.crop.m3)/25.4,
 			"-mb", "" + parseFloat(job.crop.m4)/25.4,
-			"-p", job.crop.pagerange ? job.crop.pagerange : (job.crop.coverpage ? "2-" : "1-"),
-			"-o", "/temporary/converted" + job.id + ".pdf",
-			"/temporary/original" + job.id + ".pdf"
+			"-p", job.crop.pagerange ? job.crop.pagerange : (job.crop.coverpage ? "2-" : "1-")
 		];
 		let globalArgs = (yield PlatformTools.getPrefs({
 			k2pdfoptAdditionalParams: ""
@@ -1052,35 +984,10 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		
 		job.tmpFiles.push("converted" + job.id + ".pdf");
 
-		try {
-			yield new Promise(function(resolve, reject) {
-				job.naclDoneCallback = resolve;
-				job.abortCurrentTask = reject;  //TODO: will removing the <module> element stop the k2pdfopt process?
-				job.naclModule.postMessage({
-					cmd: "k2pdfopt",
-					args: args,
-					options: {
-						title: job.title,
-						author: checkUndefined(job.authorsStr)
-					}
-				});
-			});
-		} catch (e) {
-			if (job.jobType === 'page') {
-				throw "Conversion failed. This may mean that Dontprint was unable to download the article. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again.";
-			} else {
-				throw "Conversion failed";
-			}
-		} finally {
-			delete job.abortCurrentTask;
-			delete job.naclDoneCallback;
-
-			job.naclModule.parentNode.parentNode.removeChild(job.naclModule.parentNode);
-			delete job.naclModule;
-			// Event listeners are freed automatically
-		}
-
-		job.finalFile = yield PlatformTools.getTmpFile("converted" + job.id + ".pdf");
+		yield k2pdfopt(args, function(progress) {
+			job.convertProgress = progress;
+			updateJobState(job);
+		});
 	}
 
 

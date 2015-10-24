@@ -1,6 +1,7 @@
 "use strict";
 
 Components.utils.import("resource://gre/modules/Timer.jsm");
+Components.utils.import("resource://EXTENSION/subprocess.jsm");
 
 (function() {
 	let Dontprint = PlatformTools.getMainComponent();
@@ -157,7 +158,7 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 					"http://dontprint.net/k2pdfopt/" + prefs.k2pdfoptPlatform + "/" + leafFilename,
 					leafFilename,
 					progressListener
-				);
+				).mozFile;
 			} catch (e) {
 				throw "Unable to download k2pdfopt. Are you connected to the internet?";				return;
 			}
@@ -185,5 +186,82 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 				});
 			}
 		});
+	};
+
+
+	Dontprint.loadK2pdfopt = function(job) {
+		return function*(args, progressListener) {
+			// Create filename from author and title. We already use the final filename
+			// for the temporarily generated file because k2pdfopt generates the pdf
+			// title meta-data based on the output filename if the input file has none
+			// and these meta data are displayed by Kobo e-readers.
+			
+			// Don't allow the '.' char in the file name because files starting with
+			// a '.' are usually hidden on unix systems, which would be confusing.
+			let authorAndTitle = job.title.replace(/[^a-zA-Z0-9 \-,]+/g, "_");
+			if (job.articleCreators && job.articleCreators.length !== 0 && job.articleCreators[0].lastName) {
+				authorAndTitle = job.articleCreators[0].lastName.replace(/[^a-zA-Z0-9 \-,]+/g, "_") + ", " + authorAndTitle;
+			}
+			
+			// On OS X, k2pdfopt crops long file paths for some reason. To
+			// work around this issue, we start k2pdfopt with workdir set
+			// to the directory of the input file, and also use a rather
+			// short filename for the temporary file.
+			job.finalFile = FileUtils.getFile("TmpD", [authorAndTitle.substr(0, 70) + ".pdf"]);
+			job.finalFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+
+			let prefs = yield Dontprint.platformTools.getPrefs({
+				k2pdfoptPath: ""
+			});
+			if (prefs.k2pdfoptPath === "") {
+				throw "Cannot find k2pdfopt executable."
+			}
+
+			let currentLine = "";
+
+			try {
+				yield new Promise(function(resolve, reject) {
+					let p = subprocess.call({
+						command: prefs.k2pdfoptPath,
+						workdir: job.origPdfFile.mozFile.parent.path,
+						arguments: args.concat([
+							job.origPdfFile.mozFile.leafName,
+							"-o", job.finalFile.path
+						]),
+						stdout: function(data) {
+							let lines = data.split(/[\n\r]+/);
+							lines[0] = currentLine + lines[0];
+							currentLine = lines.pop();
+							lines.forEach(function(line) {
+								let m = line.match(/^SOURCE PAGE \d+ \((\d+) of (\d+)\)/);
+								if (m !== null && m[2]!=0) { // no typo: we want to use != instead of !== in second condition
+									progressListener(m[1] / (m[2] + 1));
+								}
+							});
+						},
+						stderr: function(data) {
+							if (k2pdfoptError.length < 500) {
+								k2pdfoptError += data;
+							}
+						},
+						done: function(result) {
+							if (result.exitCode) {
+								if (job.jobType === "page") {
+									reject("Conversion failed. This may mean that Dontprint was unable to download the article. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again. Original error message: " + k2pdfoptError);
+								} else {
+									reject("Conversion failed with error message: " + k2pdfoptError);
+								}
+							}
+							progressListener(1);
+							resolve();
+						},
+						mergeStderr: false
+					});
+					job.abortCurrentTask = p.kill.bind(p);
+				});
+			} finally {
+				delete job.abortCurrentTask;
+			}
+		};
 	};
 }());
