@@ -195,14 +195,14 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 			// for the temporarily generated file because k2pdfopt generates the pdf
 			// title meta-data based on the output filename if the input file has none
 			// and these meta data are displayed by Kobo e-readers.
-			
+
 			// Don't allow the '.' char in the file name because files starting with
 			// a '.' are usually hidden on unix systems, which would be confusing.
 			let authorAndTitle = job.title.replace(/[^a-zA-Z0-9 \-,]+/g, "_");
 			if (job.articleCreators && job.articleCreators.length !== 0 && job.articleCreators[0].lastName) {
 				authorAndTitle = job.articleCreators[0].lastName.replace(/[^a-zA-Z0-9 \-,]+/g, "_") + ", " + authorAndTitle;
 			}
-			
+
 			// On OS X, k2pdfopt crops long file paths for some reason. To
 			// work around this issue, we start k2pdfopt with workdir set
 			// to the directory of the input file, and also use a rather
@@ -317,5 +317,37 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 			fileName: destFile.leafName,
 			filePath: destFile.path
 		};
+	};
+
+
+	Dontprint.callPostTransferCommand = function(job) {
+		Dontprint.platformTools.getPrefs({
+			postTransferCommandEnabled: false,
+			postTransferCommand: ""
+		}).then(function(prefs) {
+			if (prefs.postTransferCommandEnabled && prefs.postTransferCommand !== "") {
+				let args = prefs.postTransferCommand.trim().split(/\s+/);
+				let cmd = args.shift();
+
+				for (let i=0; i<args.length; i++) {
+					args[i] = args[i].replace(/%u/g, job.result.filePath);
+				}
+
+				job.result.command = cmd + " " + args.join(" ");
+
+				let file = Components.classes["@mozilla.org/file/local;1"]
+							.createInstance(Components.interfaces.nsIFile);
+				try {
+					file.initWithPath(cmd);
+				} catch (e) {
+					throw 'The Post-process command "' + cmd + '" is not an absolute file path.';
+				}
+
+				let process = Components.classes["@mozilla.org/process/util;1"]
+										.createInstance(Components.interfaces.nsIProcess);
+				process.init(file);
+				process.runAsync(args, args.length);
+			}
+		});
 	};
 }());

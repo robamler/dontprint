@@ -509,6 +509,17 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				} else {
 					updateJobState(job, "moving");
 					yield Dontprint.moveFileToDestDir(job, preferredFinalFilename);
+
+					if (typeof Dontprint.callPostTransferCommand === "function") {
+						// Just initiate the post transfer command, don't wait for it to
+						// finish (it might be a long-running task and we don't get any
+						// progress information from it).
+						try {
+							Dontprint.callPostTransferCommand(job);
+						} catch (e) {
+							// ignore
+						}
+					}
 				}
 
 				PlatformTools.debug("Dontprint job result:");
