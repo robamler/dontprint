@@ -61,7 +61,7 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 	}
 
 
-	Dontprint.detectK2pdfoptVersion = function() {
+	Dontprint.detectK2pdfoptVersion = function(path) {
 		if (k2pdfoptTestTimeout !== "null") {
 			clearTimeout(k2pdfoptTestTimeout);
 		}
@@ -69,9 +69,13 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 		let lineNumber = 0;
 		let found = false;
 
-		return Dontprint.platformTools.getPrefs({
-			"k2pdfoptPath": ""
-		}).then(function(prefs) {
+		let p = null;
+		if (path) {
+			p = Promise.resolve({k2pdfoptPath: path});
+		} else {
+			p = Dontprint.platformTools.getPrefs({k2pdfoptPath: ""});
+		}
+		return p.then(function(prefs) {
 			if (prefs.k2pdfoptPath === "") {
 				return Promise.reject("k2pdfoptPath is not set");
 			}
@@ -141,5 +145,45 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 		if (a1.length > a2.length)
 			return 1;
 		return 0;
+	};
+
+
+	Dontprint.downloadK2pdfopt = function(prefs, progressListener) {
+		let leafFilename = prefs.k2pdfoptPlatform.substr(0,4)==="win_" ? "k2pdfopt.exe" : "k2pdfopt";
+
+		return Dontprint.platformTools.spawn(function*() {
+			try {
+				var file = yield Dontprint.platformTools.downloadTmpFile(
+					"http://dontprint.net/k2pdfopt/" + prefs.k2pdfoptPlatform + "/" + leafFilename,
+					leafFilename,
+					progressListener
+				);
+			} catch (e) {
+				throw "Unable to download k2pdfopt. Are you connected to the internet?";				return;
+			}
+
+			let targetPath = prefs.k2pdfoptPath;
+			if (targetPath === "") {
+				let newfile = FileUtils.getFile("ProfD", ["dontprint", "k2pdfopt"]);
+				newfile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 599);
+				targetPath = newfile.path;
+			}
+			
+			// This can only be reached if platform is not "unknown.*". Therefore,
+			// if an older version of k2pdfopt already exists, it must have been
+			// originally downloaded by Dontprint, so we may overwrite it.
+			file.permissions = 509 // For unix: executable file (octal representation: 775)
+			var m = targetPath.match(/^(.*)[\\/](.*)$/);
+			var destdir = Components.classes["@mozilla.org/file/local;1"].
+			           createInstance(Components.interfaces.nsILocalFile);
+			destdir.initWithPath(m[1]);
+			file.moveTo(destdir, m[2]);
+
+			if (prefs.k2pdfoptPath === "") {
+				return Dontprint.platformTools.setPrefs({
+					k2pdfoptPath: file.path
+				});
+			}
+		});
 	};
 }());

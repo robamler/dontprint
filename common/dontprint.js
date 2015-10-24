@@ -195,12 +195,23 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			recipientEmailPrefix: "",
 			recipientEmailSuffix: "",
 			recipientEmailOther: "",
-			verifiedEmails: []
+			verifiedEmails: [],
+			k2pdfoptPlatform: "",
+			k2pdfoptPath: ""
 		}).then(function(prefs) {
-			if (!prefs.ereaderModel || !isTransferMethodValid(prefs)) {
-				chrome.tabs.create({
-					url: "common/welcome/dontprint-welcome.html"
+			if (!prefs.ereaderModel || !isTransferMethodValid(prefs) || (PlatformTools.platform === "firefox" && prefs.k2pdfoptPlatform === "")) {
+				Dontprint.welcomeScreenId = Date.now();
+				PlatformTools.openTab({
+					url: "common/welcome/dontprint-welcome.html#" + Dontprint.welcomeScreenId,
+					singleton: true,
+					globalSingleton: true
 				});
+			}
+			if (prefs.k2pdfoptPlatform !== "" && prefs.k2pdfoptPath === "") {
+				// Platform has been detected but download of k2pdfopt was interrupted.
+				// Resume download silently (regardless of whether or not welcome page
+				// is displayed).
+				Dontprint.downloadK2pdfopt(prefs);
 			}
 		});
 	}

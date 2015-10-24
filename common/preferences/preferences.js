@@ -608,40 +608,19 @@ $(function() {
 		var statusDisplay = $("#k2pdfoptInstalledVersion");
 		statusDisplay.text("K2pdfopt is being updated to version " + k2pdfoptNewVersion + "...");
 
-		var leafFilename = dp.prefs.k2pdfoptPlatform.substr(0,4)==="win_" ? "k2pdfopt.exe" : "k2pdfopt";
-
-		Dontprint.platformTools.spawn(function*() {
-			try {
-				var file = yield Dontprint.platformTools.downloadTmpFile(
-					"http://dontprint.net/k2pdfopt/" + dp.prefs.k2pdfoptPlatform + "/" + leafFilename,
-					leafFilename,
-					function(progress) {
-						statusDisplay.text("K2pdfopt is being updated to version " + k2pdfoptNewVersion + " (" + Math.round(progress*100) + "% done)...");
-					}
-				);
-			} catch (e) {
-				statusDisplay.text("An error occured while trying to update k2pdfopt. Are you connected to the internet?");
-				return;
+		Dontprint.downloadK2pdfopt(
+			dp.prefs,
+			function(progress) {
+				statusDisplay.text("K2pdfopt is being updated to version " + k2pdfoptNewVersion + " (" + Math.round(progress*100) + "% done)...");
 			}
-
-			// This can only be reached if platform is not "unknown.*". Therefore,
-			// the old version of k2pdfopt must have been originally downloaded
-			// by Dontprint, so we may overwrite it.
-			try {
-				file.permissions = 509 // For unix: executable file (octal representation: 775)
-				Dontprint.platformTools.debug(file);
-				Dontprint.platformTools.debug(dp.prefs.k2pdfoptPath);
-				var m = dp.prefs.k2pdfoptPath.match(/^(.*)[\\/](.*)$/);
-				var destdir = Components.classes["@mozilla.org/file/local;1"].
-				           createInstance(Components.interfaces.nsILocalFile);
-				destdir.initWithPath(m[1]);
-				Dontprint.platformTools.debug(destdir);
-				file.moveTo(destdir, m[2]);
+		).then(
+			function() {
 				statusDisplay.text("Update to version " + k2pdfoptNewVersion + " completed.");
-			} catch (e) {
+			},
+			function(e) {
  				statusDisplay.text("Error: The downloaded file seems to be currupted." + e.toString());
-			}
-		});
+ 			}
+ 		);
 	}
 
 

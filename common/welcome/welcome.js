@@ -6,6 +6,16 @@ $(function() {
 
 	PlatformTools.getMainComponentInternally("Dontprint", "@robamler.github.com/dontprint;1").then(function(val) {
 		Dontprint = val;
+		if (location.hash !== "#" + Dontprint.welcomeScreenId) {
+			window.close();
+			throw "Obsolete tab";
+		}
+		if (Dontprint.platformTools.platform === "firefox") {
+			$("#stepcount").text("three");
+			$("#transferMethodDirectoryChrome").hide();
+			$("#transferMethodDirectoryLabel").text("Save documents to a directory (for e-readers that don't support e-mail transfer)");
+		}
+
 		return Dontprint.platformTools.getPrefs({
 			ereaderModel: "",
 			screenWidth: -1,
@@ -18,7 +28,12 @@ $(function() {
 			verifiedEmails: [],
 			neverReportJournalSettings: false,
 			otherEreaderModel: "",
-			k2pdfoptParams: ""
+			k2pdfoptParams: "",
+			k2pdfoptPlatform: "",
+			k2pdfoptPath: "",
+			destDir: "",
+			postTransferCommandEnabled: false,
+			postTransferCommand: ""
 		});
 	}).then(function(prefs) {
 		dp.prefs = prefs;
@@ -28,13 +43,167 @@ $(function() {
 		return Dontprint.getEreaderModelDefaults();
 	}).then(function(modelDefaults) {
 		dp.EREADER_MODEL_DEFAULTS = modelDefaults;
-		stepModelPicker();
+		stepDownload();
+		if (Dontprint.platformTools.platform === "firefox") {
+			$(".firefox-only").show();
+		}
 	});
+
+
+	function stepDownload() {
+		if (Dontprint.platformTools.platform !== "firefox" || dp.prefs.k2pdfoptPath !== "") {
+			$("#stepDownloadHeader").text("Download external tools (done)").fadeTo(400, .4);
+			stepModelPicker();
+			return;
+		}
+
+		dp.progressArc = document.getElementById("progress-arc");
+		dp.validK2pdfopt = false;
+
+		var platforms = [
+			["win_32bit",	"32bit Windows"],
+			["win_64bit",	"64bit Windows"],
+			["mac_32bit",	"32bit Mac OS X"],
+			["mac_64bit",	"64bit Mac OS X"],
+			["linux_32bit",	"32bit Linux"],
+			["linux_64bit",	"64bit Linux"]
+		];
+
+		var architecture = window.navigator.oscpu.match(/\b(win64|wow64|x86_64)\b/i) ? "64bit" : "32bit";
+		var osvariant = "win";
+		var m = window.navigator.oscpu.match(/(PPC|Intel) Mac OS X (\d+)\.(\d+)/i);
+		if (m) {
+			osvariant = "mac";
+			// Assume 64bit processor if Mac OS X version is >= 10.6
+			if (m[1] === "Intel" && 10000*m[2]+m[3] >= 100006) {
+				architecture = "64bit";
+			}
+		} else if (window.navigator.oscpu.match(/linux/i)) {
+			osvariant = "linux";
+		}
+
+		var platformstring = osvariant + "_" + architecture;
+		var selectorhtml = "";
+		for (var i=0; i<platforms.length; i++) {
+			selectorhtml += "<option value='" + platforms[i][0] + "'>" + platforms[i][1] +
+			(platforms[i][0]===platformstring ? " (detected)" : "") + "</option>";
+			if (platforms[i][0] === platformstring) {
+				$("#platform").text(platforms[i][1]);
+			}
+		}
+
+		$("#download-k2pdfopt-true").click(function() {
+			$("#k2pdfopt-download-hint").slideDown();
+			$("#k2pdfopt-nodownload-hint").slideUp();
+		});
+
+		$("#download-k2pdfopt-false").click(function() {
+			$("#k2pdfopt-download-hint").slideUp();
+			$("#k2pdfopt-nodownload-hint").slideDown();
+		});
+
+		$("#change-platform-link").click(function() {
+			$("#autodetect-platform").hide();
+			$("#select-platform").show();
+		});
+
+		$("#k2pdfopt-file-selector").change(k2pdfoptFileSelected);
+		$("#acceptstep1").click(acceptDownload);
+
+		$("#platform-selector").html(selectorhtml);
+		$("#platform-selector").val(platformstring);
+		$("#download-k2pdfopt-true").click();
+		$("#stepDownloadBody").slideDown();
+	}
+
+
+	function k2pdfoptFileSelected() {
+		dp.validK2pdfopt = false;
+		
+		if (this.files.length === 0) {
+			$("#dontprint-version").text("Please select an executable file.");
+			return;
+		}
+		dp.prefs.k2pdfoptPath = this.files[0].mozFullPath;
+		
+		$("#dontprint-version").text("Detecting k2pdfopt version...");
+		
+		Dontprint.detectK2pdfoptVersion(dp.prefs.k2pdfoptPath).then(
+			function(versionString) {
+				dp.validK2pdfopt = true;
+				$("#dontprint-version").text('Detected k2pdfopt version ' + versionString + '. Click "accept" to continue.');
+			},
+			function(e) {
+				$("#dontprint-version").text("An error occured. Maybe you selected the wrong file or you don't have the necessary execution rights for the file. Original error message: " + e.toString());
+			}
+		);
+	}
+
+
+	function acceptDownload() {
+		var download = $("#download-k2pdfopt-true").prop("checked");
+		if (!download && !dp.validK2pdfopt) {
+			alert("Dontprint was unable to find a compatible version of k2pdfopt at the location you specified. Please make sure that you have a working version of k2pdfopt and that the specified location is correct. Alternatively, select the option to let Dontprint download k2pdfopt automatically.");
+			return false;
+		}
+		
+		if (download) {
+			dp.prefs.k2pdfoptPlatform = $("#platform-selector").val();
+			dp.prefs.k2pdfoptPath = "";
+			Dontprint.platformTools.setPrefs({
+				k2pdfoptPlatform: dp.prefs.k2pdfoptPlatform,
+				k2pdfoptPath: ""
+			});
+			$("#stepDownloadHeader").text("Downloading k2pdfopt...");
+			$("#download-progress").fadeIn();
+			
+			Dontprint.downloadK2pdfopt(
+				dp.prefs,
+				updateProgressBar
+			).then(
+				function() {
+					$("#download-progress").fadeOut();
+					$("#stepDownloadHeader").text("Download finished.");
+				},
+				function() {
+					$("#download-progress").fadeOut();
+					$("#stepDownloadHeader").text("Download failed.");
+				}
+			);
+		} else {
+			$("#stepDownloadHeader").text($("#stepDownloadHeader").text() + " (done)");
+			Dontprint.platformTools.setPrefs({
+				k2pdfoptPath: dp.prefs.k2pdfoptPath,
+				k2pdfoptPlatform: "unknown-manual"
+			});
+		}
+		
+		$("#stepDownloadBody").slideUp();
+		$("#stepDownloadHeader").fadeTo(400, 0.4);
+		
+		stepModelPicker();
+	}
+
+
+	function updateProgressBar(progress) {
+		var angle = 2*Math.PI*progress;
+		var newx = 15 + 14*Math.sin(angle);
+		var newy = 15 - 14*Math.cos(angle);
+		
+		// If progress>50%, set an additional point at 50% to avoid
+		// ambiguities at progress==0% and at progress==100%.
+		dp.progressArc.setAttribute("d", 
+			(progress > 0.5 ? "M 15,15 15,1 A 14,14 0 1 1 15,29 " : "M 15,15 15,1 ") +
+			"A 14,14 0 0 1 " + newx + "," + newy + " z"
+		);
+	}
 
 
 	function stepModelPicker() {
 		if (dp.prefs.ereaderModel) {
 			// This step is already completed due to sync
+			$("#stepModelPickerBody").hide();
+			$("#stepModelPicker").slideDown();
 			stepTransferMethod();
 			return;
 		}
@@ -45,7 +214,7 @@ $(function() {
 			selection: dp.prefs.ereaderModel,
 			modelSelectListener: modelSelectListener
 		});
-		$("#stepModelPickerBody").slideDown();
+		$("#stepModelPicker").slideDown();
 	}
 
 
@@ -90,10 +259,10 @@ $(function() {
 			return false;
 		}
 
-		let screensizeHelper = $("#screensizeHelper");
+		var screensizeHelper = $("#screensizeHelper");
 		screensizeHelper.text("Downloading measurement document...");
 
-		let filename = "Dontprint measurement sheet";
+		var filename = "Dontprint measurement sheet";
 		if (ModelPicker.selection !== "other") {
 			filename += " for " + ModelPicker.models[ModelPicker.selection].label;
 		}
@@ -110,12 +279,12 @@ $(function() {
 				if (downloadId === undefined) {
 					screensizeHelper.text("Error while downloading an auxiliary file. Are you connected to the internet?");
 				} else {
-					let interval = setInterval(
+					var interval = setInterval(
 						function() {
 							chrome.downloads.search(
 								{id: downloadId},
 								function(downloadItems) {
-									let item = downloadItems[0];
+									var item = downloadItems[0];
 									if (item.state === "complete") {
 										clearInterval(interval);
 										screensizeHelper.text("Dontprint just downloaded the following file: \"" + item.filename.match(/[^\\/]+$/) + "\". Transfer this document to your e-reader in order to measure its screen size (you can also do this at a later time).");
@@ -144,14 +313,14 @@ $(function() {
 		}
 
 		var screenSettings = {
-			screenWidth: $('#widthinput').val(),
-			screenHeight: $('#heightinput').val(),
-			screenPpi: $('#ppiinput').val(),
+			screenWidth: parseInt($('#widthinput').val()),
+			screenHeight: parseInt($('#heightinput').val()),
+			screenPpi: parseInt($('#ppiinput').val()),
 		};
 		var modelDefaults = dp.EREADER_MODEL_DEFAULTS[ModelPicker.selection];
 		var alldefaults = true;
 		for (var key in screenSettings) {
-			if (screenSettings[key] != modelDefaults[key]) {
+			if (screenSettings[key] !== modelDefaults[key]) {
 				alldefaults = false;
 				break;
 			}
@@ -170,6 +339,11 @@ $(function() {
 
 
 	function stepTransferMethod() {
+		if (Dontprint.isTransferMethodValid(dp.prefs)) {
+			showCongrats();
+			return;
+		}
+
 		$('#stepModelPickerHeader').text($('#stepModelPickerHeader').text() + ' (done)').fadeTo(400, .4);
 		$('#stepModelPickerBody').slideUp();
 
@@ -202,6 +376,42 @@ $(function() {
 			$(this).parent().fadeOut();
 			return false; // makes sure location.hash won't be changed
 		});
+
+		if (Dontprint.platformTools.platform === "firefox") {
+			if (dp.prefs.destDir === "") {
+				// Use the user's desktop directory as default destination directory
+				dp.prefs.destDir = Components.classes["@mozilla.org/file/directory_service;1"].
+					getService(Components.interfaces.nsIProperties).
+					get("Desk", Components.interfaces.nsIFile).
+					path;
+			}
+			$("#destDirInput").val(dp.prefs.destDir);
+			$("#postTransferCommandSwitch").click(function() {
+				var enabled = $(this).prop("checked");
+				$("#postTransferCommandInput").prop("disabled", !enabled);
+				if (enabled) {
+					$("#postTransferCommandInput").focus();
+				}
+			});
+			$("#postTransferCommandSwitch").prop("checked", dp.prefs.postTransferCommandEnabled);
+			$("#postTransferCommandInput").prop("disabled", !dp.prefs.postTransferCommandEnabled).val(dp.prefs.postTransferCommand);
+
+			$("#destDirChooser").click(function() {
+				var nsIFilePicker = Components.interfaces.nsIFilePicker;
+				var nsILocalFile = Components.interfaces.nsILocalFile;
+				var fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+				fp.init(window, "Select directory to save converted PDF files", nsIFilePicker.modeGetFolder);
+				try {
+					var f = Components.classes["@mozilla.org/file/local;1"].createInstance(nsILocalFile);
+					f.initWithPath($("#destDirInput").val());
+					fp.displayDirectory = f;
+				} catch (e) {}
+				var rv = fp.show();
+				if (rv === nsIFilePicker.returnOK || rv === nsIFilePicker.returnReplace) {
+					$("#destDirInput").val(fp.file.path);
+				}
+			});
+		}
 
 		$("#stepTransferMethod").slideDown();
 
@@ -240,8 +450,13 @@ $(function() {
 
 
 	function acceptTransferMethod() {
-		let prefs = validateTransferMethodSettings();
+		var prefs = validateTransferMethodSettings();
 		if (prefs) {
+			if (Dontprint.platformTools.platform === "firefox") {
+				prefs.destDir = $("#destDirInput").val();
+				prefs.postTransferCommandEnabled = $("#postTransferCommandSwitch").prop("checked");
+				prefs.postTransferCommand = $("#postTransferCommandInput").val();
+			}
 			Dontprint.platformTools.setPrefs(prefs);
 			showCongrats();
 		}
@@ -249,7 +464,7 @@ $(function() {
 
 
 	function sendVerificationCode() {
-		let prefs = validateTransferMethodSettings();
+		var prefs = validateTransferMethodSettings();
 		if (!prefs) {
 			return false;
 		}

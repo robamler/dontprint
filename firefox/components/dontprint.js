@@ -37,7 +37,6 @@ Dontprint.prototype = {
 		
 		case "profile-after-change":
 			os.addObserver(this, "sessionstore-windows-restored", false);
-			this.wrappedJSObject.init();
 			break;
 		
 		case "sessionstore-windows-restored":

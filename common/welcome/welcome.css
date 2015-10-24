@@ -1,3 +1,16 @@
+.firefox-only {
+	display: none;
+}
+
+h1 {
+	counter-reset: stepcounter;
+}
+
+h2::before {
+	counter-increment: stepcounter;
+	content: "Step " counter(stepcounter) ": ";
+}
+
 .choice {
 	margin: 1em 0 1em 1em
 }
@@ -28,7 +41,10 @@ label {
 	font-weight: bold
 }
 
-#stepModelPickerBody,
+#k2pdfopt-nodownload-hint,
+#download-progress,
+#stepDownloadBody,
+#stepModelPicker,
 #stepTransferMethod,
 #congrats,
 #select-platform,
@@ -40,6 +56,13 @@ label {
 #verificationCodeWaitMessage {
 	display: none
 }
+
+#download-progress{
+	float:right;
+	margin-top:1em;
+	font-size:150%;
+}
+
 
 #download-progress {
 	float: right;
@@ -60,11 +83,6 @@ li {
 #detect-screenshot {
 	margin: 0 auto 3ex auto;
 	display: block
-}
-
-#destDirContainer {
-	width: 35em;
-	display: -moz-box
 }
 
 #destDirInput,
