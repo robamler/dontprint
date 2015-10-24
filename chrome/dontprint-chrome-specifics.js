@@ -121,4 +121,66 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 			}
 		}
 	};
+
+
+	Dontprint.moveFileToDestDir = function(job, preferredFinalFilename) {
+		return new Promise(function(resolve, reject) {
+			chrome.downloads.download(
+				{
+					url: job.finalFile.toURL(),
+					filename: preferredFinalFilename,
+					conflictAction: "uniquify"
+				},
+				function(downloadId) {
+					if (downloadId === undefined) {
+						reject("Cannot find converted file.");
+					} else {
+						// item.filename will only be set when the download is done.
+						// So we need to wait until the download is done.
+						chrome.downloads.onChanged.addListener(downloadListener);
+
+						// Nevertheless, check if the download is already done (In this
+						// case, the onChange listener may never fire).
+						chrome.downloads.search(
+							{id: downloadId},
+							function(downloadItems) {
+								if (downloadItems[0].state ===  "complete") {
+									chrome.downloads.onChanged.removeListener(downloadListener);
+									downloadDoneHandler(downloadItems);
+								} else if (downloadItems[0].state ===  "interrupted") {
+									chrome.downloads.onChanged.removeListener(downloadListener);
+									reject('Unable to move PDF file to your "Downloads" directory.');
+								}
+							}
+						);
+					}
+
+					function downloadListener(downloadDelta) {
+						if (downloadDelta.id === downloadId && downloadDelta.state) {
+							if (downloadDelta.state.current ===  "complete") {
+								chrome.downloads.onChanged.removeListener(downloadListener);
+								chrome.downloads.search({id: downloadId}, downloadDoneHandler);
+							} else if (downloadDelta.state.current ===  "interrupted") {
+								chrome.downloads.onChanged.removeListener(downloadListener);
+								reject('Unable to move PDF file to your "Downloads" directory.');
+							}
+						}
+					}
+
+					function downloadDoneHandler(downloadItems) {
+						let item = downloadItems[0];
+						
+						let m = item.filename.match(/^(.*?)([^\\/]+)$/);
+						job.result = {
+							success: true,
+							destDir: m[1],
+							fileName: m[2],
+							filePath: item.filename
+						};
+						resolve();
+					}
+				}
+			);
+		});
+	};
 });

@@ -507,8 +507,12 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				if (job.transferMethod === "email") {
 					yield sendEmail(job, preferredFinalFilename);
 				} else {
-					yield moveFileToDestDir(job, preferredFinalFilename);
+					updateJobState(job, "moving");
+					yield Dontprint.moveFileToDestDir(job, preferredFinalFilename);
 				}
+
+				PlatformTools.debug("Dontprint job result:");
+				PlatformTools.debug(job.result);
 			} catch (e) {
 				PlatformTools.debug("Dontprint encountered an error:");
 				PlatformTools.debug(e);
@@ -1048,39 +1052,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		} finally {
 			delete job.abortCurrentTask;
 		}
-	}
-
-
-	function moveFileToDestDir(job, preferredFinalFilename) {
-		updateJobState(job, "moving");
-
-		return new Promise(function(resolve, reject) {
-			chrome.downloads.download(
-				{
-					url: job.finalFile.toURL(),
-					filename: preferredFinalFilename,
-					conflictAction: "uniquify"
-				},
-				function(downloadId) {
-					if (downloadId === undefined) {
-						reject("Cannot find converted file.");
-					} else {
-						chrome.downloads.search(
-							{id: downloadId},
-							function(downloadItems) {
-								let item = downloadItems[0];
-								job.result = {
-									success: true,
-									fileName: item.filename.match(/[^\\/]+$/),
-									downloadId
-								};
-								resolve();
-							}
-						);
-					}
-				}
-			);
-		});
 	}
 
 

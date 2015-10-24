@@ -269,4 +269,53 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 			}
 		};
 	};
+
+
+	Dontprint.moveFileToDestDir = function*(job, preferredFinalFilename) {
+		let destDir = (yield Dontprint.platformTools.getPrefs({
+			destDir: ""
+		})).destDir;
+
+		let destFile = null;
+		if (destDir === "") {
+			// Use the user's desktop directory as default destination directory
+			destFile = Components.classes["@mozilla.org/file/directory_service;1"].
+				getService(Components.interfaces.nsIProperties).
+				get("Desk", Components.interfaces.nsIFile);
+		} else {
+			destFile = Components.classes["@mozilla.org/file/local;1"]
+						.createInstance(Components.interfaces.nsILocalFile);
+			try {
+				destFile.initWithPath(destDir);
+			} catch (e) {
+				throw 'The destination directory "' + destDir + '" is not an absolute file path. Please go to the Dontprint options and provide the correct destination directory.';
+			}
+		}
+
+		if (!destFile.exists()) {
+			throw 'The destination directory "' + destFile.path + '" does not exist. Maybe your device is not connected or it needs to be accessed under a different path.';
+		}
+		
+		destFile.append(preferredFinalFilename);
+		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 509); // octal representation: 775
+		
+		try {
+			// TODO: moving the file should really be done asynchronously
+			// but I couldn't find out how to do that.
+			job.finalFile.mozFile.moveTo(destFile.parent, destFile.leafName);
+			let index = job.tmpFiles.indexOf(job.finalFile);
+			if (index !== -1) {
+				job.tmpFiles.splice(index, 1);
+			}
+		} catch (e) {
+			throw 'Unable to move the resulting PDF file to the destination directory "' + destFile.parent.path + '". Maybe your device is not connected or it needs to be accessed under a different path.';
+		}
+		
+		job.result = {
+			success: true,
+			destDir: destFile.parent.path,
+			fileName: destFile.leafName,
+			filePath: destFile.path
+		};
+	};
 }());
