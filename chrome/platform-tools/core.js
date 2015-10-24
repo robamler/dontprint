@@ -19,7 +19,8 @@ if (window.PlatformTools === undefined) {
 		downloadTmpFile,
 		rmTmpFiles,
 		debug,
-		xhr
+		xhr,
+		postFile
 	};
 
 	for (let i in publicInterface) {
@@ -275,5 +276,36 @@ if (window.PlatformTools === undefined) {
 	 */
 	function xhr() {
 		return new XMLHttpRequest();
+	}
+
+
+	/**
+	 * Start sending a file with a POST request.
+	 * @param  {XMLHttpRequest} xhr
+	 *         An XHR that is already set up with event handlers etc. but
+	 *         not opened yet.
+	 * @param  {HTML5 FileEntry} file
+	 *         The file to send.
+	 * @param  {string} url
+	 *         The URL to which the POST request will be directed.
+	 * @return {Promise}
+	 *         A promise that will be resolved if the file could be
+	 *         retrieved and the POST request could be initiated. This does
+	 *         not guarantee that the POST request will succeed. To wait for
+	 *         the POST request itself, set the onload handler of xhr *before*
+	 *         calling this function. To monitor the upload progress, use the
+	 *         "progress" handler of xhr.upload;
+	 */
+	function postFile(xhr, file, url) {
+		return new Promise(function(resolve, reject) {
+			file.file(
+				function(file) {
+					xhr.open('POST', url, true);
+					xhr.send(file);
+					resolve();
+				},
+				reject
+			);
+		});
 	}
 }());

@@ -190,7 +190,7 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 
 
 	Dontprint.loadK2pdfopt = function(job) {
-		return function*(args, progressListener) {
+		return function*(args, preferredFinalFilename, progressListener) {
 			// Create filename from author and title. We already use the final filename
 			// for the temporarily generated file because k2pdfopt generates the pdf
 			// title meta-data based on the output filename if the input file has none
@@ -207,8 +207,8 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 			// work around this issue, we start k2pdfopt with workdir set
 			// to the directory of the input file, and also use a rather
 			// short filename for the temporary file.
-			job.finalFile = FileUtils.getFile("TmpD", [authorAndTitle.substr(0, 70) + ".pdf"]);
-			job.finalFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+			let finalFile = FileUtils.getFile("TmpD", [preferredFinalFilename]);
+			finalFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 
 			let prefs = yield Dontprint.platformTools.getPrefs({
 				k2pdfoptPath: ""
@@ -218,6 +218,7 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 			}
 
 			let currentLine = "";
+			let k2pdfoptError = "";
 
 			try {
 				yield new Promise(function(resolve, reject) {
@@ -226,7 +227,7 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 						workdir: job.origPdfFile.mozFile.parent.path,
 						arguments: args.concat([
 							job.origPdfFile.mozFile.leafName,
-							"-o", job.finalFile.path
+							"-o", finalFile.path
 						]),
 						stdout: function(data) {
 							let lines = data.split(/[\n\r]+/);
@@ -259,6 +260,10 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 					});
 					job.abortCurrentTask = p.kill.bind(p);
 				});
+				job.finalFile = {
+					fullPath: finalFile.path,
+					mozFile: finalFile
+				};
 			} finally {
 				delete job.abortCurrentTask;
 			}

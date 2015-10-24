@@ -15,7 +15,8 @@ if (typeof PlatformTools === "undefined") { //TODO
 		setPrefs,
 		downloadTmpFile,
 		debug,
-		xhr
+		xhr,
+		postFile
 	};
 
 	for (let i in publicInterface) {
@@ -137,5 +138,19 @@ if (typeof PlatformTools === "undefined") { //TODO
 	function xhr() {
 		return Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
 			.createInstance(Components.interfaces.nsIXMLHttpRequest);
+	}
+
+
+	function postFile(xhr, file, url) {
+		try {
+			let stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
+					.createInstance(Components.interfaces.nsIFileInputStream);
+			stream.init(file.mozFile, 0x04 | 0x08, 420, 0x04);  // octal representation of 420: 644
+			xhr.open("POST", url, true);
+			xhr.send(stream);
+			return Promise.resolve();
+		} catch (e) {
+			return Promise.reject(e);
+		}
 	}
 }());

@@ -473,7 +473,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 		PlatformTools.spawn(function*() {
 			try {
-				job.transferMethod = (yield PlatformTools.getPrefs("transferMethod")).transferMethod;
+				job.transferMethod = (yield PlatformTools.getPrefs({
+					transferMethod: ""
+				})).transferMethod;
 
 				if (job.jobType !== "test") {
 					var k2pdfopt = Dontprint.loadK2pdfopt(job);
@@ -488,22 +490,24 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					job.tmpFiles.push(job.origPdfFile);
 				}
 
+				let preferredFinalFilename = job.title.replace(/[^a-zA-Z0-9 \-,]+/g, "_");
+				if (job.articleCreators && job.articleCreators.length !== 0 && job.articleCreators[0].lastName) {
+					preferredFinalFilename = job.articleCreators[0].lastName.replace(/[^a-zA-Z0-9 \-,]+/g, "_") + ", " + preferredFinalFilename;
+				}
+				preferredFinalFilename = preferredFinalFilename.substr(0, 70) + ".pdf";
+
 				if (job.jobType === "test") {
 					job.finalFile = job.origPdfFile;
 				} else {
 					yield cropMargins(job);
-					yield convertDocument(job, k2pdfopt);
+					yield convertDocument(job, k2pdfopt, preferredFinalFilename);
 					job.tmpFiles.push(job.finalFile);
 				}
 
-				let authorAndTitle = job.title.replace(/[^a-zA-Z0-9 \-,]+/g, "_");
-				if (job.articleCreators && job.articleCreators.length !== 0 && job.articleCreators[0].lastName) {
-					authorAndTitle = job.articleCreators[0].lastName.replace(/[^a-zA-Z0-9 \-,]+/g, "_") + ", " + authorAndTitle;
-				}
 				if (job.transferMethod === "email") {
-					yield sendEmail(job, authorAndTitle);
+					yield sendEmail(job, preferredFinalFilename);
 				} else {
-					yield moveFileToDestDir(job, authorAndTitle);
+					yield moveFileToDestDir(job, preferredFinalFilename);
 				}
 			} catch (e) {
 				PlatformTools.debug("Dontprint encountered an error:");
@@ -950,7 +954,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	}
 	
 	
-	function* convertDocument(job, k2pdfopt) {
+	function* convertDocument(job, k2pdfopt, preferredFinalFilename) {
 		updateJobState(job, "converting");
 
 		let dims = yield getScreenDimensions();
@@ -984,21 +988,21 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		
 		job.tmpFiles.push("converted" + job.id + ".pdf");
 
-		yield k2pdfopt(args, function(progress) {
+		yield k2pdfopt(args, preferredFinalFilename, function(progress) {
 			job.convertProgress = progress;
 			updateJobState(job);
 		});
 	}
 
 
-	function* sendEmail(job) {
+	function* sendEmail(job, preferredFinalFilename) {
 		updateJobState(job, "sending");
 		
 		job.recipientEmail = yield getRecipientEmail();
 		var url = buildURL(
 			"http://dontprint.net/cgi-bin/send-document.pl",
 			{
-				filename:	job.finalFilename,
+				filename:	preferredFinalFilename,
 				email:		job.recipientEmail,
 				itemKey:	job.id
 			}
@@ -1026,8 +1030,8 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 						} else {
 							reject(job.result.message);
 						}
-					} catch (err) {
-						reject("Error sending e-mail: " + err);
+					} catch (e) {
+						reject("Error sending e-mail: " + e.toString());
 					}
 				};
 				req.onerror = function(e) {
@@ -1037,19 +1041,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					reject("canceled");
 				};
 
-				job.abortCurrentTask = function() {
-					// Setting job.abortCurrentTask = req.abort won't work.
-					// With this function wrapper, it works.
-					req.abort();
-				};
+				job.abortCurrentTask = req.abort.bind(req); //TODO: test
 
-				job.finalFile.file(
-					function(file) {
-						req.open('POST', url, true);
-						req.send(file);
-					},
-					reject
-				);
+				PlatformTools.postFile(req, job.finalFile, url).catch(reject);
 			});
 		} finally {
 			delete job.abortCurrentTask;
@@ -1057,14 +1051,14 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	}
 
 
-	function moveFileToDestDir(job, authorAndTitle) {
+	function moveFileToDestDir(job, preferredFinalFilename) {
 		updateJobState(job, "moving");
 
 		return new Promise(function(resolve, reject) {
 			chrome.downloads.download(
 				{
 					url: job.finalFile.toURL(),
-					filename: authorAndTitle.substr(0, 100) + ".pdf",
+					filename: preferredFinalFilename,
 					conflictAction: "uniquify"
 				},
 				function(downloadId) {

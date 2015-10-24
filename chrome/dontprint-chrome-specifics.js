@@ -62,7 +62,7 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 		}
 
 
-		function* runK2pdfopt(args, progressListener) {
+		function* runK2pdfopt(args, preferredFinalFilename, progressListener) {
 			naclProgressListener = progressListener;
 
 			if (!naclModuleLoaded) {
