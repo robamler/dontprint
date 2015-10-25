@@ -28,12 +28,181 @@ $(function() {
 	var pdf, pdfpage;
 	var job, builtinJournal;
 	var successState = false;
+	var Dontprint = null;
 	
-	chrome.runtime.sendMessage(null, {
-		sender: "Dontprint",
-		call: "getJobFromId",
-		args: [parseInt(location.hash.substr(1))]
-	}, init);
+	PlatformTools.getMainComponentInternally("Dontprint", "@robamler.github.com/dontprint;1").then(function(dp) {
+		Dontprint = dp;
+		job = Dontprint.getJobFromId(parseInt(location.hash.substr(1)));
+
+		if (!job || job.state !== "cropping") {
+			// tab was reloaded from session restore or reopened after it was already closed.
+			// close();
+		}
+		
+		// Initialize DOM elements
+		region = $('#region');
+		doccontainer = $('#document-container');
+		pagenumDisplay = $("#pagenum");
+		pagecountDisplay = $("#pagecount");
+		canvas = document.getElementById('pdfcanvas');
+		context = canvas.getContext('2d');
+		magnifycanvas = document.getElementById('magnifycanvas');
+		magnifycontext = magnifycanvas.getContext('2d');
+		viewcontainer = document.getElementById("view-container");
+		turnpagesheight = $("#turnpages").height();
+		magnifyer = $("#magnifyer");
+		prevbtn = $("#prevbtn");
+		nextbtn = $("#nextbtn");
+
+		// set presets
+		document.title = "Dontprint: " + job.title;
+		builtinJournal = job.crop.id < 0;
+		if (job.crop.coverpage) {
+			$("#coverpage").prop("checked", true);
+		} else {
+			$("#allpages").prop("checked", true);
+		}
+		$("#pagestart").val("1");
+		for (var i=1; i<=4; i++) {
+			mmmargins[i-1] = parseFloat(job.crop['m'+i]);
+		}
+
+		$("#scaleselect").val(job.crop.scale);
+
+		if (!job.crop.longname && !job.crop.shortname) {
+			job.prohibitSaveJournalSettings = true;
+		}
+		if (job.prohibitSaveJournalSettings) {
+			$("#remember-display,#sendsettings-display").hide();
+			$("#savetemplate,#sendsettings").prop("checked", false);
+		} else {
+			$('#journalname').text(job.crop.shortname ? job.crop.shortname : job.crop.longname);
+			$('#savetemplate').prop("checked", job.crop.rememberPreset);
+			if (job.neverReportJournalSettings) {
+				$("#sendsettings-display").hide();
+			} else {
+				$("#sendsettings").prop("checked", true).prop("disabled", !job.crop.rememberPreset);
+				$("#sendsettings-display").css("opacity", job.crop.rememberPreset ? 1 : 0.3);
+				if (!job.crop.rememberPreset) {
+					$('#privacyLink').removeAttr('href');
+				}
+			}
+		}
+		$('#additionalParamsCheckbox').prop("checked", job.crop.k2pdfoptParams!=="");
+		$('#k2pdfoptParams').prop("disabled", job.crop.k2pdfoptParams==="").val(job.crop.k2pdfoptParams);
+		
+		// Set up event handlers
+		// This hack avoids lookups in the arrays[direction] each time dragfunction is called.
+		for (var i=0; i<4; i++) {
+			setMargin[i] = (function(direction) {
+				return function(mmvalue, blocktext) {
+					var pxvalue = dpmm*mmvalue;
+					if (isNaN(pxvalue) || pxvalue<0 || pxvalue + dpmm*mmmargins[(direction+2)%4] > pxdimensions[direction%2]-70) {
+						return false;
+					}
+					margins[direction].css(dirLength[direction], pxvalue);
+					mmmargins[direction] = mmvalue;
+					region.css(dirPos[direction], pxvalue);
+					if (!blocktext) {
+						inputs[direction].val(mmvalue.toFixed(1));
+					}
+					return true;
+				};
+			}(i));
+		};
+
+		for (var i=0; i!=4; i++) {
+			margins[i] = $("#m"+i);
+			handles[i] = $("#h"+i);
+			inputs[i] = $("#i"+i);
+
+			handles[i].mouseenter((function(j) {
+				return function(event) {
+					showMagnifier(event, j);
+				};
+			}(i))).mouseleave(
+				hideMagnifier
+			).mousedown((function(j) {
+				return function(event) {
+					begindrag(event, j);
+				};
+			}(i)));
+
+			inputs[i].keypress((function(j) {
+				return function(event) {
+					window.setTimeout(function () {
+						textChange(j, true);
+					});
+				};
+			}(i))).blur((function(j) {
+				return function(event) {
+					textChange(j, false);
+				};
+			}(i)));
+		}
+
+		$(document).mouseup(enddrag);
+		$(document).mousemove(mousemove);
+		$(window).resize(resize);
+
+		prevbtn.click(function() {
+			loadpage(pagenum-1);
+			return false;
+		});
+		nextbtn.click(function() {
+			loadpage(pagenum+1);
+			return false;
+		});
+
+		$("#startbtn").click(startConversion);
+		$("#abortbtn").click(abortConversion);
+		$("#allpages,#coverpage").click(function() {
+			$("#pagestart,#pageend").prop("disabled", true);
+			$("#savetemplate").prop("disabled", false);
+			$("#remember-display").css("opacity", 1);
+			$("#sendsettings").prop("disabled", !$("#savetemplate").prop("checked"));
+			$("#sendsettings-display").css("opacity", $("#savetemplate").prop("checked") ? 1 : 0.3);
+			if ($("#savetemplate").prop("checked")) {
+				$('#privacyLink').attr('href', '#');
+			} else {
+				$('#privacyLink').removeAttr('href');
+			}
+		});
+		$("#pagerange").click(function() {
+			$("#pagestart,#pageend").prop("disabled", false);
+			$("#pagestart").focus();
+			$("#pagestart").get(0).setSelectionRange(0, $("#pagestart").val().length);
+			$("#savetemplate").prop("disabled", true);
+			$("#remember-display").css("opacity", 0.3);
+			$("#sendsettings").prop("disabled", true);
+			$("#sendsettings-display").css("opacity", 0.3);
+			$('#privacyLink').removeAttr('href');
+		});
+		$("#savetemplate").click(function() {
+			$("#sendsettings").prop("disabled", !this.checked);
+			$("#sendsettings-display").css("opacity", this.checked ? 1 : 0.3);
+			if (this.checked) {
+				$('#privacyLink').attr('href', '#');
+			} else {
+				$('#privacyLink').removeAttr('href');
+			}
+		});
+		$("#additionalParamsCheckbox").click(function() {
+			$("#k2pdfoptParams").prop("disabled", !this.checked);
+			if (this.checked) {
+				var paramsTextLen = $("#k2pdfoptParams").focus().val().length;
+				$("#k2pdfoptParams").get(0).setSelectionRange(paramsTextLen, paramsTextLen);
+			}
+		});
+		$("#privacyLink").click(showPrivacyTooltip);
+		$("#overlay,#closePrivacyTooltip").click(hidePrivacyTooltip);
+		$(window).unload(windowUnload);
+
+		resize();
+
+		// Load the page
+		loadpdf(job.origPdfFile.toURL());
+	});
 
 	// private methods
 	function loadpage(thepagenum) {
@@ -218,11 +387,7 @@ $(function() {
 	}
 	
 	function windowUnload() {
-		chrome.runtime.sendMessage(null, {
-			sender: "Dontprint",
-			call: "cropPageDone",
-			args: [job.id, successState, job.crop]
-		});
+		Dontprint.cropPageDone(job.id, successState, job.crop);
 	}
 
 	function getHostFromUrl(url) {
@@ -275,177 +440,5 @@ $(function() {
 	
 	function hidePrivacyTooltip() {
 		$('#privacyTooltip,#overlay').fadeOut();
-	}
-	
-	function init(thejob) {
-		job = thejob;
-		if (!job || job.state !== "cropping") {
-			// tab was reloaded from session restore or reopened after it was already closed.
-			close();
-		}
-		
-		// Initialize DOM elements
-		region = $('#region');
-		doccontainer = $('#document-container');
-		pagenumDisplay = $("#pagenum");
-		pagecountDisplay = $("#pagecount");
-		canvas = document.getElementById('pdfcanvas');
-		context = canvas.getContext('2d');
-		magnifycanvas = document.getElementById('magnifycanvas');
-		magnifycontext = magnifycanvas.getContext('2d');
-		viewcontainer = document.getElementById("view-container");
-		turnpagesheight = $("#turnpages").height();
-		magnifyer = $("#magnifyer");
-		prevbtn = $("#prevbtn");
-		nextbtn = $("#nextbtn");
-
-		// set presets
-		document.title = "Dontprint: " + job.title;
-		builtinJournal = job.crop.id < 0;
-		if (job.crop.coverpage) {
-			$("#coverpage").prop("checked", true);
-		} else {
-			$("#allpages").prop("checked", true);
-		}
-		$("#pagestart").val("1");
-		for (var i=1; i<=4; i++) {
-			mmmargins[i-1] = parseFloat(job.crop['m'+i]);
-		}
-
-		$("#scaleselect").val(job.crop.scale);
-
-		if (!job.crop.longname && !job.crop.shortname) {
-			job.prohibitSaveJournalSettings = true;
-		}
-		if (job.prohibitSaveJournalSettings) {
-			$("#remember-display,#sendsettings-display").hide();
-			$("#savetemplate,#sendsettings").prop("checked", false);
-		} else {
-			$('#journalname').text(job.crop.shortname ? job.crop.shortname : job.crop.longname);
-			$('#savetemplate').prop("checked", job.crop.rememberPreset);
-			if (job.neverReportJournalSettings) {
-				$("#sendsettings-display").hide();
-			} else {
-				$("#sendsettings").prop("checked", true).prop("disabled", !job.crop.rememberPreset);
-				$("#sendsettings-display").css("opacity", job.crop.rememberPreset ? 1 : 0.3);
-				if (!job.crop.rememberPreset) {
-					$('#privacyLink').removeAttr('href');
-				}
-			}
-		}
-		$('#additionalParamsCheckbox').prop("checked", job.crop.k2pdfoptParams!=="");
-		$('#k2pdfoptParams').prop("disabled", job.crop.k2pdfoptParams==="").val(job.crop.k2pdfoptParams);
-		
-		// Set up event handlers
-		// This hack avoids lookups in the arrays[direction] each time dragfunction is called.
-		for (var i=0; i<4; i++) {
-			setMargin[i] = (function(direction) {
-				return function(mmvalue, blocktext) {
-					var pxvalue = dpmm*mmvalue;
-					if (isNaN(pxvalue) || pxvalue<0 || pxvalue + dpmm*mmmargins[(direction+2)%4] > pxdimensions[direction%2]-70) {
-						return false;
-					}
-					margins[direction].css(dirLength[direction], pxvalue);
-					mmmargins[direction] = mmvalue;
-					region.css(dirPos[direction], pxvalue);
-					if (!blocktext) {
-						inputs[direction].val(mmvalue.toFixed(1));
-					}
-					return true;
-				};
-			}(i));
-		};
-
-		for (var i=0; i!=4; i++) {
-			margins[i] = $("#m"+i);
-			handles[i] = $("#h"+i);
-			inputs[i] = $("#i"+i);
-
-			handles[i].mouseenter((function(j) {
-				return function(event) {
-					showMagnifier(event, j);
-				};
-			}(i))).mouseleave(
-				hideMagnifier
-			).mousedown((function(j) {
-				return function(event) {
-					begindrag(event, j);
-				};
-			}(i)));
-
-			inputs[i].keypress((function(j) {
-				return function(event) {
-					window.setTimeout(function () {
-						textChange(j, true);
-					});
-				};
-			}(i))).blur((function(j) {
-				return function(event) {
-					textChange(j, false);
-				};
-			}(i)));
-		}
-
-		$(document).mouseup(enddrag);
-		$(document).mousemove(mousemove);
-		$(window).resize(resize);
-
-		prevbtn.click(function() {
-			loadpage(pagenum-1);
-			return false;
-		});
-		nextbtn.click(function() {
-			loadpage(pagenum+1);
-			return false;
-		});
-
-		$("#startbtn").click(startConversion);
-		$("#abortbtn").click(abortConversion);
-		$("#allpages,#coverpage").click(function() {
-			$("#pagestart,#pageend").prop("disabled", true);
-			$("#savetemplate").prop("disabled", false);
-			$("#remember-display").css("opacity", 1);
-			$("#sendsettings").prop("disabled", !$("#savetemplate").prop("checked"));
-			$("#sendsettings-display").css("opacity", $("#savetemplate").prop("checked") ? 1 : 0.3);
-			if ($("#savetemplate").prop("checked")) {
-				$('#privacyLink').attr('href', '#');
-			} else {
-				$('#privacyLink').removeAttr('href');
-			}
-		});
-		$("#pagerange").click(function() {
-			$("#pagestart,#pageend").prop("disabled", false);
-			$("#pagestart").focus();
-			$("#pagestart").get(0).setSelectionRange(0, $("#pagestart").val().length);
-			$("#savetemplate").prop("disabled", true);
-			$("#remember-display").css("opacity", 0.3);
-			$("#sendsettings").prop("disabled", true);
-			$("#sendsettings-display").css("opacity", 0.3);
-			$('#privacyLink').removeAttr('href');
-		});
-		$("#savetemplate").click(function() {
-			$("#sendsettings").prop("disabled", !this.checked);
-			$("#sendsettings-display").css("opacity", this.checked ? 1 : 0.3);
-			if (this.checked) {
-				$('#privacyLink').attr('href', '#');
-			} else {
-				$('#privacyLink').removeAttr('href');
-			}
-		});
-		$("#additionalParamsCheckbox").click(function() {
-			$("#k2pdfoptParams").prop("disabled", !this.checked);
-			if (this.checked) {
-				var paramsTextLen = $("#k2pdfoptParams").focus().val().length;
-				$("#k2pdfoptParams").get(0).setSelectionRange(paramsTextLen, paramsTextLen);
-			}
-		});
-		$("#privacyLink").click(showPrivacyTooltip);
-		$("#overlay,#closePrivacyTooltip").click(hidePrivacyTooltip);
-		$(window).unload(windowUnload);
-
-		resize();
-
-		// Load the page
-		loadpdf(job.origPdfUrl);
 	}
 });

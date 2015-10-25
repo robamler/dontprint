@@ -179,12 +179,12 @@ window.DontprintBrowser = (function() {
 	 *   thinks to know how to handle articles from this journal.
 	 */
 	function dontprintThisPage(translator, forceCropWindow) {
-		let url = gBrowser.selectedBrowser.contentDocument.location.href;
+		let url = gBrowser.selectedBrowser.contentDocument.location.href.split("#")[0];
 		
 		if (gBrowser.selectedBrowser.contentDocument.contentType.toLowerCase() === "application/pdf") {
 			Dontprint.runJob({
 				jobType:			"pdfurl",
-				title:				'Unknown title',
+				title:				"Unknown title",
 				forceCropWindow:	!!forceCropWindow,
 				pdfurl:				url,
 				identifierurl:		url,
@@ -195,13 +195,14 @@ window.DontprintBrowser = (function() {
 		} else {		
 			let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
 			Dontprint.runJob({
-				title:				'Unknown title',
-				jobType:			'page',
+				title:				"Retrieving article meta data...",
+				jobType:			"page",
 				translator:			translator,
 				forceCropWindow:	!!forceCropWindow,
 				pageurl:			url,
 				identifierurl:		url,
-				tab:				tab
+				tab:				tab,
+				tabId:              Zotero_Browser.tabbrowser.selectedTab
 			});
 		}
 	}

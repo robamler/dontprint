@@ -7,7 +7,8 @@ if (typeof PlatformTools === "undefined") {
 
 (function() {
 	var publicInterface = {
-		openTab
+		openTab,
+		closeTab
 	};
 
 	for (let i in publicInterface) {
@@ -97,5 +98,10 @@ if (typeof PlatformTools === "undefined") {
 		return Promise.resolve(windowForTab(openerTab).gBrowser.loadOneTab(
 			absUrl, { inBackground: !!options.inBackground }
 		));
+	}
+
+
+	function closeTab(tab) {
+		browserForTab(tab).contentWindow.close();
 	}
 }());

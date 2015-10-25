@@ -540,7 +540,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			} finally {
 				try {
 					let newtab = null;
-					if ((!job.result.success && job.result.message === "canceled") || job.state === "canceled") {
+					if (job.state === "canceled" || (!job.result.success && job.result.message === "canceled")) {
 						try {
 							updateJobState(job, "canceled");
 						} catch (e) {
@@ -771,7 +771,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			delete job.adjustCropDefaults;
 		}
 		delete job.document;
-		
+
 		if (job.forceCropWindow) {
 			// Make sure the crop window is displayed and also uncheck the "remember"
 			// box by default. If the user still decides to check the "remember"
@@ -789,30 +789,23 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				neverReportJournalSettings: false
 			})).neverReportJournalSettings;
 
-			let openertab = yield new Promise(function(res, rej) {
-				chrome.tabs.get(job.tabId, res);
-			});
-			let openargs = {
-				windowId: job.windowId,
-				url: "common/pdfcrop/pdfcrop.html#" + job.id
-			};
-			if (openertab) {
-				openargs.index = openertab.index + 1;
-			}
-			let newtab = yield new Promise(function(res, rej) {
-				chrome.tabs.create(openargs, res);
+			let cropTab = null;
+			let cropPromise = new Promise(function(resolve, reject) {
+				job.acceptCropPage = resolve;
+				job.abortCurrentTask = reject.bind(this, "canceled");
 			});
 
 			try {
-				job.crop = yield new Promise(function(resolve, reject) {
-					job.acceptCropPage = resolve;
-					job.abortCurrentTask = reject.bind(this, "canceled");
+				cropTab = yield PlatformTools.openTab({
+					url: "common/pdfcrop/pdfcrop.html#" + job.id,
+					openerTab: job.tabId
 				});
+				job.crop = yield cropPromise;
 			} finally {
 				delete job.acceptCropPage;
 				delete job.abortCurrentTask;
 				try {
-					chrome.tabs.remove(newtab.id);
+					PlatformTools.closeTab(cropTab);
 				} catch (e) {
 					// ignore: Tab was already closed
 				}
@@ -1078,12 +1071,11 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		job.result.errorOperation = job.state;
 		updateJobState(job, job.result.success ? "success" : "error");
 		let prefs = yield PlatformTools.getPrefs({
-			transferMethod: "directory",
 			successPageInBackground: false
 		});
 
 		let newtab = yield PlatformTools.openTab({
-			url: "common/resultpage/" + prefs.transferMethod + "/" + job.state + ".html#" + job.id,
+			url: "common/resultpage/" + job.transferMethod + "/" + job.state + ".html#" + job.id,
 			openerTab: job.tabId,
 			inBackground: prefs.successPageInBackground && job.result.success
 		});

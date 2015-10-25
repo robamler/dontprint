@@ -130,7 +130,8 @@ if (typeof PlatformTools === "undefined") { //TODO
 
 		return {
 			fullPath: file.path,
-			mozFile: file
+			mozFile: file,
+			toURL: function() { return "file://" + file.path; }
 		};
 	}
 

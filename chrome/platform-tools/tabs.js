@@ -7,7 +7,8 @@ if (window.PlatformTools === undefined) {
 
 (function() {
 	var publicInterface = {
-		openTab
+		openTab,
+		closeTab
 	};
 
 	for (let i in publicInterface) {
@@ -113,8 +114,19 @@ if (window.PlatformTools === undefined) {
 				openargs.windowId = openerTab.windowId;
 			}
 			return new Promise(function(res, rej) {
-				chrome.tabs.create(openargs, res);
+				chrome.tabs.create(openargs, function(tab) { res(tab.id); });
 			});
 		});
+	}
+
+
+	/**
+	 * Close a given tab.
+	 * @param  {integer} tabId
+	 *         The tab that should be closed. On chrome, tabs are referenced by their
+	 *         integer tab id. On other platforms, this parameter may have a different type.
+	 */
+	function closeTab(tabId) {
+		chrome.tabs.remove(tabId);
 	}
 }());
