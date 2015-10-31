@@ -21,6 +21,25 @@ $(function() {
 		$(window).unload(function(event) {
 			Dontprint.removeProgressListener(updateJob);
 		});
+
+		$("#settingsBtn").click(function() {
+			Dontprint.openSettings();
+		});
+
+		if (Dontprint.platformTools.platform === "firefox") {
+			Dontprint.platformTools.getPrefs({
+				autoShowProgress: true
+			}).then(function(prefs) {;
+				$("#autoShowProgress").prop("checked", prefs.autoShowProgress).change(
+					function() {
+						Dontprint.platformTools.setPrefs({
+							autoShowProgress: this.checked
+						});
+					}
+				);
+				$("#footer").show();
+			});
+		}
 	});
 
 

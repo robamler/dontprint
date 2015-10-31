@@ -176,6 +176,14 @@ window.DontprintBrowser = (function() {
 				tabId:              Zotero_Browser.tabbrowser.selectedTab
 			});
 		}
+
+		Dontprint.platformTools.getPrefs({
+			autoShowProgress: true
+		}).then(function(prefs) {
+			if (prefs.autoShowProgress) {
+				Dontprint.showProgress(Zotero_Browser.tabbrowser.selectedTab);
+			}
+		});
 	}
 	
 	

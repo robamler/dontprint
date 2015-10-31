@@ -61,6 +61,7 @@ h1 {
 }
 
 #footer {
+	display: none;
 	position: fixed;
 	bottom: 0;
 	padding: 2ex 0;
@@ -70,6 +71,10 @@ h1 {
 	color: #333;
 	background-color: #fff;
 	box-shadow: 0 0 0.4ex 0.4ex #fff
+}
+
+#settingsBtn {
+	margin-top: 4ex;
 }
 
 .hint {

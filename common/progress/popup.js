@@ -115,7 +115,13 @@ $(function() {
 
 
 	function updateJob(job) {
-		updateJobUi(job, uistate, noop, noop, onDone, Dontprint);
+		if (job.state === "error") {
+			// Work around a curious issue (error tab won't be opened until
+			// we close the popup; success tab works, though.)
+			window.close();
+		} else {
+			updateJobUi(job, uistate, noop, noop, onDone, Dontprint);
+		}
 	}
 
 
