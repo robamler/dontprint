@@ -65,6 +65,15 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 			runUpdateTransaction(
 				function*(sql) {
+					// The "scale" column was added on 2015-06-27
+					if (parseInt(oldversion) < 20150627) {
+						try {
+							yield sql('ALTER TABLE journals ADD COLUMN scale TEXT DEFAULT "1"');
+						} catch (e) {
+							// ignore; will try the CREATE TABLE IF NOT EXISTS command below instead
+						}
+					}
+
 					yield sql(
 						"CREATE TABLE IF NOT EXISTS journals (" +
 							"id INTEGER PRIMARY KEY ASC ON CONFLICT REPLACE," +

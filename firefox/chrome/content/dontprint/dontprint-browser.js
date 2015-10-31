@@ -256,7 +256,7 @@ window.DontprintBrowser = (function() {
 	
 	function updateQueueLength() {
 		clearInterval(idleAnimationTimer);
-		queuelength = Dontprint.getNumberOfRunningJobs();
+		let queuelength = Dontprint.getNumberOfRunningJobs();
 
 		if (queuelength === 0) {
 			if (zoteroInstalled) {
