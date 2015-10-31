@@ -16,13 +16,10 @@ var Dontprint_DownloadOverlay = new function() {
 		}
 		
 		Dontprint.runJob({
-			jobType:			"pdfurl",
-			title:				title,
-			pdfurl:				url,
-			identifierurl:		url,
-			journalLongname:	"",
-			journalShortname:	"",
-			tmpFiles:			[]
+			jobType: "pdfurl",
+			title: title,
+			pdfurl: url,
+			pageurl: url
 		});
 		
 		return true;

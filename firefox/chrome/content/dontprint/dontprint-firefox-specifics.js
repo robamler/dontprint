@@ -23,6 +23,22 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 		}
 		initialized = true;
 
+		// Add Dontprint button to menu panel
+		try {
+			Components.utils.import("resource:///modules/CustomizableUI.jsm");
+			CustomizableUI.createWidget({
+				id: 'dontprint-toolbaritem',
+				type: 'view',
+				viewId: 'dontprint-toolbaritem-view',
+				label: 'Dontprint',
+				tooltiptext: 'Show tools provided by addon "Dontprint"',
+				defaultArea: CustomizableUI.AREA_PANEL,
+				onViewShowing: function(event) {
+					event.target.ownerDocument.defaultView.DontprintBrowser.onDontprintMenuShow(event);
+				}
+			});
+		} catch (e) { } // FF < 29
+
 		const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
 						.getService(Components.interfaces.mozIJSSubScriptLoader);
 		Components.utils.import("resource://gre/modules/AddonManager.jsm");
@@ -385,4 +401,36 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 
 
 	Dontprint.notifyJobDone = Dontprint.notifyJobStarted;
+
+
+	Dontprint.dontprintLocalFile = function() {
+		let win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+			.getService(Components.interfaces.nsIWindowMediator)
+			.getMostRecentWindow("navigator:browser");
+		
+		let nsIFilePicker = Components.interfaces.nsIFilePicker;
+		let fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
+		fp.addToRecentDocs = true;
+		fp.init(win, "Pick a PDF document to send to your e-reader", nsIFilePicker.modeOpenMultiple);
+		fp.appendFilter("PDF documents", "*.pdf");
+		fp.appendFilters(nsIFilePicker.filterAll);
+		
+		if (fp.show() === nsIFilePicker.returnOK) {
+			let files = fp.files;
+			while (files.hasMoreElements())  {
+				let file = files.getNext().QueryInterface(Components.interfaces.nsILocalFile);
+				let m = file.leafName.match(/^(.*)\.pdf$/i);
+				let title = m ? m[1] : file.leafName;
+				Dontprint.runJob({
+					jobType: "localfile",
+					title: title,
+					origPdfFile: {
+						fullPath: file.path,
+						mozFile: file,
+						toURL: function() { return "file://" + file.path; }
+					}
+				});
+			}
+		}
+	};
 }());

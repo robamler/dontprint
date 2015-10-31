@@ -158,20 +158,17 @@ window.DontprintBrowser = (function() {
 				title:				"Unknown title",
 				forceCropWindow:	!!forceCropWindow,
 				pdfurl:				url,
-				identifierurl:		url,
-				journalLongname:	"",
-				journalShortname:	"",
-				tmpFiles:			[]
+				pageurl:			url,
+				tabId:              Zotero_Browser.tabbrowser.selectedTab
 			});
 		} else {		
 			let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
 			Dontprint.runJob({
-				title:				"Retrieving article meta data...",
 				jobType:			"page",
+				title:				"Retrieving article meta data...",
 				translator:			translator,
 				forceCropWindow:	!!forceCropWindow,
 				pageurl:			url,
-				identifierurl:		url,
 				tab:				tab,
 				tabId:              Zotero_Browser.tabbrowser.selectedTab
 			});
@@ -339,11 +336,6 @@ window.DontprintBrowser = (function() {
 	}
 	
 	
-	function configureDontprint() {
-		Dontprint.openSettings(gBrowser.selectedTab);
-	}
-	
-	
 	/*
 	 * Gets a data object given a browser window object (copied from Zotero_Browser)
 	 */
@@ -369,7 +361,6 @@ window.DontprintBrowser = (function() {
 		cancelJobForThisPage,
 		onStatusPopupShowing,
 		onDontprintMenuShow,
-		configureDontprint,
 		updateQueueLength,
 		getDontprint: function() { return Dontprint; }
 	};

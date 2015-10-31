@@ -21,7 +21,7 @@
 				</menu>
 				<menuseparator/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
-				<menuitem oncommand="DontprintBrowser.configureDontprint();" label="&dontprint.configureMenuItemLabel;"/>
+				<menuitem oncommand="DontprintBrowser.getDontprint().openSettings();" label="&dontprint.configureMenuItemLabel;"/>
 			</menupopup>
 			<menupopup id="dontprint-progress-image-context">
 				<menuitem disabled="true" label="Dontprint is currently processing the document represented by this page"/>
@@ -44,7 +44,7 @@
 			class="dontprint-icon"
 			tooltiptext="&dontprint.progressimglabel;"
 			context="dontprint-progress-image-context"
-			onclick="if(event.button === 0) DontprintBrowser.getDontprint().showProgress()"
+			onclick="if(event.button === 0) DontprintBrowser.getDontprint().showProgress();"
 			position="1" hidden="true" />
 	</hbox>
 	
@@ -55,7 +55,7 @@
 			<menuitem oncommand="DontprintBrowser.dontprintZoteroSelection(event,true);" label="Dontprint attached PDF with custom settings..."/>
 			<menuseparator/>
 			<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
-			<menuitem oncommand="DontprintBrowser.configureDontprint();" label="&dontprint.configureMenuItemLabel;"/>
+			<menuitem oncommand="DontprintBrowser.getDontprint().openSettings();" label="&dontprint.configureMenuItemLabel;"/>
 		</menupopup>
 	</popupset>
 	
@@ -67,7 +67,7 @@
 				<menuitem oncommand="DontprintBrowser.getDontprint().dontprintLocalFile();" label="Send a local PDF document to e-reader..."/>
 				<menuseparator/>
 				<menuitem oncommand="DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
-				<menuitem oncommand="DontprintBrowser.configureDontprint();" label="&dontprint.configureMenuItemLabel;"/>
+				<menuitem oncommand="DontprintBrowser.getDontprint().openSettings();" label="&dontprint.configureMenuItemLabel;"/>
 			</menupopup>
 		</menu>
 	</menupopup>
@@ -89,7 +89,7 @@
 					oncommand="DontprintBrowser.getDontprint().showProgress();"/>
 				<toolbarbutton class="subviewbutton"
 					label="&dontprint.configureMenuItemLabel;"
-					oncommand="DontprintBrowser.configureDontprint();"/>
+					oncommand="DontprintBrowser.getDontprint().openSettings();"/>
 			</vbox>
 		</panelview>
 	</panelmultiview>

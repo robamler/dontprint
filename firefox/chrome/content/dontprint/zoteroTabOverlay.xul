@@ -17,7 +17,7 @@
 			<menuitem oncommand="Dontprint_ZoteroTabOverlay.DontprintBrowser.dontprintZoteroSelection(event,true);" label="Dontprint attached PDF with custom settings..."/>
 			<menuseparator/>
 			<menuitem oncommand="Dontprint_ZoteroTabOverlay.DontprintBrowser.getDontprint().showProgress();" label="&dontprint.showProgressMenuItemLabel;"/>
-			<menuitem oncommand="Dontprint_ZoteroTabOverlay.DontprintBrowser.configureDontprint();" label="&dontprint.configureMenuItemLabel;"/>
+			<menuitem oncommand="Dontprint_ZoteroTabOverlay.DontprintBrowser.getDontprint().openSettings();" label="&dontprint.configureMenuItemLabel;"/>
 		</menupopup>
 	</popupset>
 </overlay>

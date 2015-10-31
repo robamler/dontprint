@@ -357,7 +357,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					title:		"Dontprint test document",
 					jobType:	"test",
 					pdfurl:		"http://dontprint.net/test-documents/" + ret.ereaderModel + ".pdf",
-					tmpFiles:	[],
 					callback:	callback //TODO: call this at end of job
 				});
 			}
