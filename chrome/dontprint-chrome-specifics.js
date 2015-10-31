@@ -11,34 +11,34 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 		let naclProgressListener = null;
 		let errorState = null;
 		let naclStarted = false;
-		let naclListenerDiv = bgpage.document.createElement("div");
 
-		naclListenerDiv.addEventListener("error", function(evt) {
+		job.naclListenerDiv = bgpage.document.createElement("div");
+		job.naclListenerDiv.addEventListener("error", function(evt) {
 			errorState = "Unable to load k2pdfopt.";
 			if (naclErrCallback !== null) {
 				naclErrCallback(errorState);
 			}
 		}, true);
-		naclListenerDiv.addEventListener("load", function(evt) {
+		job.naclListenerDiv.addEventListener("load", function(evt) {
 			naclModuleLoaded = true;
 		}, true);
-		naclListenerDiv.addEventListener("crash", function(evt) {
+		job.naclListenerDiv.addEventListener("crash", function(evt) {
 			errorState = "K2pdfopt crashed.";
 			if (naclErrCallback !== null) {
 				naclErrCallback(errorState);
 			}
 		}, true);
-		naclListenerDiv.addEventListener("message", onNaclMessage, true);
+		job.naclListenerDiv.addEventListener("message", onNaclMessage, true);
 
 		let naclModule = bgpage.document.createElement("embed");
-		naclListenerDiv.appendChild(naclModule);
+		job.naclListenerDiv.appendChild(naclModule);
 		naclModule.setAttribute("width", 0);
 		naclModule.setAttribute("height", 0);
 		naclModule.setAttribute("path", ".");
 		naclModule.setAttribute("src", "k2pdfopt/k2pdfopt.nmf");
 		naclModule.setAttribute("type", "application/x-pnacl");
 
-		bgpage.document.getElementsByTagName("body")[0].appendChild(naclListenerDiv);
+		bgpage.document.getElementsByTagName("body")[0].appendChild(job.naclListenerDiv);
 
 		return runK2pdfopt;
 
@@ -70,7 +70,7 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 				// convert progress bar to show remaining NaCl load progress.
 				waitedForNacl = true;
 				let firstLoadStatus = null;
-				naclListenerDiv.addEventListener("progress", function(evt) {
+				job.naclListenerDiv.addEventListener("progress", function(evt) {
 					if (!naclStarted && evt.lengthComputable && evt.total>0) {
 						if (firstLoadStatus === null) {
 							firstLoadStatus = evt.loaded;
@@ -84,6 +84,11 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 			if (errorState !== null) {
 				throw errorState;
 			}
+
+			// Add the final file to job.tmpFiles already now so that if
+			// conversion crashes or is canceled, the file will be removed
+			// during cleanup.
+			job.tmpFiles.push("converted" + job.id + ".pdf");
 
 			try {
 				yield new Promise(function(resolve, reject) {
@@ -116,7 +121,8 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 				}
 			} finally {
 				delete job.abortCurrentTask;
-				naclListenerDiv.parentNode.removeChild(naclListenerDiv);
+				job.naclListenerDiv.parentNode.removeChild(job.naclListenerDiv);
+				delete job.naclListenerDiv;
 				// Event listeners are freed automatically
 			}
 		}
@@ -196,4 +202,10 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 		// Assumes the file is in the user's "Downloads" directory
 		chrome.downloads.showDefaultFolder();
 	};
+
+
+	Dontprint.notifyJobStarted = Zotero.Connector_Browser.dontprintJobStarted;
+
+
+	Dontprint.notifyJobDone = Zotero.Connector_Browser.dontprintJobDone;
 });

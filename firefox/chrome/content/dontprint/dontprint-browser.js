@@ -180,10 +180,10 @@ window.DontprintBrowser = (function() {
 	
 	
 	function cancelJobForThisPage() {
-		let identifierurl = gBrowser.selectedBrowser.contentDocument.location.href;
-		let jobs = Dontprint.getRunningJobs();
+		let pageurl = gBrowser.selectedBrowser.contentDocument.location.href;
+		let jobs = Dontprint.getAllRunningJobs();
 		for (let jobid in jobs) {
-			if (jobs[jobid].identifierurl === identifierurl) {
+			if (jobs[jobid].pageurl === pageurl) {
 				Dontprint.abortJob(jobid);
 			}
 		}
@@ -236,7 +236,7 @@ window.DontprintBrowser = (function() {
 		if (registeredZoteroButtons.indexOf(btn) === -1) {
 			registeredZoteroButtons.push(btn);
 		}
-		updateQueueLength(Dontprint.getQueueLength());
+		updateQueueLength();
 	}
 	
 	
@@ -249,8 +249,10 @@ window.DontprintBrowser = (function() {
 	}
 	
 	
-	function updateQueueLength(queuelength) {
+	function updateQueueLength() {
 		clearInterval(idleAnimationTimer);
+		queuelength = Dontprint.getNumberOfRunningJobs();
+
 		if (queuelength === 0) {
 			if (zoteroInstalled) {
 				dontprintFromZoteroBtn.style.MozImageRegion = "rect(0px 16px 16px 0px)";
@@ -323,7 +325,7 @@ window.DontprintBrowser = (function() {
 		}
 		
 		// update the status icons
-		alreadyProcessing = false; //TODO: showDontprintIcon && Dontprint.isQueuedUrl(gBrowser.selectedBrowser.contentDocument.location.href);
+		alreadyProcessing = showDontprintIcon && Dontprint.isQueuedUrl(gBrowser.selectedBrowser.contentDocument.location.href);
 		dontprintThisPageImg.hidden = !(showDontprintIcon && !alreadyProcessing);
 		dontprintProgressImg.hidden = !(showDontprintIcon && alreadyProcessing);
 	}
@@ -351,16 +353,16 @@ window.DontprintBrowser = (function() {
 
 
 	return {
-		init: init,
-		registerZoteroTab: registerZoteroTab,
-		unregisterZoteroTab: unregisterZoteroTab,
-		dontprintZoteroSelection: dontprintZoteroSelection,
-		dontprintThisPage: dontprintThisPage,
-		cancelJobForThisPage: cancelJobForThisPage,
-		updateQueueLength: updateQueueLength,
-		onStatusPopupShowing: onStatusPopupShowing,
-		onDontprintMenuShow: onDontprintMenuShow,
-		configureDontprint: configureDontprint,
+		init,
+		registerZoteroTab,
+		unregisterZoteroTab,
+		dontprintZoteroSelection,
+		dontprintThisPage,
+		cancelJobForThisPage,
+		onStatusPopupShowing,
+		onDontprintMenuShow,
+		configureDontprint,
+		updateQueueLength,
 		getDontprint: function() { return Dontprint; }
 	};
 }());

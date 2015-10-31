@@ -3,6 +3,8 @@
 PlatformTools.registerMainComponent("Dontprint", function() {
 	const DATABASE_VERSION = "20150627";
 	var runningJobs = {};
+	var runningJobsCnt = 0;
+	var queuedUrls = {};
 	var journaldb = null;
 	var progressListeners = new Set();
 	var Dontprint = null;
@@ -30,6 +32,8 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		zoteroTranslatorDone,
 		getJobFromId,
 		getAllRunningJobs,
+		getNumberOfRunningJobs,
+		isQueuedUrl,
 		addProgressListener,
 		removeProgressListener,
 		cropPageDone,
@@ -100,6 +104,16 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 	function getAllRunningJobs() {
 		return runningJobs;
+	}
+
+
+	function getNumberOfRunningJobs() {
+		return runningJobsCnt;
+	}
+
+
+	function isQueuedUrl(url) {
+		return queuedUrls[url.split("#")[0]] !== undefined;
 	}
 
 
@@ -225,6 +239,11 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 
 	function onMessageExternal(request, sender, sendResponse) {
+		if (sender && sender.id) {
+			// Attempted cross-extension message; deny for security reasons
+			return;
+		}
+
 		let func;
 		let parts = request.call.split(".");
 		if (parts[0] === "PlatformTools") {
@@ -464,36 +483,46 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	function cleanupJob(job) {
 		if (!job.cleaned) {
 			job.cleaned = true;
+
 			delete runningJobs[job.id];
 			if (job.pageurl) {
-				Zotero.Connector_Browser.dontprintJobDone(job); // TODO: this is chrome specific
+				let strippedurl = job.pageurl.split("#")[0];
+				if (queuedUrls[strippedurl] === job.id) {
+					delete queuedUrls[strippedurl];
+				}
 			}
+			runningJobsCnt--;
+			Dontprint.notifyJobDone(job);
 
-			if (job.naclModule) {
-				job.naclModule.parentNode.parentNode.removeChild(job.naclModule.parentNode);
-				delete job.naclModule;
+			if (job.naclListenerDiv) {
+				job.naclListenerDiv.parentNode.removeChild(job.naclListenerDiv);
+				delete job.naclListenerDiv;
 				// Event listeners are freed automatically
 			}
-			// TODO: rerender pageaction if job.jobType === "page"
 
 			PlatformTools.rmTmpFiles(job.tmpFiles);
 		}
 	}
 
 
-// 	// ==== LIFE CYCLE OF A DONTPRINT JOB ===========================
 	function runJob(job) {
 		job.id = Date.now();
 		while (job.id in runningJobs) {
 			job.id++;
 		}
 		runningJobs[job.id] = job;
+		if (job.pageurl) {
+			queuedUrls[job.pageurl.split("#")[0]] = job.id;
+		}
+		runningJobsCnt++;
 		
 		job.downloadProgress = 0;
 		job.convertProgress = 0;
 		job.uploadProgress = 0;
 		job.tmpFiles = [];
 		updateJobState(job, "queued");
+
+		Dontprint.notifyJobStarted(job);
 
 		PlatformTools.spawn(function*() {
 			try {
@@ -530,7 +559,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				} else {
 					yield cropMargins(job);
 					yield convertDocument(job, k2pdfopt, preferredFinalFilename);
-					job.tmpFiles.push(job.finalFile);
 				}
 
 				if (job.transferMethod === "email") {
@@ -565,7 +593,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				}
 			} finally {
 				try {
-					let newtab = null;
 					if (job.state === "canceled" || (!job.result.success && job.result.message === "canceled")) {
 						try {
 							updateJobState(job, "canceled");
@@ -1035,8 +1062,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			args = args.concat(job.crop.k2pdfoptParams.split(/\s+/));
 		}
 		
-		job.tmpFiles.push("converted" + job.id + ".pdf");
-
 		yield k2pdfopt(args, preferredFinalFilename, function(progress) {
 			job.convertProgress = progress;
 			updateJobState(job);

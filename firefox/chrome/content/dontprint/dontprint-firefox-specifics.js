@@ -210,6 +210,15 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 			let finalFile = FileUtils.getFile("TmpD", [preferredFinalFilename]);
 			finalFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
 
+			// Add job.finalFile to job.tmpFiles already now so that if
+			// conversion crashes or is canceled, the file will be removed
+			// during cleanup.
+			job.finalFile = {
+				fullPath: finalFile.path,
+				mozFile: finalFile
+			};
+			job.tmpFiles.push(job.finalFile);
+
 			let prefs = yield Dontprint.platformTools.getPrefs({
 				k2pdfoptPath: ""
 			});
@@ -236,7 +245,7 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 							lines.forEach(function(line) {
 								let m = line.match(/^SOURCE PAGE \d+ \((\d+) of (\d+)\)/);
 								if (m !== null && m[2]!=0) { // no typo: we want to use != instead of !== in second condition
-									progressListener(m[1] / (m[2] + 1));
+									progressListener(parseInt(m[1]) / (parseInt(m[2]) + 1));
 								}
 							});
 						},
@@ -260,10 +269,6 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 					});
 					job.abortCurrentTask = p.kill.bind(p);
 				});
-				job.finalFile = {
-					fullPath: finalFile.path,
-					mozFile: finalFile
-				};
 			} finally {
 				delete job.abortCurrentTask;
 			}
@@ -366,4 +371,18 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 		file.initWithPath(path);
 		file.reveal();
 	};
+
+
+	Dontprint.notifyJobStarted = function(job) {
+		let enumerator = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+			.getService(Components.interfaces.nsIWindowMediator)
+			.getEnumerator("navigator:browser");
+		while (enumerator.hasMoreElements()) {
+			let win = enumerator.getNext();
+			win.DontprintBrowser.updateQueueLength();
+		}
+	};
+
+
+	Dontprint.notifyJobDone = Dontprint.notifyJobStarted;
 }());

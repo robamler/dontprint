@@ -16,7 +16,8 @@ if (typeof PlatformTools === "undefined") { //TODO
 		downloadTmpFile,
 		debug,
 		xhr,
-		postFile
+		postFile,
+		rmTmpFiles
 	};
 
 	for (let i in publicInterface) {
@@ -152,6 +153,28 @@ if (typeof PlatformTools === "undefined") { //TODO
 			return Promise.resolve();
 		} catch (e) {
 			return Promise.reject(e);
+		}
+	}
+
+
+	function rmTmpFiles(files) {
+		try {
+			files.forEach(function(file) {
+				if (typeof file === "string") {
+					let path = file;
+					file = Components.classes["@mozilla.org/file/local;1"]
+							.createInstance(Components.interfaces.nsILocalFile);
+					file.initWithPath(path);
+				} else if (file.mozFile) {
+					file = file.mozFile;
+				}
+				if (file.exists()) {
+					file.remove(false);
+				}
+			});
+			return Promise.resolve();
+		} catch (e) {
+			return Promise.reject();
 		}
 	}
 }());
