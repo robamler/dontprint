@@ -1,7 +1,6 @@
 "use strict";
 
 Components.utils.import("resource://gre/modules/Timer.jsm");
-Components.utils.import("resource://EXTENSION/subprocess.jsm");
 
 (function() {
 	let Dontprint = PlatformTools.getMainComponent();
@@ -15,6 +14,8 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 	});
 
 	Components.utils.import("resource://EXTENSION/subprocess.jsm");
+	var prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+					.getService(Components.interfaces.nsIPromptService);
 
 
 	Dontprint.initOnPlatform = function() {
@@ -432,5 +433,133 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 				});
 			}
 		}
+	};
+
+
+	/**
+	 * Called when the user clicks the dontprint button in the Zotero pane.
+	 */
+	Dontprint.dontprintZoteroItems = function(items, forceCropWindow) {
+		// Create structure of all zotero "items" of which we want to dontprint
+		// at least one attachment. Items are indexed by their ID. To each item
+		// ID, we store a list of explicitly selected attachments, if any.
+		let itemmap = {};
+		for (let i=0; i<items.length; i++) {
+			let it = items[i];
+			let itemid = undefined;
+			let attachment = undefined;
+			if (it.isAttachment() && it.attachmentMIMEType === 'application/pdf') {
+				itemid = it.getSource();
+				attachment = it;
+			} else {
+				// Get ID of parent item (if, e.g., a note was selected) or of
+				// the selected item itself.
+				itemid = it.getSource() || it.id;
+			}
+			
+			if (itemid !== undefined) {
+				if (itemmap[itemid] === undefined) {
+					itemmap[itemid] = (attachment === undefined) ? [] : [attachment];
+				} else if (attachment !== undefined) {
+					itemmap[itemid].push(attachment);
+				}
+				// else do nothing (both the item and one of its attachments were selected)
+			}
+		}
+		
+		// Add first attachment to each item for which no attachment was explicitly selected
+		let noattach = [];
+		for (let id in itemmap) {
+			let val = itemmap[id];
+			if (val.length === 0) {
+				let attachs = Dontprint.Zotero.Items.get(id).getAttachments(false);
+				for (let j=0; j<attachs.length; j++) {
+					let attach = Dontprint.Zotero.Items.get(attachs[j]);
+					if (attach.attachmentMIMEType === 'application/pdf') {
+						val.push(attach);
+						break;
+					}
+				}
+				if (val.length === 0) {
+					noattach.push(id);
+					delete itemmap[id];
+				}
+			}
+		}
+		
+		// generate list of all meta data
+		let jobs = [];
+		for (let id in itemmap) {
+			let attachs = itemmap[id];
+			let i = Dontprint.Zotero.Items.get(id);
+			
+			// Note that item.getCreators() returns something different than
+			// what the "itemDone" handler of translators return. Apparently,
+			// Zotero manages a table of all creators of all stored items and
+			// therefore saves creators as references to the stored items.
+			// Here, we bring the job.aritcleCreators in the same form as for
+			// jobs of type "page" and make it JSONifyable (i.e., explicitly
+			// call the JavaScript getters for firstName and lastName).
+			let creators = [];
+			try {
+				creators = i.getCreators().map(function(c) {
+					return {
+						firstName: c.ref.firstName,
+						lastName:  c.ref.lastName
+					};
+				});
+			} catch (e) { } // fall back to empty array for creators
+			
+			for (let j=0; j<attachs.length; j++) {
+				// Note that if several attachments of the same item where selected,
+				// the corresponding jobs share the "creators" object. I.e., modifying
+				// job.articleCreators in one job will modify it in the others, too.
+				// But we never modify job.articleCreators, so this should not be an issue.
+				let file = attachs[j].getFile();
+				if (!file) {
+					prompts.alert(null, "Dontprint", "Error: Cannot find file for attachment to article \"" + i.getField('title') + "\".");
+					return;
+				}
+				jobs.push({
+					jobType:			"zotero",
+					title:				i.getField("title"),
+					journalLongname:	i.getField("publicationTitle"),
+					journalShortname:	i.getField("journalAbbreviation"),
+					pageurl:			i.getField("url"),
+					doi:				i.getField("DOI"),
+					articleDate:		i.getField("date"),
+					articleVolume:		i.getField("volume"),
+					articleIssue:		i.getField("issue"),
+					articlePages:		i.getField("pages"),
+					articleCreators:	creators,
+					forceCropWindow:	forceCropWindow,
+					origPdfFile: {
+						fullPath: file.path,
+						mozFile: file,
+						toURL: function() { return "file://" + file.path; }
+					}
+				});
+			}
+		}
+		
+		if (noattach.length !== 0) {
+			prompts.alert(
+				null,
+				"Dontprint",
+				"The following selected items cannot be sent to your e-reader because they do not have an attached PDF file:\n\n" +
+				noattach.map(function(id) {
+					return Dontprint.Zotero.Items.get(id).getField('title');
+				}).join("\n")
+			);
+		}
+		
+		if (jobs.length === 0) {
+			prompts.alert(null, "Dontprint", "Error: No documents sent to your e-reader. Select an item with an attached PDF file and try again.");
+			return;
+		}
+		
+		jobs.forEach(function(job) {
+			Dontprint.runJob(job);
+		});
 	};
 }());

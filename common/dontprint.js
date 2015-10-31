@@ -286,39 +286,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	}
 	
 	
-// 	function dontprintLocalFile() { //TODO
-// 		let Dontprint = Components.classes['@robamler.github.com/dontprint;1']
-// 						.getService().wrappedJSObject;
-// 		let win = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-// 			.getService(Components.interfaces.nsIWindowMediator)
-// 			.getMostRecentWindow("navigator:browser");
-		
-// 		let nsIFilePicker = Components.interfaces.nsIFilePicker;
-// 		let fp = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
-// 		fp.addToRecentDocs = true;
-// 		fp.init(win, "Pick a PDF document to send to your e-reader", nsIFilePicker.modeOpenMultiple);
-// 		fp.appendFilter("PDF documents", "*.pdf");
-// 		fp.appendFilters(nsIFilePicker.filterAll);
-		
-// 		if (fp.show() === nsIFilePicker.returnOK) {
-// 			let files = fp.files;
-// 			while (files.hasMoreElements())  {
-// 				let file = files.getNext().QueryInterface(Components.interfaces.nsILocalFile);
-// 				let m = file.leafName.match(/^(.*)\.pdf$/i);
-// 				let title = m ? m[1] : file.leafName;
-// 				Dontprint.runJob({
-// 					jobType:			"localfile",
-// 					title:				title,
-// 					journalLongname:	"",
-// 					journalShortname:	"",
-// 					originalFilePath:	file.path,
-// 					tmpFiles:			[]
-// 				});
-// 			}
-// 		}
-// 	}
-	
-	
 	function abortJob(jobId) {
 		let job = runningJobs[jobId];
 		try {
@@ -692,7 +659,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		let job = runningJobs[jobId];
 		job.title = checkUndefined(item.title, "Untitled document");
 		job.articleCreators = item.creators;
-		job.authorsStr = getAuthorsString(item.creators);
 		job.journalLongname = checkUndefined(item.publicationTitle);
 		job.journalShortname = checkUndefined(item.journalAbbreviation);
 		job.doi = checkUndefined(item.DOI);
@@ -1195,34 +1161,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			return creator.lastName;
 		}
 		return creator.firstName + " " + creator.lastName
-	}
-
-
-	function getAuthorsString(creators) {
-		switch (creators.length) {
-		case 0:
-			throw "error";
-		
-		case 1:
-			return formatName(creators[0]);
-		
-		case 2:
-			// two authors, separated by " and " without a comma
-			return formatName(creators[0]) + " and " + formatName(creators[1]);
-		
-		case 3: //FALLTHRU
-		case 4:
-			// comma separated list, with comma before the ", and "
-			var authorsStr = "";
-			for (var i=0; i<creators.length-1; i++) {
-				authorsStr += formatName(creators[i]) + ", ";
-			}
-			authorsStr += "and " + formatName(creators[creators.length-1]);
-			return authorsStr;
-		
-		default: // too many authors to list them all
-			return formatName(creators[0]) + " et al.";
-		}
 	}
 
 
