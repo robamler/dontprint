@@ -8,7 +8,8 @@ if (typeof PlatformTools === "undefined") {
 (function() {
 	var publicInterface = {
 		openTab,
-		closeTab
+		closeTab,
+		highlightTab
 	};
 
 	for (let i in publicInterface) {
@@ -49,7 +50,6 @@ if (typeof PlatformTools === "undefined") {
 
 
 	function openTab(options) {
-		let absUrl = PlatformTools.extensionScriptUrl(options.url);
 		let openerTab = options.openerTab;
 
 		if (!openerTab) {
@@ -60,7 +60,7 @@ if (typeof PlatformTools === "undefined") {
 		}
 
 		if (options.singleton) {
-			let queryUrl = stripHash(absUrl);
+			let queryUrl = stripHash(options.url);
 
 			// Check if tab is already displayed.
 			if (stripHash(browserForTab(openerTab).contentWindow.location.href) === queryUrl) {
@@ -96,12 +96,19 @@ if (typeof PlatformTools === "undefined") {
 		}
 
 		return Promise.resolve(windowForTab(openerTab).gBrowser.loadOneTab(
-			absUrl, { inBackground: !!options.inBackground }
+			options.url, { inBackground: !!options.inBackground }
 		));
 	}
 
 
 	function closeTab(tab) {
 		browserForTab(tab).contentWindow.close();
+	}
+
+
+	function highlightTab(tab) {
+		let win = windowForTab(tab);
+		win.gBrowser.selectedTab = tab;
+		win.focus();
 	}
 }());

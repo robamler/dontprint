@@ -3,7 +3,11 @@
 /**
  * Assumes that the state never moves backward.
  */
-function updateJobUi(job, uistate, hideSoon, removeItem, onDone) {
+function updateJobUi(job, uistate, hideSoon, removeItem, onDone, Dontprint) {
+	if (job.state === "closed") {
+		removeItem(job.id);
+	}
+
 	if (uistate.jobNode.hasClass("complete")) {
 		return;
 	}
@@ -39,7 +43,12 @@ function updateJobUi(job, uistate, hideSoon, removeItem, onDone) {
 		case "error":
 			uistate.jobNode.addClass("complete");
 			uistate.jobNode.append($('<div class="error">An error occured. <input type="button" value="details"></div>'));
-			uistate.jobNode.find("input").click(Dontprint.raiseErrorTab.bind(undefined, job.id)); // TODO
+			uistate.jobNode.find("input").click(function() {
+				// Don't use ".click(Dontprint.platformTools.highlightTab.bind(job.resultTab))"
+				// because job.resultTab will probably be set
+				// only after execution of this code.
+				Dontprint.platformTools.highlightTab(job.resultTab);
+			});
 			onDone(job.id);
 			break;
 
@@ -59,11 +68,6 @@ function updateJobUi(job, uistate, hideSoon, removeItem, onDone) {
 			uistate.jobNode.append($('<div class="canceled">The job has been canceled on your request.</div>'));
 			onDone(job.id);
 			hideSoon(job.id);
-			break;
-
-		case "closed":
-			onDone(job.id);
-			removeItem(job.id);
 			break;
 
 		default:

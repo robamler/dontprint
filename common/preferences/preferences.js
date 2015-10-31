@@ -28,7 +28,7 @@ $(function() {
 			verifiedEmails: [],
 			neverReportJournalSettings: false,
 			otherEreaderModel: "",
-			k2pdfoptParams: "",
+			k2pdfoptAdditionalParams: "",
 			k2pdfoptPath: "",
 			k2pdfoptPlatform: "unknown",
 			postTransferCommandEnabled: false,
@@ -246,7 +246,7 @@ $(function() {
 			email = $("#recipientEmailPrefix").val() + suffix;
 		}
 
-		var verified = dp.prefs.verifiedEmails.indexOf(email) !== -1;
+		var verified = dp.prefs.verifiedEmails.indexOf(email.toLowerCase()) !== -1;
 		if (verified) {
 			$("#verificationStatus").addClass("verificationStatusOk");
 			$("#verificationProgress,#verificationCodeContainer").hide();
@@ -550,7 +550,7 @@ $(function() {
 
 	function initAdvancedPane() {
 		attachPref("checked", "neverReportJournalSettings");
-		attachPref("value", "k2pdfoptParams");
+		attachPref("value", "k2pdfoptAdditionalParams");
 
 		if (Dontprint.platformTools.platform === "firefox") {
 			attachPref("value", "k2pdfoptPath");

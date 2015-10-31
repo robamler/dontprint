@@ -25,72 +25,43 @@ window.DontprintBrowser = (function() {
 			Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 			isInPrivateBrowsingMode = PrivateBrowsingUtils.isContentWindowPrivate(gBrowser.selectedBrowser.contentWindow);
 		} catch(e) { }
-		
+
 		dontprintThisPageImg = document.getElementById("dontprint-status-image");
 		dontprintProgressImg = document.getElementById("dontprint-progress-image");
 
-		// Add event listener types for result pages
-		gBrowser.addEventListener("DontprintResultPageCallbackEvent", function(e) {
-			if (
-				e.originalTarget instanceof HTMLDocument &&
-				e.originalTarget.location.hostname === "dontprint.net"
-			) {
-				Dontprint.initResultPage(e);
-			}
-		}, false, true);
-		
-		gBrowser.addEventListener("DontprintCloseEvent", function(e) {
-			if (
-				e.originalTarget instanceof HTMLDocument &&
-				e.originalTarget.location.hostname === "dontprint.net"
-			) {
-				e.originalTarget.defaultView.close();
-			}
-		}, false, true);
-		
-		gBrowser.addEventListener("DontprintChangePrefEvent", function(e) {
-			if (
-				e.originalTarget.ownerDocument instanceof HTMLDocument &&
-				e.originalTarget.ownerDocument.location.hostname === "dontprint.net"
-			) {
-				Dontprint.getPrefs().setBoolPref("successPageInBackground", e.target.checked);
-			}
-		}, false, true);
-		
-		gBrowser.addEventListener("DontprintShowOrRevealFile", function(e) {
-			if (
-				e.originalTarget.ownerDocument instanceof HTMLDocument &&
-				e.originalTarget.ownerDocument.location.hostname === "dontprint.net"
-			) {
-				let filePath = e.target.getAttribute("dontprint_filepath");
-				let file = Components.classes["@mozilla.org/file/local;1"]
-							.createInstance(Components.interfaces.nsIFile);
-				file.initWithPath(filePath);
-				if (e.target.id === "showFile") {
-					file.launch();
-				} else {
-					file.reveal();
-				}
-			}
-		}, false, true);
-
-		gBrowser.addEventListener("GetDontprintVersion", function(e) {
+		gBrowser.addEventListener("DontprintMessageEvent", function(e) {
 			if (
 				e.originalTarget instanceof HTMLDocument &&
 				(e.originalTarget.location.hostname === "dontprint.net" ||
 				e.originalTarget.location.hostname === "www.dontprint.net")
 			) {
-				Components.utils.import("resource://gre/modules/AddonManager.jsm");
-				AddonManager.getAddonByID("dontprint@robamler.github.com", function(addon) {
-					e.originalTarget.dispatchEvent(
-						new e.originalTarget.defaultView.CustomEvent(
-							"DontprintVersionEvent", {detail: addon.version}
-						)
-					);
-				});
+				if (e.detail.call === "closeCallingTab") {
+					e.originalTarget.defaultView.close();
+				} else {
+					Dontprint.onMessageExternal(e.detail, undefined, function(response) {
+						if (typeof response !== undefined) {
+							// Apparently, when dispatching an event on a non-
+							// priviliged web page from priviliged code, we can
+							// set the event detail only to a scalar value.
+							// Therefore, we have to JSONify the response.
+							// Oddly, in the reverse direction, the event
+							// detail can be any JSONifyable value.
+							e.originalTarget.dispatchEvent(
+								new e.originalTarget.defaultView.CustomEvent(
+									"DontprintResponseEvent",
+									{
+										detail: JSON.stringify({
+											returningFrom: e.detail.call,
+											response: response
+										})
+									}
+								)
+							);
+						}
+					});
+				}
 			}
 		}, false, true);
-
 
 		Dontprint.initOnPlatform();
 
@@ -377,8 +348,8 @@ window.DontprintBrowser = (function() {
 			return new Zotero_Browser.Tab(browser);
 		}
 	}
-	
-	
+
+
 	return {
 		init: init,
 		registerZoteroTab: registerZoteroTab,

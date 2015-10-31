@@ -183,4 +183,17 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 			);
 		});
 	};
+
+
+	Dontprint.showFile = function(path) {
+		PlatformTools.openTab({
+			url: "file://" + path
+		});
+	};
+
+
+	Dontprint.revealFile = function() {
+		// Assumes the file is in the user's "Downloads" directory
+		chrome.downloads.showDefaultFolder();
+	};
 });

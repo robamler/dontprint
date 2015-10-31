@@ -61,11 +61,13 @@ $(function() {
 		}
 		var item = items[job.id];
 		if (item === undefined) {
-			addJob(job);
+			if (job.state !== "closed") {
+				addJob(job);
+			}
 			return;
 		}
 
-		updateJobUi(job, item, hideSoon, removeItem, function(){});
+		updateJobUi(job, item, hideSoon, removeItem, function(){}, Dontprint);
 	}
 
 

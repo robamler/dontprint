@@ -8,7 +8,8 @@ if (window.PlatformTools === undefined) {
 (function() {
 	var publicInterface = {
 		openTab,
-		closeTab
+		closeTab,
+		highlightTab
 	};
 
 	for (let i in publicInterface) {
@@ -34,8 +35,9 @@ if (window.PlatformTools === undefined) {
 	 * the same URL is opened or the existing tab is reused.
 	 * @param  {object} options
 	 *         An object with the following parameters:
-	 *         * url: A (relative or absolute) URL to display in the
-	 *           new tab
+	 *         * url: An absolute URL to display in the new tab. You may
+	 *           find PlatformTools.extensionScriptUrl() useful to create
+	 *           this url.
 	 *         * openerTab: [optional] Tab (on chrome: tab id) from
 	 *           which the action that provoked this call was initiated.
 	 *           If a new tab will be opened, then it will be placed
@@ -59,8 +61,6 @@ if (window.PlatformTools === undefined) {
 	 */
 	function openTab(options) {
 		return PlatformTools.spawn(function*() {
-			let absUrl = PlatformTools.extensionScriptUrl(options.url);
-
 			let openerTab = yield new Promise(function(res, rej) {
 				if (typeof options.openerTab !== "undefined") {
 					chrome.tabs.get(options.openerTab, res); 
@@ -71,7 +71,7 @@ if (window.PlatformTools === undefined) {
 
 			if (options.singleton) {
 				let existing = yield new Promise(function(res, rej) {
-					let queryUrl = stripHash(absUrl);
+					let queryUrl = stripHash(options.url);
 					let queryargs = {
 						url: [queryUrl, queryUrl + "#*"]
 					};
@@ -100,13 +100,20 @@ if (window.PlatformTools === undefined) {
 							windowId: existing[0].windowId,
 							tabs: existing[0].index
 						});
+						chrome.windows.update(
+							existing[0].windowId,
+							{
+								focused: true,
+								drawAttention: true
+							}
+						);
 					}
 					return existing[0].id;
 				}
 			}
 
 			let openargs = {
-				url: absUrl,
+				url: options.url,
 				active: !options.inBackground,
 			};
 			if (openerTab) {
@@ -128,5 +135,28 @@ if (window.PlatformTools === undefined) {
 	 */
 	function closeTab(tabId) {
 		chrome.tabs.remove(tabId);
+	}
+
+
+	/**
+	 * Bring a given tab to the front.
+	 * @param  {integer} tabId
+	 *         The tab that should be selected. On chrome, tabs are referenced by their
+	 *         integer tab id. On other platforms, this parameter may have a different type.
+	 */
+	function highlightTab(tabId) {
+		chrome.tabs.get(tabId, function(tab) {
+			chrome.tabs.highlight({
+				windowId: tab.windowId,
+				tabs: tab.index
+			});
+			chrome.windows.update(
+				tab.windowId,
+				{
+					focused: true,
+					drawAttention: true
+				}
+			);
+		});
 	}
 }());

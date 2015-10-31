@@ -115,7 +115,7 @@ $(function() {
 
 
 	function updateJob(job) {
-		updateJobUi(job, uistate, noop, noop, onDone);
+		updateJobUi(job, uistate, noop, noop, onDone, Dontprint);
 	}
 
 

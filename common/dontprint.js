@@ -33,11 +33,12 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		addProgressListener,
 		removeProgressListener,
 		cropPageDone,
-		resultPageLoaded,
 		sendVerificationCode,
 		verifyEmailAddress,
 		dontprintArticleFromPage,
 		connectPopupToJob,
+		connectToResultPage,
+		resultPageClosed,
 		openSettings,
 		showProgress,
 		abortJob,
@@ -46,7 +47,8 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		deleteJournalSettings,
 		sendScreenSettings,
 		isTransferMethodValid,
-		getEreaderModelDefaults
+		getEreaderModelDefaults,
+		onMessageExternal
 	};
 
 
@@ -179,6 +181,10 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		// Make platformTools available to scripts that connect to this one
 		this.platformTools = PlatformTools;
 
+		if (PlatformTools.platform === "chrome") {
+			chrome.runtime.onMessageExternal.addListener(onMessageExternal);
+		}
+
 		PlatformTools.openSqlDatabase({
 			filename: "dontprint/db3.sqlite",
 			dbname: "journaldb",
@@ -203,7 +209,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			if (!prefs.ereaderModel || !isTransferMethodValid(prefs) || (PlatformTools.platform === "firefox" && prefs.k2pdfoptPlatform === "")) {
 				Dontprint.welcomeScreenId = Date.now();
 				PlatformTools.openTab({
-					url: "common/welcome/dontprint-welcome.html#" + Dontprint.welcomeScreenId,
+					url: PlatformTools.extensionScriptUrl("common/welcome/dontprint-welcome.html#" + Dontprint.welcomeScreenId),
 					singleton: true,
 					globalSingleton: true
 				});
@@ -215,6 +221,23 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				Dontprint.downloadK2pdfopt(prefs);
 			}
 		});
+	}
+
+
+	function onMessageExternal(request, sender, sendResponse) {
+		let func;
+		let parts = request.call.split(".");
+		if (parts[0] === "PlatformTools") {
+			func = PlatformTools[parts[1]];
+		} else {
+			func = Dontprint[parts[0]];
+		}
+		let args = request.args || [];
+		if (typeof func === "function") {
+			sendResponse(func.apply(Dontprint, args));
+		} else if (request.call === "closeCallingTab") {
+			PlatformTools.closeTab(sender.tab.id);
+		}
 	}
 
 
@@ -291,7 +314,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	
 	function showProgress(openerTabId) {
 		PlatformTools.openTab({
-			url: "common/progress/progress.html",
+			url: PlatformTools.extensionScriptUrl("common/progress/progress.html"),
 			openerTab: openerTabId,
 			singleton: true
 		});
@@ -300,7 +323,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	
 	function openSettings(openerTabId) {
 		PlatformTools.openTab({
-			url: "common/preferences/preferences.html",
+			url: PlatformTools.extensionScriptUrl("common/preferences/preferences.html"),
 			openerTab: openerTabId,
 			singleton: true,
 			globalSingleton: true
@@ -345,7 +368,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			return true;
 		} else if (prefs.transferMethod === "email") {
 			let email = prefs.recipientEmailSuffix === "other" ? prefs.recipientEmailOther : prefs.recipientEmailPrefix + prefs.recipientEmailSuffix;
-			return prefs.verifiedEmails.indexOf(email) !== -1;
+			return prefs.verifiedEmails.indexOf(email.toLowerCase()) !== -1;
 		} else {
 			return false;
 		}
@@ -426,7 +449,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	
 	function rememberVerifiedEmail(email) {
 		return PlatformTools.getPrefs({verifiedEmails: []}).then(function(prefs) {
-			let em = email.toLocaleLowerCase();
+			let em = email.toLowerCase();
 			if (prefs.verifiedEmails.indexOf(em) !== -1) {
 				return;
 			}
@@ -537,6 +560,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					success: false,
 					message: e.toString()
 				};
+				if (e instanceof HtmlErrorMessage) {
+					job.result.messageIsTrustedHtml = true;
+				}
 			} finally {
 				try {
 					let newtab = null;
@@ -547,16 +573,23 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 							// job.state is already "canceled". That's OK.
 						}
 					} else {
-						newtab = yield displayResult(job);
+						yield displayResult(job);
 					}
 	// 				if (job.jobType === 'test') {  TODO
-	// 					job.callback(newtab);
+	// 					job.callback(job.resultTab);
 	// 				}
 				} finally {
 					cleanupJob(job);
 				}
 			}
 		});
+	}
+
+
+	function HtmlErrorMessage(message) {
+		this.toString = function() {
+			return message;
+		};
 	}
 
 
@@ -707,18 +740,18 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		// yield Dontprint.postTranslate(job);  TODO
 
 		let bestFilter = yield journaldb.transaction(function*(sql) {
-			let dates = parseDateString(job.articleDate);
+			job.dates = parseDateString(job.articleDate);
 			try {
 				if (job.journalLongname) {
 					var longnameresult = (yield sql(
 						"SELECT * FROM journals WHERE longname=? AND (minDate=0 OR minDate<=?) AND (maxDate=0 OR maxDate>=?) ORDER BY priority DESC, lastModified DESC LIMIT 1",
-						[job.journalLongname, dates.small, dates.large]
+						[job.journalLongname, job.dates.small, job.dates.large]
 					)).rows;
 				}
 				if (job.journalShortname) {
 					var shortnameresult = (yield sql(
 						"SELECT * FROM journals WHERE shortname=? AND (minDate=0 OR minDate<=?) AND (maxDate=0 OR maxDate>=?) ORDER BY priority DESC, lastModified DESC LIMIT 1",
-						[job.journalShortname, dates.small, dates.large]
+						[job.journalShortname, job.dates.small, job.dates.large]
 					)).rows;
 				}
 			} catch (e) {
@@ -797,7 +830,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 			try {
 				cropTab = yield PlatformTools.openTab({
-					url: "common/pdfcrop/pdfcrop.html#" + job.id,
+					url: PlatformTools.extensionScriptUrl("common/pdfcrop/pdfcrop.html#" + job.id),
 					openerTab: job.tabId
 				});
 				job.crop = yield cropPromise;
@@ -1015,6 +1048,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		updateJobState(job, "sending");
 		
 		job.recipientEmail = yield getRecipientEmail();
+		job.emailedFilename = preferredFinalFilename;
 		var url = buildURL(
 			"http://dontprint.net/cgi-bin/send-document.pl",
 			{
@@ -1041,8 +1075,20 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 						job.result = req.response;
 						if (job.result.success) {
 							resolve(job.result);
+						} else if (job.result.errno === 1) {
+							reject(new HtmlErrorMessage('The e-mail address you set in the preferences is invalid. Please go to the <a href="#" data-rpc="openSettings">Dontprint preferences</a> and make sure that the you set the correct e-mail address.'));
 						} else if (job.result.errno === 3) {
-							reject('The e-mail address of your e-reader is not verified yet. Please choose "Tools --> Dontprint --> Configure Dontprint" and verify your e-mail address.'); //TODO: adjust text to Chrome
+							PlatformTools.getPrefs({
+								verifiedEmails: []
+							}).then(function(prefs) {
+								return PlatformTools.setPrefs({
+									verifiedEmails: prefs.verifiedEmails.filter(function(x) {
+										return x !== job.recipientEmail.toLowerCase();
+									})
+								});
+							}).then(function() {
+								reject(new HtmlErrorMessage('The e-mail address of your e-reader is not verified yet. Please go to the <a href="#" data-rpc="openSettings">Dontprint preferences</a>, make sure that the you set the correct e-mail address and then click the button labeled "Send verification code now".'));
+							});
 						} else {
 							reject(job.result.message);
 						}
@@ -1074,24 +1120,37 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			successPageInBackground: false
 		});
 
-		let newtab = yield PlatformTools.openTab({
-			url: "common/resultpage/" + job.transferMethod + "/" + job.state + ".html#" + job.id,
+		// Include all valid information in job.result (this is necessary because
+		// on Firefox, we cannot communicate the whole job object to the page as
+		// it contains cyclic references)
+		["articleCreators", "articleIssue", "articlePages", "articleVolume", "dates", "doi", "emailedFilename", "id", "jobType", "journalLongname", "journalShortname", "pageurl", "recipientEmail", "state", "title"].forEach(function(key) {
+			job.result[key] = job[key];
+		});
+		
+		job.resultTab = yield PlatformTools.openTab({
+			url: "http://dontprint.net/resultpage2/" + (job.result.success ? job.transferMethod : "error") + ".html#" + (prefs.successPageInBackground ? "1," : "0,") + job.id,
 			openerTab: job.tabId,
 			inBackground: prefs.successPageInBackground && job.result.success
 		});
 
-		// yield new Promise(function(res, rej) {
-		// 	job.resultPageCallback = res;
-		// });
-
-		return newtab;
+		yield new Promise(function(res, rej) {
+			job.resultPageCallback = res;
+		});
 	}
 
 
-	function resultPageLoaded(jobId, sendResponse) {
+	function connectToResultPage(jobId) {
 		let job = runningJobs[jobId];
-		sendResponse(job);
-		job.resultPageCallback();
+		if (job && job.resultPageCallback) {
+			job.resultPageCallback();
+			return job.result;
+		}
+	}
+
+
+	function resultPageClosed(jobId) {
+		// Create a new fake job object, since the original one is already cleaned up
+		updateJobState({id: jobId}, "closed");
 	}
 
 

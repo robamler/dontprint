@@ -350,4 +350,20 @@ Components.utils.import("resource://EXTENSION/subprocess.jsm");
 			}
 		});
 	};
+
+
+	Dontprint.showFile = function(path) {
+		let file = Components.classes["@mozilla.org/file/local;1"]
+					.createInstance(Components.interfaces.nsIFile);
+		file.initWithPath(path);
+		file.launch();
+	};
+
+
+	Dontprint.revealFile = function(path) {
+		let file = Components.classes["@mozilla.org/file/local;1"]
+					.createInstance(Components.interfaces.nsIFile);
+		file.initWithPath(path);
+		file.reveal();
+	};
 }());
