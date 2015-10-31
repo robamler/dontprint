@@ -1,5 +1,27 @@
 #!/bin/bash
 
+if ! diff -qr ../dependencies/zotero-connectors/build/chrome zotero-connector > /dev/null ; then
+	cat << EOF >&2
+ERROR: the directories
+    ../dependencies/zotero-connectors/build/chrome
+and
+    zotero-connector
+are different. Building Dontprint for Google Chrome would overwrite the
+directory zotero-connector. Make sure to copy all changes in this
+directory to
+    ../dependencies/zotero-connectors/src/chrome
+or
+    ../dependencies/zotero-connectors/src/common
+before building Dontprint for Google Chrome. To see a list of changes
+that would be overwritten, run
+    diff -r ../dependencies/zotero-connectors/build/chrome zotero-connector
+EOF
+	exit 1
+fi
+
+
+./package-translators.py
+
 rm -r zotero-connector
 cd ../dependencies/zotero-connectors/
 ./build.sh
