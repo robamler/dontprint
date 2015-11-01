@@ -98,7 +98,6 @@ window.DontprintBrowser = (function() {
 				const loader = Components.classes["@mozilla.org/moz/jssubscript-loader;1"]
 								.getService(Components.interfaces.mozIJSSubScriptLoader);
 				loader.loadSubScript("chrome://dontprint/content/adapted-from-zotero/browser.js");
-
 				// Register a listener to changes in the visibility of the "Dontprint this page" icon
 				Zotero_Browser.updateStatusCallback = updateDontprintIconVisibility;
 			}
@@ -162,14 +161,18 @@ window.DontprintBrowser = (function() {
 				tabId:              Zotero_Browser.tabbrowser.selectedTab
 			});
 		} else {		
-			let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
+			let page = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser).getPageObject();
+			if (!translator) {
+				translator = page.translators[0];
+			}
 			Dontprint.runJob({
 				jobType:			"page",
 				title:				"Retrieving article meta data...",
 				translator:			translator,
 				forceCropWindow:	!!forceCropWindow,
 				pageurl:			url,
-				tab:				tab,
+				translator:			translator,
+				translateDocument:	page.translate.document,
 				tabId:              Zotero_Browser.tabbrowser.selectedTab
 			});
 		}
@@ -208,7 +211,7 @@ window.DontprintBrowser = (function() {
 		let numtranslators = 0;
 		try {
 			let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-			let translators = tab.page.translators;
+			let translators = tab.getPageObject().translators;
 			for (let i=0, n=translators.length; i<n; i++) {
 				let translator = translators[i];
 				
@@ -319,9 +322,9 @@ window.DontprintBrowser = (function() {
 		// If no PDF document is displayed, try Zotero's translators.
 		if (!showDontprintIcon) {
 			try {
-				let tab = _getTabObject(Zotero_Browser.tabbrowser.selectedBrowser);
-				if (tab && tab.page.translators && tab.page.translators.length) {
-					let itemType = tab.page.translators[0].itemType;
+				let page = _getTabObject(gBrowser.selectedBrowser).getPageObject();
+				if (page && page.translators && page.translators.length) {
+					let itemType = page.translators[0].itemType;
 					if (itemType && itemTypeBlacklist.indexOf(itemType) === -1) {
 						showDontprintIcon = true;
 					}

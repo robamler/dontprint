@@ -608,18 +608,12 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		// TODO: Set job.abortCurrentTask
 		try {
 			if (PlatformTools.platform === "firefox") {
-				if (!job.tab || !job.tab.page.translators || !job.tab.page.translators.length) {
-					throw "No translators available for this web site.";
-				}
-
 				let translate = new Dontprint.Zotero.Translate.Dontprint();
-				job.document = job.tab.page.translate.document;
-				translate.setDocument(job.tab.page.translate.document);
-				translate.setTranslator(job.translator || job.tab.page.translators[0]);
-				delete job.translator;
-				delete job.tab;
 				translate.clearHandlers("done");
 				translate.clearHandlers("itemDone");
+				translate.setDocument(job.translateDocument);
+				translate.setTranslator(job.translator);
+				delete job.translator;
 				
 				var metaDataPromise = new Promise(
 					function(resolve, reject) {

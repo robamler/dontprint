@@ -19,10 +19,10 @@
  *    postProcessor continues and eventually throws new Task.Result(true)
  *    to stop Dontprint from applying any further postProcessors.
  * 2. Catch any necessary data and add or change attributes of job.
- *    If job.jobType==='page', job.document is set to a html document.
+ *    If job.jobType==='page', job.translateDocument is set to a html document.
  *    This may be used in postProcessing. For other jobTypes, the document
  *    needs to be fetched and the fetched document should be stored in
- *    job.document for other postProcessors in case this postProcessor
+ *    job.translateDocument for other postProcessors in case this postProcessor
  *    still fails.
  *    The following attributes of job may be added or changed:
  *    - journalLongname, journalShortname: will be used when searching the
@@ -65,8 +65,8 @@ function* arxivPostTranslator(job) {
 		job.crop.enabled = false;
 	};
 
-	if (yield getDocumentForJob(job)) {  // make sure job.document is set
-		let jrefElements = job.document.getElementsByClassName("jref");
+	if (yield getDocumentForJob(job)) {  // make sure job.translateDocument is set
+		let jrefElements = job.translateDocument.getElementsByClassName("jref");
 		if (jrefElements.length === 1) {
 			let m = jrefElements[0].textContent.match(/^[^0-9,(]+/);
 			if (m) {
@@ -116,13 +116,13 @@ Dontprint.postTranslate = function*(job) {
 
 
 /**
- * Utility function; makes sure that job.document is set. If it isn't, this
+ * Utility function; makes sure that job.translateDocument is set. If it isn't, this
  * function catches the document from job.pageurl.
- * @return true on success (also if job.document was already set),
+ * @return true on success (also if job.translateDocument was already set),
  *         false on failure
  */
 function* getDocumentForJob(job) {
-	if (job.document) {
+	if (job.translateDocument) {
 		// document already set; do nothing.
 		return true;
 	}
@@ -132,7 +132,7 @@ function* getDocumentForJob(job) {
 	}
 	
 	try {
-		job.document = yield new Promise(function(resolve, reject) {
+		job.translateDocument = yield new Promise(function(resolve, reject) {
 			var req = new XMLHttpRequest();
 			req.open("GET", job.pageurl, true);
 			req.responseType = "document";
