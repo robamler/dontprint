@@ -268,37 +268,66 @@ $(function() {
 		}
 		filename += ".pdf";
 
-		chrome.downloads.download(
-			{
-				url: "http://dontprint.net/test-documents/chrome/measurement-only/" + ModelPicker.selection + ".pdf",
-				filename,
-				conflictAction: "uniquify",
-				saveAs: true
-			},
-			function(downloadId) {
-				if (downloadId === undefined) {
-					screensizeHelper.text("Error while downloading an auxiliary file. Are you connected to the internet?");
-				} else {
-					var interval = setInterval(
-						function() {
-							chrome.downloads.search(
-								{id: downloadId},
-								function(downloadItems) {
-									var item = downloadItems[0];
-									if (item.state === "complete") {
-										clearInterval(interval);
-										screensizeHelper.text("Dontprint just downloaded the following file: \"" + item.filename.match(/[^\\/]+$/) + "\". Transfer this document to your e-reader in order to measure its screen size (you can also do this at a later time).");
-									} else if (item.totalBytes > 0) {
-										screensizeHelper.text("Downloading measurement document (" + Math.round(100*item.bytesReceived/item.totalBytes) + "% done)...");
+		if (Dontprint.platformTools.platform === "chrome") {
+			chrome.downloads.download(
+				{
+					url: "http://dontprint.net/test-documents/chrome/measurement-only/" + ModelPicker.selection + ".pdf",
+					filename,
+					conflictAction: "uniquify",
+					saveAs: true
+				},
+				function(downloadId) {
+					if (downloadId === undefined) {
+						screensizeHelper.text("Error while downloading an auxiliary file. Are you connected to the internet?");
+					} else {
+						var interval = setInterval(
+							function() {
+								chrome.downloads.search(
+									{id: downloadId},
+									function(downloadItems) {
+										var item = downloadItems[0];
+										if (item.state === "complete") {
+											clearInterval(interval);
+											screensizeHelper.text("Dontprint just downloaded the following file: \"" + item.filename.match(/[^\\/]+$/) + "\". Transfer this document to your e-reader in order to measure its screen size (you can also do this at a later time).");
+										} else if (item.totalBytes > 0) {
+											screensizeHelper.text("Downloading measurement document (" + Math.round(100*item.bytesReceived/item.totalBytes) + "% done)...");
+										}
 									}
-								}
-							);
+								);
+							},
+							500
+						);
+					}
+				}
+			);
+		} else if (Dontprint.platformTools.platform === "firefox") {
+			Components.utils.import("resource://gre/modules/FileUtils.jsm");
+			Components.utils.import("resource://gre/modules/Downloads.jsm");
+
+			var destFile = FileUtils.getFile("Desk", [filename]);
+			destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+
+			download = Downloads.createDownload({
+				source: "http://dontprint.net/test-documents/firefox/measurement-only/" + ModelPicker.selection + ".pdf",
+				target: destFile
+			}).then(
+				function success(download) {
+					download.onchange = function() {
+						screensizeHelper.text("Downloading measurement document (" + Math.round(download.progress) + "% done)...");
+					};
+
+					download.start().then(
+						function succ() {
+							download.onchange = undefined;
+							screensizeHelper.text("Dontprint just downloaded the following file to your Desktop: \"" + destFile.leafName + "\". Transfer this document to your e-reader in order to measure its screen size (you can also do this at a later time).");
 						},
-						500
+						function err() {
+							screensizeHelper.text("Error while downloading an auxiliary file. Are you connected to the internet?");
+						}
 					);
 				}
-			}
-		);
+			);
+		}
 	}
 
 

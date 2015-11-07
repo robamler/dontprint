@@ -324,20 +324,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	}
 
 
-	function sendTestEmail(callback) {
-		PlatformTools.getPrefs({ereaderModel: "other"}).then(
-			function(ret) {
-				runJob({
-					title:		"Dontprint test document",
-					jobType:	"test",
-					pdfurl:		"http://dontprint.net/test-documents/" + ret.ereaderModel + ".pdf",
-					callback:	callback //TODO: call this at end of job
-				});
-			}
-		);
-	}
-	
-	
 	function* getRecipientEmail() {
 		let prefs = yield PlatformTools.getPrefs({
 			recipientEmailPrefix: "",
@@ -401,7 +387,10 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					};
 					req.open("POST", "http://dontprint.net/cgi-bin/send-verification-mail.pl", true);
 					req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-					req.send(buildURL("", {email}));
+					req.send(buildURL("", {
+						email,
+						platform: PlatformTools.platform
+					}));
 				} catch (e) {
 					reject(e);
 				}
