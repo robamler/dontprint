@@ -1,9 +1,0 @@
-row, hbox { -moz-box-align: center; }
-label.text-link { border:none; margin:0 }
-prefwindow { width:60em; }
-#otherEmailRow { margin-bottom:1ex; }
-prefpane > .content-box {overflow: -moz-hidden-unscrollable;} /* workaround a bug in firefox */
-#journal-list > .builtin { opacity:.8 }
-#verificationStatusLabel { background-repeat:no-repeat; background-position:left center; padding-left:22px }
-.verificationOk { background-image:url(check.png) }
-.verificationNotOk { background-image:url(warning.png); font-weight:bold; color:#710900 }
