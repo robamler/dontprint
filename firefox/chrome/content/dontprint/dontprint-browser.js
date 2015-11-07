@@ -12,8 +12,6 @@ window.DontprintBrowser = (function() {
 	var zoteroInstalled = undefined;
 	var oldZoteroBrowserTab;
 	
-	const itemTypeBlacklist = ["multiple", "blogPost", "forumPost", "presentation", "webpage"];
-	
 	// PUBLIC FUNCTIONS ===========================================	
 	
 	function init() {
@@ -325,7 +323,7 @@ window.DontprintBrowser = (function() {
 				let page = _getTabObject(gBrowser.selectedBrowser).getPageObject();
 				if (page && page.translators && page.translators.length) {
 					let itemType = page.translators[0].itemType;
-					if (itemType && itemTypeBlacklist.indexOf(itemType) === -1) {
+					if (itemType && Dontprint.itemTypeBlacklist.indexOf(itemType) === -1) {
 						showDontprintIcon = true;
 					}
 				}

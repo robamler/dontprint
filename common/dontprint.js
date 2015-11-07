@@ -2,6 +2,8 @@
 
 PlatformTools.registerMainComponent("Dontprint", function() {
 	const DATABASE_VERSION = "20150627";
+	const DONTPRINT_VERSION = "1.1beta";
+	const itemTypeBlacklist = ["multiple", "encyclopediaArticle", "blogPost", "forumPost", "presentation", "webpage"];
 	var runningJobs = {};
 	var runningJobsCnt = 0;
 	var queuedUrls = {};
@@ -52,7 +54,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		sendScreenSettings,
 		isTransferMethodValid,
 		getEreaderModelDefaults,
-		onMessageExternal
+		onMessageExternal,
+		aboutDontprint,
+		itemTypeBlacklist
 	};
 
 
@@ -266,6 +270,14 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		} else if (request.call === "closeCallingTab") {
 			PlatformTools.closeTab(sender.tab.id);
 		}
+	}
+
+
+	function aboutDontprint() {
+		return {
+			version: DONTPRINT_VERSION,
+			platform: PlatformTools.platform
+		};
 	}
 
 

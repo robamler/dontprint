@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if ! diff -qr ../dependencies/zotero-connectors/build/chrome zotero-connector > /dev/null ; then
+if [ -d zotero-connector ] && ! diff -qr ../dependencies/zotero-connectors/build/chrome zotero-connector > /dev/null ; then
 	cat << EOF >&2
 ERROR: the directories
     ../dependencies/zotero-connectors/build/chrome
@@ -15,6 +15,8 @@ or
 before building Dontprint for Google Chrome. To see a list of changes
 that would be overwritten, run
     diff -r ../dependencies/zotero-connectors/build/chrome zotero-connector
+Once you are confident that the directory zotero-connector doesn't contain
+any important code, remove the directory and run the build script again.
 EOF
 	exit 1
 fi
