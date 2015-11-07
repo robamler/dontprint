@@ -36,7 +36,7 @@ $(function() {
 
 		if (!job || job.state !== "cropping") {
 			// tab was reloaded from session restore or reopened after it was already closed.
-			// close();
+			close();
 		}
 		
 		// Initialize DOM elements

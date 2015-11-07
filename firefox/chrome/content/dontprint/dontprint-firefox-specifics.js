@@ -76,6 +76,10 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 
 			zoteroInstalledResolveFunction(zoteroInstalled);
 		});
+
+		let context = {PlatformTools};
+		loader.loadSubScript("chrome://dontprint/content/common/post-translation.js", context, "UTF-8");
+		Dontprint.postTranslate = context.postTranslate;
 	}
 
 

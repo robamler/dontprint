@@ -22,6 +22,7 @@
 			"platform-tools/sql.js",
 			"platform-tools/tabs.js",
 			"common/dontprint.js",
+			"common/post-translation.js",
 			"dontprint-chrome-specifics.js"
 		],
 		"persistent": true

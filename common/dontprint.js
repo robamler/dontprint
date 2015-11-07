@@ -517,6 +517,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 				if (job.jobType === "page") {
 					yield runZoteroTranslator(job);
+					yield Dontprint.postTranslate(job);
 				}
 
 				if (job.pdfurl) {
@@ -733,8 +734,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			job.journalShortname = "";
 		}
 		
-		// yield Dontprint.postTranslate(job);  TODO
-
 		let bestFilter = yield journaldb.transaction(function*(sql) {
 			job.dates = parseDateString(job.articleDate);
 			try {

@@ -206,6 +206,7 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 
 	Dontprint.notifyJobStarted = Zotero.Connector_Browser.dontprintJobStarted;
 
-
 	Dontprint.notifyJobDone = Zotero.Connector_Browser.dontprintJobDone;
+
+	Dontprint.postTranslate = postTranslate;
 });
