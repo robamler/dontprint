@@ -196,6 +196,10 @@ $(function() {
 		});
 		$("#privacyLink").click(showPrivacyTooltip);
 		$("#overlay,#closePrivacyTooltip").click(hidePrivacyTooltip);
+		$("#privacySettingsLink").click(function(e) {
+			e.preventDefault();
+			Dontprint.openSettings(undefined, "advanced");
+		});
 		$(window).unload(windowUnload);
 
 		resize();

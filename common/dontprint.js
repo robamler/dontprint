@@ -314,9 +314,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	}
 	
 	
-	function openSettings(openerTabId) {
+	function openSettings(openerTabId, pane) {
 		PlatformTools.openTab({
-			url: PlatformTools.extensionScriptUrl("common/preferences/preferences.html"),
+			url: PlatformTools.extensionScriptUrl("common/preferences/preferences.html") + (pane ? "#" + pane : ""),
 			openerTab: openerTabId,
 			singleton: true,
 			globalSingleton: true
