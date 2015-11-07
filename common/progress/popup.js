@@ -7,7 +7,8 @@ $(function() {
 	};
 	var hashdata = location.hash.substr(1).split("|");
 	var tabId = parseInt(hashdata[0]);
-	var jobId = parseInt(hashdata[1]);
+	var jobType = hashdata[1];
+	var jobId = parseInt(hashdata[2]);
 	var uistate = null;
 	var exportedFunctions = {//TODO
 		updateJob
@@ -75,7 +76,25 @@ $(function() {
 		chrome.tabs.get(
 			tabId,
 			function (tab) {
-				Dontprint.dontprintArticleFromPage(tab.url, tabId, tab.windowId, onPopupConnected, updateJob);
+				let job = {
+					jobType,
+					pageurl: tab.url.split("#")[0],
+					tabId,
+					windowId: tab.windowId,
+					progressListener: updateJob,
+					popupConnector: onPopupConnected
+				};
+
+				if (jobType === "page") {
+					job.title = "Retrieving article meta data...";
+				} else if (jobType === "pdfurl") {
+					let m = tab.url.match(/\/([^/]+?)(\.pdf)?\/?([#?].*)?$/);
+					job.title = m ? m[1] : "Unknown title";
+					job.forceCropWindow = true;
+					job.pdfurl = tab.url;
+				}
+
+				Dontprint.runJob(job);
 			}
 		);
 	}

@@ -41,7 +41,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		cropPageDone,
 		sendVerificationCode,
 		verifyEmailAddress,
-		dontprintArticleFromPage,
 		connectPopupToJob,
 		connectToResultPage,
 		resultPageClosed,
@@ -160,19 +159,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			let req = PlatformTools.xhr();
 			req.open("GET", url, true);
 			req.send();
-		});
-	}
-
-
-	function dontprintArticleFromPage(pageurl, tabId, windowId, onConnected, listener) {
-		Dontprint.runJob({
-			jobType: "page",
-			pageurl: pageurl.split("#")[0],
-			tabId,
-			windowId,
-			title: "Retrieving article meta data...",
-			progressListener: listener,
-			popupConnector: onConnected
 		});
 	}
 
@@ -500,6 +486,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		runningJobs[job.id] = job;
 		if (job.pageurl) {
 			queuedUrls[job.pageurl.split("#")[0]] = job.id;
+		}
+		if (PlatformTools.platform === "chrome" && typeof job.tabId !== "undefined") {
+			Zotero.Connector_Browser.dontprintRegisterJobId(job);
 		}
 		runningJobsCnt++;
 		
