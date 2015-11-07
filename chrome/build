@@ -29,5 +29,6 @@ cd ../dependencies/zotero-connectors/
 ./build.sh
 cd ../../chrome
 cp -r ../dependencies/zotero-connectors/build/chrome/ zotero-connector
+rm -r zotero-connector/Icon-*.png zotero-connector/images zotero-connector/preferences zotero-connector/itemSelector
 
 ./mk-manifest.py
