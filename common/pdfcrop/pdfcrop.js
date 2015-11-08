@@ -32,7 +32,7 @@ $(function() {
 	
 	PlatformTools.getMainComponentInternally("Dontprint", "@robamler.github.com/dontprint;1").then(function(dp) {
 		Dontprint = dp;
-		job = Dontprint.getJobFromId(parseInt(location.hash.substr(1)));
+		job = Dontprint.getJobFromId(parseInt(location.hash.substr(1), 10));
 
 		if (!job || job.state !== "cropping") {
 			// tab was reloaded from session restore or reopened after it was already closed.

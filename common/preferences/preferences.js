@@ -737,7 +737,7 @@ $(function() {
 		var alldefaults = true;
 		function checkChange(el, preference) {
 			if (el.get(0).validity.valid) {
-				modelSettings[modname][preference] = parseInt(el.val());
+				modelSettings[modname][preference] = parseInt(el.val(), 10);
 			}
 			if (modelSettings[modname][preference] != defs[preference]) {
 				alldefaults = false;

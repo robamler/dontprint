@@ -266,7 +266,7 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 							lines.forEach(function(line) {
 								let m = line.match(/^SOURCE PAGE \d+ \((\d+) of (\d+)\)/);
 								if (m !== null && m[2]!=0) { // no typo: we want to use != instead of !== in second condition
-									progressListener(parseInt(m[1]) / (parseInt(m[2]) + 1));
+									progressListener(parseInt(m[1], 10) / (parseInt(m[2], 10) + 1));
 								}
 							});
 						},

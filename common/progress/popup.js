@@ -6,9 +6,9 @@ $(function() {
 		directory: '<div class="success">Document successfully converted and saved.</div>'
 	};
 	var hashdata = location.hash.substr(1).split("|");
-	var tabId = parseInt(hashdata[0]);
+	var tabId = parseInt(hashdata[0], 10);
 	var jobType = hashdata[1];
-	var jobId = parseInt(hashdata[2]);
+	var jobId = parseInt(hashdata[2], 10);
 	var uistate = null;
 	var exportedFunctions = {//TODO
 		updateJob
