@@ -211,6 +211,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 		PlatformTools.getPrefs({
 			ereaderModel: "",
+			kindleModel: "",
 			transferMethod: "",
 			recipientEmailPrefix: "",
 			recipientEmailSuffix: "",
@@ -219,6 +220,14 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			k2pdfoptPlatform: "",
 			k2pdfoptPath: ""
 		}).then(function(prefs) {
+			if (!prefs.ereaderModel && prefs.kindleModel !== "") {
+				// On Firefox, migrate from (old and poorly named) option
+				// "kindleModel" to new option "ereaderModel"
+				prefs.ereaderModel = prefs.kindleModel === "other" ? "other" : "kindle-" + prefs.kindleModel;
+				PlatformTools.setPrefs({
+					ereaderModel: prefs.ereaderModel
+				})
+			}
 			if (!prefs.ereaderModel || !isTransferMethodValid(prefs) || (PlatformTools.platform === "firefox" && prefs.k2pdfoptPlatform === "")) {
 				Dontprint.welcomeScreenId = Date.now();
 				PlatformTools.openTab({
