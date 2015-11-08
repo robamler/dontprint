@@ -85,6 +85,12 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 				throw errorState;
 			}
 
+			try {
+				var authorsStr = getAuthorsString(job.articleCreators);
+			} catch (e) {
+				authorsStr = "";
+			}
+
 			// Add the final file to job.tmpFiles already now so that if
 			// conversion crashes or is canceled, the file will be removed
 			// during cleanup.
@@ -107,7 +113,7 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 						]),
 						options: {
 							title: job.title,
-							author: job.authorsStr === undefined ? "" : job.authorsStr
+							author: authorsStr
 						}
 					});
 				});
@@ -209,4 +215,42 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 	Dontprint.notifyJobDone = Zotero.Connector_Browser.dontprintJobDone;
 
 	Dontprint.postTranslate = postTranslate;
+
+
+	function getAuthorsString(creators) {
+		switch (creators.length) {
+		case 0:
+			throw "error";
+		
+		case 1:
+			return formatName(creators[0]);
+		
+		case 2:
+			// two authors, separated by " and " without a comma
+			return formatName(creators[0]) + " and " + formatName(creators[1]);
+		
+		case 3: //FALLTHRU
+		case 4:
+			// comma separated list, with comma before the ", and "
+			var authorsStr = "";
+			for (var i=0; i<creators.length-1; i++) {
+				authorsStr += formatName(creators[i]) + ", ";
+			}
+			authorsStr += "and " + formatName(creators[creators.length-1]);
+			return authorsStr;
+		
+		default: // too many authors to list them all
+			return formatName(creators[0]) + " et al.";
+		}
+	}
+
+	function formatName(creator) {
+		if (!creator.lastName) {
+			throw "error";
+		}
+		if (!creator.firstName) {
+			return creator.lastName;
+		}
+		return creator.firstName + " " + creator.lastName
+	}
 });

@@ -1067,7 +1067,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 						if (job.result.success) {
 							resolve(job.result);
 						} else if (job.result.errno === 1) {
-							reject(new HtmlErrorMessage('The e-mail address you set in the preferences is invalid. Please go to the <a href="#" data-rpc="openSettings">Dontprint preferences</a> and make sure that the you set the correct e-mail address.'));
+							reject(new HtmlErrorMessage('The e-mail address you set in the preferences is invalid. Please go to the <a href="#" data-rpc="openSettings">Dontprint preferences</a> and make sure that you set the correct e-mail address.'));
 						} else if (job.result.errno === 3) {
 							PlatformTools.getPrefs({
 								verifiedEmails: []
@@ -1078,7 +1078,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 									})
 								});
 							}).then(function() {
-								reject(new HtmlErrorMessage('The e-mail address of your e-reader is not verified yet. Please go to the <a href="#" data-rpc="openSettings">Dontprint preferences</a>, make sure that the you set the correct e-mail address and then click the button labeled "Send verification code now".'));
+								reject(new HtmlErrorMessage('The e-mail address of your e-reader is not verified yet. Please go to the <a href="#" data-rpc="openSettings">Dontprint preferences</a>, make sure that you set the correct e-mail address and then click the button labeled "Send verification code now".'));
 							});
 						} else {
 							reject(job.result.message);
@@ -1142,17 +1142,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	function resultPageClosed(jobId) {
 		// Create a new fake job object, since the original one is already cleaned up
 		updateJobState({id: jobId}, "closed");
-	}
-
-
-	function formatName(creator) {
-		if (!creator.lastName) {
-			throw "error";
-		}
-		if (!creator.firstName) {
-			return creator.lastName;
-		}
-		return creator.firstName + " " + creator.lastName
 	}
 
 
