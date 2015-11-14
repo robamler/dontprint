@@ -252,7 +252,13 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 
 			try {
 				yield new Promise(function(resolve, reject) {
-					let p = subprocess.call({
+					let p;
+					let timer = setTimeout(function() {
+						reject("Timeout while trying to optimize the article layout. This may mean that Dontprint was unable to download the article. Maybe it is behind a captcha. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again.");
+						p.kill();
+					}, 300000); // 5 minutes (until first page must be processed)
+
+					p = subprocess.call({
 						command: prefs.k2pdfoptPath,
 						workdir: job.origPdfFile.mozFile.parent.path,
 						arguments: args.concat([
@@ -266,6 +272,7 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 							lines.forEach(function(line) {
 								let m = line.match(/^SOURCE PAGE \d+ \((\d+) of (\d+)\)/);
 								if (m !== null && m[2]!=0) { // no typo: we want to use != instead of !== in second condition
+									clearTimeout(timer);
 									progressListener(parseInt(m[1], 10) / (parseInt(m[2], 10) + 1));
 								}
 							});
@@ -273,12 +280,16 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 						stderr: function(data) {
 							if (k2pdfoptError.length < 500) {
 								k2pdfoptError += data;
+								if (k2pdfoptError.indexOf("error: cannot recognize version marker") !== -1) {
+									reject("Conversion failed. This may mean that Dontprint was unable to download the article. Maybe it is behind a captcha. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again.");
+									p.kill();
+								}
 							}
 						},
 						done: function(result) {
 							if (result.exitCode) {
 								if (job.jobType === "page") {
-									reject("Conversion failed. This may mean that Dontprint was unable to download the article. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again. Original error message: " + k2pdfoptError);
+									reject("Conversion failed. This may mean that Dontprint was unable to download the article. Maybe it is behind a captcha. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again. Original error message: " + k2pdfoptError);
 								} else {
 									reject("Conversion failed with error message: " + k2pdfoptError);
 								}

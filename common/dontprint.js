@@ -617,11 +617,13 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		let translatorPromise = new Promise(function(resolve, reject) {
 			job.translatorSuccess = resolve;
 			job.translatorFail = reject;
+			job.abortCurrentTask = reject.bind(undefined, "canceled");
 		});
 
-		// TODO: Set a timeout and cancel translation attempt if it
-		// doesn't seem to work.
-		// TODO: Set job.abortCurrentTask
+		setTimeout(function() {
+			job.translatorFail("Timeout while trying to retrieve article meta data. Are you connected to the internet?");
+		}, 120000); // 2 minutes
+
 		try {
 			if (PlatformTools.platform === "firefox") {
 				let translate = new Dontprint.Zotero.Translate.Dontprint();
@@ -631,11 +633,9 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				translate.setTranslator(job.translator);
 				delete job.translator;
 				
-				var metaDataPromise = new Promise(
-					function(resolve, reject) {
-						translate.dontprintSetDoneHandler(resolve);
-					}
-				);
+				translate.dontprintSetDoneHandler(function(item) {
+					zoteroTranslatorDone(job.id, item);
+				});
 				
 				translate.setHandler("error", function(obj, error) {
 					job.translatorFail("Unable to download article. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again. Original error message: " + error.toString());
@@ -646,11 +646,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 
 				//TODO: test what happens when user clicks "save to zotero" shortly after clicking "dontprint" (or vice versa)
 				translate.translate(null);
-
-				job.abortCurrentTask = job.translatorFail.bind(undefined, "canceled");
-
-				let item = yield metaDataPromise;
-				zoteroTranslatorDone(job.id, item);
 			} else {
 				Zotero.Connector_Browser.dontprintRunZoteroTranslator(job);
 			}
@@ -717,18 +712,32 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		}
 
 		try {
-			var file = yield PlatformTools.downloadTmpFile(
+			let timer;
+			let timeoutPromise = new Promise(function(resolve, reject) {
+				timer = setTimeout(
+					reject.bind(undefined, -1),
+					300000 // 5 minutes (until progress listener must be called with non-zero progress)
+				);
+			});
+			let downloadPromise = PlatformTools.spawn(
+				PlatformTools.downloadTmpFile,
 				job.pdfurl,
 				"original" + job.id + ".pdf",
 				function(progress) {
+					if (progress > 0) {
+						clearTimeout(timer);
+					}
 					job.downloadProgress = progress;
 					updateJobState(job);
 				}
 			);
+			var file = yield Promise.race([downloadPromise, timeoutPromise]);
 		} catch (e) {
-			if (typeof e === "number") {
+			if (e === -1) {
+				throw "Timeout while trying to download article. Maybe it is behind a captcha. (Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again.)";
+			} else if (typeof e === "number") {
 				throw "Unable to download article. Maybe it is behind a captcha. (Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again.)";
-			} else {throw e;
+			} else {
 				throw "Error downloading PDF file. Are you connected to the internet? Original error message: " + e.toString();
 			}
 		}

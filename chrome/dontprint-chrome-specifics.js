@@ -121,7 +121,7 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 				job.finalFile = yield PlatformTools.getTmpFile("converted" + job.id + ".pdf");
 			} catch (e) {
 				if (job.jobType === 'page') {
-					throw "Conversion failed. This may mean that Dontprint was unable to download the article. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again.";
+					throw "Conversion failed. This may mean that Dontprint was unable to download the article. Maybe it is behind a captcha. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again.";
 				} else {
 					throw "Conversion failed";
 				}
