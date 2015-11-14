@@ -1134,15 +1134,17 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			job.result[key] = job[key];
 		});
 		
+		let resultPagePromise = new Promise(function(res, rej) {
+			job.resultPageCallback = res;
+		});
+
 		job.resultTab = yield PlatformTools.openTab({
 			url: "http://dontprint.net/resultpage2/" + (job.result.success ? job.transferMethod : "error") + ".html#" + (prefs.successPageInBackground ? "1," : "0,") + job.id,
 			openerTab: job.tabId,
 			inBackground: prefs.successPageInBackground && job.result.success
 		});
 
-		yield new Promise(function(res, rej) {
-			job.resultPageCallback = res;
-		});
+		yield resultPagePromise;
 	}
 
 
