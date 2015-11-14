@@ -1,5 +1,16 @@
 "use strict";
 
+chrome.runtime.onInstalled.addListener(function(info) {
+	chrome.runtime.getBackgroundPage(function(bgpage) {
+		var interval = setInterval(function() {
+			if (bgpage.Dontprint && bgpage.Dontprint.loadK2pdfoptIntoCache) {
+				clearInterval(interval);
+				bgpage.Dontprint.loadK2pdfoptIntoCache();
+			}
+		}, 500);
+	});
+});
+
 chrome.runtime.getBackgroundPage(function(bgpage) {
 	var Dontprint = bgpage.Dontprint;
 
@@ -107,7 +118,7 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 					// "load" event to fire doesn't work reliably.
 					naclModule.postMessage({
 						cmd: "k2pdfopt",
-						args: args.concat([
+						args: job.onlyLoadK2pdfopt ? args : args.concat([
 							"-o", "/temporary/converted" + job.id + ".pdf",
 							"/temporary" + job.origPdfFile.fullPath
 						]),
@@ -118,7 +129,9 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 					});
 				});
 
-				job.finalFile = yield PlatformTools.getTmpFile("converted" + job.id + ".pdf");
+				if (!job.onlyLoadK2pdfopt) {
+					job.finalFile = yield PlatformTools.getTmpFile("converted" + job.id + ".pdf");
+				}
 			} catch (e) {
 				if (job.jobType === 'page') {
 					throw "Conversion failed. This may mean that Dontprint was unable to download the article. Maybe it is behind a captcha. Try to download the PDF manually, then go back to the article's abstract and click the Dontprint icon again.";
@@ -132,6 +145,26 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 				// Event listeners are freed automatically
 			}
 		}
+	};
+
+
+	/**
+	 * Loads k2pdfopt and then runs a dummy call on it. This should be called
+	 * after an update or a fresh install of Dontprint so that k2pdfopt is
+	 * loaded once. This will speed up all subsequent calls of k2pdfopt.
+	 * @return {[type]} [description]
+	 */
+	Dontprint.loadK2pdfoptIntoCache = function() {
+		let k2pdfopt = Dontprint.loadK2pdfopt({
+			onlyLoadK2pdfopt: true,
+			tmpFiles: []
+		});
+		Dontprint.platformTools.spawn(
+			k2pdfopt,
+			['-ui-', '-x', '-a-', '-?'],
+			undefined,
+			function() {}
+		);
 	};
 
 
