@@ -51,7 +51,10 @@ $(function() {
 
 
 	function stepDownload() {
-		if (Dontprint.platformTools.platform !== "firefox" || dp.prefs.k2pdfoptPath !== "") {
+		if (Dontprint.platformTools.platform !== "firefox" || dp.prefs.k2pdfoptPath !== "" || dp.prefs.k2pdfoptPlatform.substr(0,7) !== "unknown") {
+			// If k2pdfoptPath is empty and k2pdfoptPlatform does
+			// not start with "unknown", then dontprint.js will
+			// already initiate a silent download.
 			$("#stepDownloadHeader").text("Download external tools (done)").fadeTo(400, .4);
 			stepModelPicker();
 			return;

@@ -230,7 +230,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			recipientEmailSuffix: "",
 			recipientEmailOther: "",
 			verifiedEmails: [],
-			k2pdfoptPlatform: "",
+			k2pdfoptPlatform: "unknown",
 			k2pdfoptPath: ""
 		}).then(function(prefs) {
 			if (!prefs.ereaderModel && prefs.kindleModel !== "") {
@@ -249,7 +249,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					globalSingleton: true
 				});
 			}
-			if (prefs.k2pdfoptPlatform !== "" && prefs.k2pdfoptPath === "") {
+			if (prefs.k2pdfoptPlatform.substr(0,7) !== "unknown" && prefs.k2pdfoptPath === "") {
 				// Platform has been detected but download of k2pdfopt was interrupted.
 				// Resume download silently (regardless of whether or not welcome page
 				// is displayed).

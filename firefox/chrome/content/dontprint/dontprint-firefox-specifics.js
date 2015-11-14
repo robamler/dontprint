@@ -186,7 +186,7 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 
 			let targetPath = prefs.k2pdfoptPath;
 			if (targetPath === "") {
-				let newfile = FileUtils.getFile("ProfD", ["dontprint", "k2pdfopt"]);
+				let newfile = FileUtils.getFile("ProfD", ["dontprint", leafFilename]);
 				newfile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 599);
 				targetPath = newfile.path;
 			}
