@@ -279,8 +279,6 @@ $(function() {
 		ModelPicker.init({
 			selection: dp.prefs.ereaderModel,
 			beforeModelSelectListener,
-			modelSelectListener,
-			filterChangeListener,
 			modelSelectListener
 		});
 	}
@@ -675,33 +673,6 @@ $(function() {
 			scrollModelsTo(left, left+model.node.outerWidth());
 		} else {
 			res.slideUp();
-		}
-	}
-
-
-	function filterChangeListener() {
-		var left = null;
-		var right = null;
-		var count = 0;
-		var otherAllowed = ModelPicker.models[ModelPicker.questions['START'].filter[1]].enabled;
-		for (var mod in ModelPicker.models) {
-			if (ModelPicker.models[mod].enabled) {
-				count++;
-				if (otherAllowed || mod!=="other") {
-					var l = ModelPicker.models[mod].node.position().left;
-					var r = l + ModelPicker.models[mod].node.outerWidth();
-					if (left===null || l<left) {
-						left = l;
-					}
-					if (right===null || r>right) {
-						right = r;
-					}
-				}
-			}
-		}
-		if (count>1) {
-			// if count===1, scrollModelsTo will be called from beforeModelSelectListener()
-			scrollModelsTo(left, right);
 		}
 	}
 

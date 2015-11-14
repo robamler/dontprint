@@ -23,6 +23,19 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		"kindle-fire-hd-7inch":		{screenWidth: 761,  screenHeight: 1240, screenPpi: 216},
 		"kindle-fire-hd-8p9inch":	{screenWidth: 1168, screenHeight: 1931, screenPpi: 254},
 		"kindle-voyage":			{screenWidth: 1046, screenHeight: 1412, screenPpi: 300},
+		"kindle-paperwhite3":		{screenWidth: 1046, screenHeight: 1412, screenPpi: 300},
+		"sony-prs-t1":				{screenWidth: 581,  screenHeight: 750,  screenPpi: 170},
+		"sony-prs-t2":				{screenWidth: 584,  screenHeight: 754,  screenPpi: 170},
+		"sony-prs-t3":				{screenWidth: 584,  screenHeight: 754,  screenPpi: 212},
+		"sony-prs-300":				{screenWidth: 584,  screenHeight: 754,  screenPpi: 200},
+		"sony-prs-350":				{screenWidth: 584,  screenHeight: 754,  screenPpi: 200},
+		"sony-prs-500":				{screenWidth: 584,  screenHeight: 754,  screenPpi: 170},
+		"sony-prs-505":				{screenWidth: 584,  screenHeight: 754,  screenPpi: 170},
+		"sony-prs-600":				{screenWidth: 584,  screenHeight: 754,  screenPpi: 170},
+		"sony-prs-650":				{screenWidth: 584,  screenHeight: 754,  screenPpi: 170},
+		"sony-prs-700":				{screenWidth: 584,  screenHeight: 754,  screenPpi: 170},
+		"sony-prs-900bc":			{screenWidth: 584,  screenHeight: 978,  screenPpi: 170},
+		"sony-prs-950sc":			{screenWidth: 584,  screenHeight: 978,  screenPpi: 170},
 		"other":					{screenWidth: 600,  screenHeight: 800,  screenPpi: 170}
 	};
 

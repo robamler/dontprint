@@ -246,8 +246,25 @@ $(function() {
 					scrollTop: scrollpos + 25
 				}, 1000);
 			}
+			var left = model.node.position().left;
+			scrollModelsTo(left, left+model.node.outerWidth());
 		} else {
 			$('#model-result').slideUp();
+		}
+	}
+
+
+	function scrollModelsTo(left, right) {
+		var width = $('#model-select-container').innerWidth();
+		var scrollPos = $('#model-select-container').scrollLeft();
+		if (left<0 && right<width-30) {
+			$('#model-select-container').animate({
+				scrollLeft: scrollPos - Math.min(width-right-30, 30-left)
+			}, 1000);
+		} else if (left>30 && right>width) {
+			$('#model-select-container').animate({
+				scrollLeft: scrollPos + Math.min(left-30, right-width+30)
+			}, 1000);
 		}
 	}
 

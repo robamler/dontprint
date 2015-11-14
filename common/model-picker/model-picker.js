@@ -2,32 +2,73 @@ var ModelPicker = {
 	initialized: false,
 	selection: null,
 	models: {
-		'kindle-paperwhite':		{label: 'Kindle Paperwhite',	hint: '- black-and-white display\n- builtin display backlight'},
-		'kindle-voyage':			{label: 'Kindle Voyage',		hint: '- black-and-white display\n- builtin display backlight\n- very high display resolution (300ppi)'},
-		'kindle-touch':				{label: 'Kindle Touch / 7',		hint: '- black-and-white display\n- no display backlight'},
-		'kindle-generation4':		{label: 'Kindle 4',				hint: '- black-and-white display\n- no touch screen'},
-		'kindle-keyboard':			{label: 'Kindle keyboard',		hint: '- 4 rows of circular keys\n- spacebar is below C,V,B,N,M'},
-		'kindle-dx':				{label: 'Kindle DX',			hint: '- 4 rows of rounded-rectangular keys\n- spacebar is below V,B,N,M'},
-		'kindle-generation2':		{label: 'Kindle 2',				hint: '- 5 rows of circular keys'},
-		'kindle-generation1':		{label: 'Kindle 1',				hint: '- 5 rows of rectangular keys\n- gap between left and right half of keyboard'},
-		'kindle-fire-1or2':			{label: 'Kindle Fire',			hint: '- color display\n- 7 inch (18 cm) display diagonal\n- 1024x600 pixels'},
-		'kindle-fire-hd-7inch':		{label: 'Kindle Fire HD 7"',	hint: '- color display\n- 7 inch (18 cm) display diagonal\n- 1280x800 pixels'},
-		'kindle-fire-hd-8p9inch':	{label: 'Kindle Fire HD 8.9"',	hint: '- color display\n- 8.9 inch (23 cm) display diagonal\n- 1920x1200 pixels'},
-		'other':					{label: 'not a Kindle',			hint: '- select this option if your e-reader\n  is not an amazon Kindle'}
+		'kindle-paperwhite':      {label: 'Kindle Paperwhite Generation 1 or 2', hint: '- black-and-white display\n- builtin display backlight\n- the word "kindle" is written *white one black*\n  below the screen'},
+		'kindle-paperwhite3':     {label: 'Kindle Paperwhite Generation 3', hint: '- higher resolution than the older Kindle\n  Paperwhite models\n- the word "kindle" is written *black one gray*\n  below the screen\n- also known as "Kindle Paperwhite 2015"'},
+		'kindle-voyage':          {label: 'Kindle Voyage', hint: '- black-and-white display\n- builtin display backlight\n- very high display resolution (300ppi)'},
+		'kindle-touch':           {label: 'Kindle Touch / 7', hint: '- black-and-white display\n- no display backlight'},
+		'kindle-generation4':     {label: 'Kindle 4', hint: '- black-and-white display\n- no touch screen'},
+		'kindle-keyboard':        {label: 'Kindle Keyboard', hint: '- 4 rows of circular keys\n- spacebar is below C,V,B,N,M'},
+		'kindle-dx':              {label: 'Kindle DX', hint: '- 4 rows of rounded-rectangular keys\n- spacebar is below V,B,N,M'},
+		'kindle-generation2':     {label: 'Kindle 2', hint: '- 5 rows of circular keys'},
+		'kindle-generation1':     {label: 'Kindle 1', hint: '- 5 rows of rectangular keys\n- gap between left and right half of keyboard'},
+		'kindle-fire-1or2':       {label: 'Kindle Fire', hint: '- color display\n- 7 inch (18 cm) display diagonal\n- 1024x600 pixels'},
+		'kindle-fire-hd-7inch':   {label: 'Kindle Fire HD 7"', hint: '- color display\n- 7 inch (18 cm) display diagonal\n- 1280x800 pixels'},
+		'kindle-fire-hd-8p9inch': {label: 'Kindle Fire HD 8.9"', hint: '- color display\n- 8.9 inch (23 cm) display diagonal\n- 1920x1200 pixels'},
+		'sony-prs-t1':            {label: 'Sony PRS-T1', hint: ''},
+		'sony-prs-t2':            {label: 'Sony PRS-T2', hint: ''},
+		'sony-prs-t3':            {label: 'Sony PRS-T3(S)', hint: ''},
+		'sony-prs-300':           {label: 'Sony PRS-300 Pocket Edition', hint: ''},
+		'sony-prs-350':           {label: 'Sony PRS-350 Pocket Edition', hint: ''},
+		'sony-prs-500':           {label: 'Sony PRS-500', hint: ''},
+		'sony-prs-505':           {label: 'Sony PRS-505', hint: ''},
+		'sony-prs-600':           {label: 'Sony PRS-600 Touch Edition', hint: ''},
+		'sony-prs-650':           {label: 'Sony PRS-650 Touch Edition', hint: ''},
+		'sony-prs-700':           {label: 'Sony PRS-700', hint: ''},
+		'sony-prs-900bc':         {label: 'Sony PRS-900BC Daily Edition', hint: ''},
+		'sony-prs-950sc':         {label: 'Sony PRS-950SC Daily Edition', hint: ''},
+		'other':	              {label: 'Other e-reader', hint: '(select this option if your e-reader is not listed here)'}
 	},
 	questions: {
 		'START': {
-			label:	'Show only:',
+			label:	'Brand:',
 			// order of entries in questions['START'].filter defines order of appearance
-			filter:	['other', 'kindle-paperwhite', 'kindle-voyage', 'kindle-touch', 'kindle-generation4', 'kindle-keyboard', 'kindle-dx', 'kindle-generation2', 'kindle-generation1', 'kindle-fire-1or2', 'kindle-fire-hd-7inch', 'kindle-fire-hd-8p9inch'],
+			filter:	[
+				'other',
+				'kindle-paperwhite',
+				'kindle-paperwhite3',
+				'kindle-voyage',
+				'kindle-touch',
+				'kindle-generation4',
+				'kindle-keyboard',
+				'kindle-dx',
+				'kindle-generation2',
+				'kindle-generation1',
+				'kindle-fire-1or2',
+				'kindle-fire-hd-7inch',
+				'kindle-fire-hd-8p9inch',
+				'sony-prs-t1',
+				'sony-prs-t2',
+				'sony-prs-t3',
+				'sony-prs-300',
+				'sony-prs-350',
+				'sony-prs-500',
+				'sony-prs-505',
+				'sony-prs-600',
+				'sony-prs-650',
+				'sony-prs-700',
+				'sony-prs-900bc',
+				'sony-prs-950sc'
+			],
+			selectHeader: 'Select your e-reader manufacturer',
 			answers: [
 				{label: 'Amazon Kindle', next: 'kindle'},
+				{label: 'Sony', models: ['other', 'sony-prs-t1', 'sony-prs-t2', 'sony-prs-t3', 'sony-prs-300', 'sony-prs-350', 'sony-prs-500', 'sony-prs-505', 'sony-prs-600', 'sony-prs-650', 'sony-prs-700', 'sony-prs-900bc', 'sony-prs-950sc']},
 				{label: 'Other e-reader brand', model: 'other'}
 			]
 		},
 		'kindle': {
 			label:	'Display:',
-			filter:	['kindle-paperwhite', 'kindle-voyage', 'kindle-touch', 'kindle-generation4', 'kindle-keyboard', 'kindle-dx', 'kindle-generation2', 'kindle-generation1', 'kindle-fire-1or2', 'kindle-fire-hd-7inch', 'kindle-fire-hd-8p9inch'],
+			filter:	['other', 'kindle-paperwhite', 'kindle-paperwhite3', 'kindle-voyage', 'kindle-touch', 'kindle-generation4', 'kindle-keyboard', 'kindle-dx', 'kindle-generation2', 'kindle-generation1', 'kindle-fire-1or2', 'kindle-fire-hd-7inch', 'kindle-fire-hd-8p9inch'],
 			answers: [
 				{label: 'black/white display',	next: 'kindle-keyboard'},
 				{label: 'color display',		next: 'displaysize'}
@@ -35,7 +76,7 @@ var ModelPicker = {
 		},
 		'displaysize': {
 			label:	'',
-			filter:	['kindle-fire-1or2', 'kindle-fire-hd-7inch', 'kindle-fire-hd-8p9inch'],
+			filter:	['other', 'kindle-fire-1or2', 'kindle-fire-hd-7inch', 'kindle-fire-hd-8p9inch'],
 			selectHeader: 'Select the display size',
 			answers: [
 				{label: '7 inch (18 cm) diagonal, 1024x600 pixels (Kindle Fire)', model: 'kindle-fire-1or2'},
@@ -45,7 +86,7 @@ var ModelPicker = {
 		},
 		'kindle-keyboard': {
 			label:	'Keyboard:',
-			filter:	['kindle-paperwhite', 'kindle-voyage', 'kindle-touch', 'kindle-generation4', 'kindle-keyboard', 'kindle-dx', 'kindle-generation2', 'kindle-generation1'],
+			filter:	['other', 'kindle-paperwhite', 'kindle-paperwhite3', 'kindle-voyage', 'kindle-touch', 'kindle-generation4', 'kindle-keyboard', 'kindle-dx', 'kindle-generation2', 'kindle-generation1'],
 			answers: [
 				{label: 'full alphabetic keyboard',			next: 'keys'},
 				{label: 'no or only few mechanical keys',	next: 'kindle-touch'}
@@ -53,7 +94,7 @@ var ModelPicker = {
 		},
 		'keys': {
 			label:	'',
-			filter:	['kindle-keyboard', 'kindle-dx', 'kindle-generation2', 'kindle-generation1'],
+			filter:	['other', 'kindle-keyboard', 'kindle-dx', 'kindle-generation2', 'kindle-generation1'],
 			selectHeader: 'Select the option that best describes the kindle-keyboard',
 			answers: [
 				{label: '5 rows of circular keys', model: 'kindle-generation2'},
@@ -64,7 +105,7 @@ var ModelPicker = {
 		},
 		'kindle-touch': {
 			label:	'Touch:',
-			filter:	['kindle-paperwhite', 'kindle-voyage', 'kindle-touch', 'kindle-generation4'],
+			filter:	['other', 'kindle-paperwhite', 'kindle-paperwhite3', 'kindle-voyage', 'kindle-touch', 'kindle-generation4'],
 			answers: [
 				{label: 'display is touch sensitive',				next: 'light'},
 				{label: 'display is <i>not</i> touch sensitive',	model: 'kindle-generation4'},
@@ -72,11 +113,11 @@ var ModelPicker = {
 		},
 		'light': {
 			label:	'',
-			filter:	['kindle-paperwhite', 'kindle-voyage', 'kindle-touch'],
+			filter:	['other', 'kindle-paperwhite', 'kindle-paperwhite3', 'kindle-voyage', 'kindle-touch'],
 			selectHeader: 'Select the display type',
 			answers: [
-				{label: 'Normal-resolution display (167ppi) with backlight', model: 'kindle-paperwhite'},
-				{label: 'High-resolution display (300ppi) with backlight', model: 'kindle-voyage'},
+				{label: 'Normal-resolution display (167ppi) with backlight', models: ['kindle-paperwhite']},
+				{label: 'High-resolution display (300ppi) with backlight', models: ['kindle-voyage', 'kindle-paperwhite3']},
 				{label: 'Display without backlight', model: 'kindle-touch'}
 			]
 		}
@@ -94,10 +135,10 @@ function initializeModels() {
 	var allmodels = [];
 	ModelPicker.questions['START'].filter.forEach(function(mod) {
 		allmodels.push(mod);
-		ModelPicker.models[mod].node = $('<div class="model" name="' + mod + '"><img src="../model-picker/' + mod + '.png"/><div>' + ModelPicker.models[mod].label + '</div></div>');
+		ModelPicker.models[mod].node = $('<div class="modelcontainer"><div class="model" name="' + mod + '"><img src="../model-picker/' + mod + '.png"/><div>' + ModelPicker.models[mod].label + '</div></div></div>');
 		// set title attribute programmatically to avoid escaping \n and "
-		ModelPicker.models[mod].node.attr('title', ModelPicker.models[mod].label + '\n' + ModelPicker.models[mod].hint);
-		ModelPicker.models[mod].node.mousedown(function() {
+		ModelPicker.models[mod].node.children().attr('title', ModelPicker.models[mod].label + '\n' + ModelPicker.models[mod].hint);
+		ModelPicker.models[mod].node.children().mousedown(function() {
 			setSelection($(this).attr('name'));
 		});
 		container.append(ModelPicker.models[mod].node);
@@ -110,6 +151,9 @@ function initializeQuestions() {
 	var maxlevel = 0;
 	
 	function addQuestion(qid, level) {
+		if (typeof qid === "undefined") {
+			return;
+		}
 		maxlevel = Math.max(maxlevel, level);
 		var filter = ModelPicker.questions[qid];
 		filter.level = level;
@@ -144,14 +188,8 @@ function initializeQuestions() {
 	}
 	
 	addQuestion('START', 0);
-	ModelPicker.questions['FILTERHINT'] = {
-		level: maxlevel + 1,
-		node: $('<div class="filter">(You can filter on a finer level after selecting an option above.)</div>')
-	};
-	container.append(ModelPicker.questions['FILTERHINT'].node);
 	ModelPicker.questions['START'].node.show();
 	setCurrentQuestion('START');
-	ModelPicker.questions['FILTERHINT'].node.show();
 }
 
 
@@ -168,6 +206,9 @@ function questionAnswered() {
 		} else if (answer.model) {
 			setCurrentQuestion(null, ModelPicker.questions[qid].level+1);
 			setFilter([answer.model]);
+		} else if (answer.models) {
+			setCurrentQuestion(null, ModelPicker.questions[qid].level+1);
+			setFilter(answer.models);
 		}
 	}
 }
@@ -200,10 +241,6 @@ function setCurrentQuestion(qid, level) {
 			heightChange -= ModelPicker.questions[q].node.outerHeight();
 			ModelPicker.questions[q].node.slideUp();
 		}
-	}
-	
-	if (heightChange!==0 && initParams.changeHeightListener) {
-		initParams.changeHeightListener(heightChange);
 	}
 }
 
@@ -243,14 +280,10 @@ function setFilter(filter) {
 	
 	for (var mod in ModelPicker.models) {
 		if (ModelPicker.models[mod].enabled) {
-			ModelPicker.models[mod].node.removeClass('disabled').fadeTo(400, 1);
+			ModelPicker.models[mod].node.removeClass('hidden');
 		} else {
-			ModelPicker.models[mod].node.addClass('disabled').fadeTo(400, 0.4);
+			ModelPicker.models[mod].node.addClass('hidden');
 		}
-	}
-	
-	if (initParams.filterChangeListener) {
-		initParams.filterChangeListener();
 	}
 }
 

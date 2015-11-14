@@ -140,6 +140,13 @@ li {
 	background-color: #fff
 }
 
+#model-select-container {
+	white-space: nowrap;
+	overflow-x: scroll;
+	border: 1px solid #ccc;
+	margin: 1ex 0 0.4ex 0;
+}
+
 #image-copyright {
 	opacity: 0.5;
 	font-size: 70%;
