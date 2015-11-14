@@ -494,7 +494,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		job.convertProgress = 0;
 		job.uploadProgress = 0;
 		job.tmpFiles = [];
-		updateJobState(job, "queued");
 
 		Dontprint.notifyJobStarted(job);
 
@@ -503,6 +502,10 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				job.transferMethod = (yield PlatformTools.getPrefs({
 					transferMethod: ""
 				})).transferMethod;
+				// Don't call updateJobState() before job.transferMethod is set.
+				// Otherwise, any already opened progress tab will not display a
+				// "send" progress bar for new jobs with transferMethod "email".
+				updateJobState(job, "queued");
 
 				if (job.popupConnector) {
 					job.popupConnector(job);
