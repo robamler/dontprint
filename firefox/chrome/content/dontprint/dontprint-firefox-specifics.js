@@ -175,13 +175,13 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 
 		return Dontprint.platformTools.spawn(function*() {
 			try {
-				var file = yield Dontprint.platformTools.downloadTmpFile(
+				var file = (yield Dontprint.platformTools.downloadTmpFile(
 					"http://dontprint.net/k2pdfopt/" + prefs.k2pdfoptPlatform + "/" + leafFilename,
 					leafFilename,
 					progressListener
-				).mozFile;
+				)).mozFile;
 			} catch (e) {
-				throw "Unable to download k2pdfopt. Are you connected to the internet?";				return;
+				throw "Unable to download k2pdfopt. Are you connected to the internet?";
 			}
 
 			let targetPath = prefs.k2pdfoptPath;
@@ -194,7 +194,7 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 			// This can only be reached if platform is not "unknown.*". Therefore,
 			// if an older version of k2pdfopt already exists, it must have been
 			// originally downloaded by Dontprint, so we may overwrite it.
-			file.permissions = 509 // For unix: executable file (octal representation: 775)
+			file.permissions = 509; // For unix: executable file (octal representation: 775)
 			var m = targetPath.match(/^(.*)[\\/](.*)$/);
 			var destdir = Components.classes["@mozilla.org/file/local;1"].
 			           createInstance(Components.interfaces.nsILocalFile);
