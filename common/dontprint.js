@@ -2,7 +2,7 @@
 
 PlatformTools.registerMainComponent("Dontprint", function() {
 	const DATABASE_VERSION = "20150627";
-	const DONTPRINT_VERSION = "1.1beta";
+	const DONTPRINT_VERSION = "1.1";
 	const itemTypeBlacklist = ["multiple", "encyclopediaArticle", "blogPost", "forumPost", "presentation", "webpage"];
 	var runningJobs = {};
 	var runningJobsCnt = 0;
