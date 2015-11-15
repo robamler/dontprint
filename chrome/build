@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# usage: ./build [--dist]
+# If the --dist flag is set, then all files that are required for
+# the packaged extension will be copied to the directory "dist".
+
 if [ -d zotero-connector ] && ! diff -qr ../dependencies/zotero-connectors/build/chrome zotero-connector > /dev/null ; then
 	cat << EOF >&2
 ERROR: the directories
@@ -15,7 +19,7 @@ or
 before building Dontprint for Google Chrome. To see a list of changes
 that would be overwritten, run
     diff -r ../dependencies/zotero-connectors/build/chrome zotero-connector
-Once you are confident that the directory zotero-connector doesn't contain
+Once you are confident that the directory zotero-connector does not contain
 any important code, remove the directory and run the build script again.
 EOF
 	exit 1
@@ -24,11 +28,22 @@ fi
 
 ./package-translators.py
 
-rm -r zotero-connector
+rm -r zotero-connector 2> /dev/null
 cd ../dependencies/zotero-connectors/
 ./build.sh
 cd ../../chrome
 cp -r ../dependencies/zotero-connectors/build/chrome/ zotero-connector
-rm -r zotero-connector/Icon-*.png zotero-connector/images zotero-connector/preferences zotero-connector/itemSelector
 
 ./mk-manifest.py
+
+
+if [ "x$1" = "x--dist" ]; then
+	if [ -d dist ]; then
+		echo 'ERROR: Directory "dist" already exists. Delete the directory and run ./build --dist again.' >&2
+		exit 2
+	fi
+
+	mkdir dist
+	cp -Lr common dontprint-chrome-specifics.js k2pdfopt manifest.json platform-tools translators welcome-detect-demo.png zotero-connector dist
+	rm -r dist/zotero-connector/Icon-*.png dist/zotero-connector/images dist/zotero-connector/preferences dist/zotero-connector/itemSelector dist/zotero-connector/manifest.json
+fi
