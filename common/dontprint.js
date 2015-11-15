@@ -241,7 +241,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					ereaderModel: prefs.ereaderModel
 				})
 			}
-			if (!prefs.ereaderModel || !isTransferMethodValid(prefs) || (PlatformTools.platform === "firefox" && prefs.k2pdfoptPlatform === "")) {
+			if (!prefs.ereaderModel || !isTransferMethodValid(prefs) || (PlatformTools.platform === "firefox" && prefs.k2pdfoptPlatform === "unknown")) {
 				Dontprint.welcomeScreenId = Date.now();
 				PlatformTools.openTab({
 					url: PlatformTools.extensionScriptUrl("common/welcome/dontprint-welcome.html#" + Dontprint.welcomeScreenId),
