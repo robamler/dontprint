@@ -1,10 +1,10 @@
 Dontprint
 ===============================
 
-Dontprint is a free add-on for Firefox.
-To install the add-on, go to [dontprint.net](http://dontprint.net/).
+Dontprint is a free extension for Google Chrome and Mozilla Firefox.
+To install the extension, go to [dontprint.net](http://dontprint.net/).
 Dontprint allows scientists to send literature to their e-reader (e.g. Amazon Kindle) in an optimized layout directly from the websites of many scientific journals and preprint servers.
-Dontprint also integrates with the [Zotero](http://www.zotero.org/) literature database, if Zotero is installed.
+On Firefox, Dontprint also integrates with the [Zotero](http://www.zotero.org/) literature database, if Zotero is installed.
 
 <strong>More information and screenshots are available at <a href="http://dontprint.net">dontprint.net</a>.</strong>
 
@@ -34,6 +34,6 @@ Legal
 -------------------------------
 Amazon and Kindle are trademarks or registered trademarks of Amazon.com, Inc. or its affiliates.
 Zotero is the trademark of George Mason University.
-Mozilla and Firefox are trademarks or registered trademarks of the Mozilla Foundation.
-Google and Gmail are trademarks or registered trademarks of Google Inc.
+Mozilla and Mozilla Firefox are trademarks or registered trademarks of the Mozilla Foundation.
+Google and Google Chrome are trademarks or registered trademarks of Google Inc.
 The developer of Dontprint is not affiliated with any of the aforementioned institutions.
