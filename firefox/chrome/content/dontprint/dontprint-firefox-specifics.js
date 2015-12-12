@@ -113,7 +113,7 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 								lines[0] = currentLine + lines[0];
 								currentLine = lines.pop();
 								for (let i=0; i<Math.min(lines.length, 5-lineNumber); i++) {
-									let m = lines[i].match(/^\s*k2pdfopt\s+v(\d+(\.\d+)*)\s/);
+									let m = lines[i].match(/^\s*k2pdfopt\s+v(\d+(\.\d+)*)/);
 									if (m) {
 										found = true;
 										if (Dontprint.compareVersionStrings(m[1], "1.51") >= 0) {
@@ -157,9 +157,9 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 		let a1 = v1.split(".");
 		let a2 = v2.split(".");
 		for (let i=0; i<Math.min(a1.length, a2.length); i++) {
-			if (a1[i] < a2[i])
+			if (parseInt(a1[i], 10) < parseInt(a2[i], 10))
 				return -1;
-			if (a1[i] > a2[i])
+			if (parseInt(a1[i], 10) > parseInt(a2[i], 10))
 				return 1;
 		}
 		if (a1.length < a2.length)

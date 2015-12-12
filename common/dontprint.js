@@ -1033,6 +1033,8 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		// Put more specific command line arguments to the end. It seems
 		// like later command line arguments overwrite earlier arguments.
 		let args = [
+			"-ui-",
+			"-x",
 			"-a-",
 			"-w",  "" + dims.screenWidth,
 			"-h",  "" + dims.screenHeight,
@@ -1043,6 +1045,20 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			"-mb", "" + parseFloat(job.crop.m4)/25.4,
 			"-p", job.crop.pagerange ? job.crop.pagerange : (job.crop.coverpage ? "2-" : "1-")
 		];
+
+		// "author" and "title" switches were introduced in k2pdfopt v2.33
+		if (PlatformTools.platform !== "firefox" || Dontprint.compareVersionStrings((yield Dontprint.detectK2pdfoptVersion()), "2.33") >= 0) {
+			if (typeof job.title === "string" && job.title !== "") {
+				args = args.concat("-title", job.title.substr(0, 150))
+			}
+			try {
+				let authorsStr = getAuthorsString(job.articleCreators);
+				if (authorsStr) {
+					args = args.concat("-author", authorsStr.substr(0, 150))
+				}
+			} catch (e) { }
+		}
+
 		let globalArgs = (yield PlatformTools.getPrefs({
 			k2pdfoptAdditionalParams: ""
 		})).k2pdfoptAdditionalParams.trim();
@@ -1287,5 +1303,44 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		}
 		
 		return { small: small, large: large };
+	}
+
+
+	function formatName(creator) {
+		if (!creator.lastName) {
+			throw "error";
+		}
+		if (!creator.firstName) {
+			return creator.lastName;
+		}
+		return creator.firstName + " " + creator.lastName
+	}
+
+
+	function getAuthorsString(creators) {
+		switch (creators.length) {
+		case 0:
+			throw "error";
+		
+		case 1:
+			return formatName(creators[0]);
+		
+		case 2:
+			// two authors, separated by " and " without a comma
+			return formatName(creators[0]) + " and " + formatName(creators[1]);
+		
+		case 3: //FALLTHRU
+		case 4:
+			// comma separated list, with comma before the ", and "
+			var authorsStr = "";
+			for (var i=0; i<creators.length-1; i++) {
+				authorsStr += formatName(creators[i]) + ", ";
+			}
+			authorsStr += "and " + formatName(creators[creators.length-1]);
+			return authorsStr;
+		
+		default: // too many authors to list them all
+			return formatName(creators[0]) + " et al.";
+		}
 	}
 });
