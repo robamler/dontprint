@@ -5,7 +5,7 @@
 		em:id="dontprint@robamler.github.com"
 		em:type="2"
 		em:name="Dontprint"
-		em:version="1.1"
+		em:version="1.1.2"
 		em:description="Send scientific articles to your e-reader in an optimized layout."
 		em:creator="Robert Bamler"
 		em:homepageURL="http://dontprint.net"
@@ -18,7 +18,7 @@
 			<RDF:Description>
 				<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
 				<em:minVersion>26.0</em:minVersion>
-				<em:maxVersion>44.*</em:maxVersion>
+				<em:maxVersion>46.*</em:maxVersion>
 			</RDF:Description>
 		</em:targetApplication>
 	</RDF:Description>
