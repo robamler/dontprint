@@ -158,12 +158,12 @@ chrome.runtime.getBackgroundPage(function(bgpage) {
 	};
 
 
-	Dontprint.moveFileToDestDir = function(job, preferredFinalFilename) {
+	Dontprint.moveFileToDestDir = function(job) {
 		return new Promise(function(resolve, reject) {
 			chrome.downloads.download(
 				{
 					url: job.finalFile.toURL(),
-					filename: preferredFinalFilename,
+					filename: job.preferredFinalFilename,
 					conflictAction: "uniquify"
 				},
 				function(downloadId) {

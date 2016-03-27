@@ -308,7 +308,7 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 	};
 
 
-	Dontprint.moveFileToDestDir = function*(job, preferredFinalFilename) {
+	Dontprint.moveFileToDestDir = function*(job) {
 		let destDir = (yield Dontprint.platformTools.getPrefs({
 			destDir: ""
 		})).destDir;
@@ -333,7 +333,7 @@ Components.utils.import("resource://gre/modules/Timer.jsm");
 			throw 'The destination directory "' + destFile.path + '" does not exist. Maybe your device is not connected or it needs to be accessed under a different path.';
 		}
 		
-		destFile.append(preferredFinalFilename);
+		destFile.append(job.preferredFinalFilename);
 		destFile.createUnique(Components.interfaces.nsIFile.NORMAL_FILE_TYPE, 509); // octal representation: 775
 		
 		try {

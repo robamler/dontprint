@@ -69,6 +69,8 @@ $(function() {
 
 		$("#scaleselect").val(job.crop.scale);
 
+		$("#filenameinput").val(job.preferredFinalFilename);
+
 		if (!job.crop.longname && !job.crop.shortname) {
 			job.prohibitSaveJournalSettings = true;
 		}
@@ -381,7 +383,13 @@ $(function() {
 		job.crop.m2             = mmmargins[1];
 		job.crop.m3             = mmmargins[2];
 		job.crop.m4             = mmmargins[3];
-		
+
+		var m = $("#filenameinput").val().match(/^(.+?)(\.pdf)?$/i);
+		if (m) {
+			// Filename input is not empty
+			job.preferredFinalFilename = m[1].replace(/[^a-zA-Z0-9 ()\-,]+/g, "_").substr(0, 70) + ".pdf";
+		}
+
 		successState = true;
 		window.close();
 	}

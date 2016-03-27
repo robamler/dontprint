@@ -539,24 +539,29 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 					job.tmpFiles.push(job.origPdfFile);
 				}
 
-				let preferredFinalFilename = job.title.replace(/[^a-zA-Z0-9 \-,]+/g, "_");
+				job.dates = parseDateString(job.articleDate);
+				job.preferredFinalFilename = job.title.replace(/[^a-zA-Z0-9 ()\-,]+/g, "_");
 				if (job.articleCreators && job.articleCreators.length !== 0 && job.articleCreators[0].lastName) {
-					preferredFinalFilename = job.articleCreators[0].lastName.replace(/[^a-zA-Z0-9 \-,]+/g, "_") + ", " + preferredFinalFilename;
+					let filenamePrefix = job.articleCreators[0].lastName.replace(/[^a-zA-Z0-9 ()\-,]+/g, "_");
+					if (job.dates.small != 0) {
+						filenamePrefix += " (" + Math.floor(job.dates.small / 10000) + ")";
+					}
+					job.preferredFinalFilename = filenamePrefix + ", " + job.preferredFinalFilename;
 				}
-				preferredFinalFilename = preferredFinalFilename.substr(0, 70) + ".pdf";
+				job.preferredFinalFilename = job.preferredFinalFilename.substr(0, 70) + ".pdf";
 
 				if (job.jobType === "test") {
 					job.finalFile = job.origPdfFile;
 				} else {
 					yield cropMargins(job);
-					yield convertDocument(job, k2pdfopt, preferredFinalFilename);
+					yield convertDocument(job, k2pdfopt);
 				}
 
 				if (job.transferMethod === "email") {
-					yield sendEmail(job, preferredFinalFilename);
+					yield sendEmail(job);
 				} else {
 					updateJobState(job, "moving");
-					yield Dontprint.moveFileToDestDir(job, preferredFinalFilename);
+					yield Dontprint.moveFileToDestDir(job);
 
 					if (typeof Dontprint.callPostTransferCommand === "function") {
 						// Just initiate the post transfer command, don't wait for it to
@@ -758,7 +763,6 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 		}
 		
 		let bestFilter = yield journaldb.transaction(function*(sql) {
-			job.dates = parseDateString(job.articleDate);
 			try {
 				if (job.journalLongname) {
 					var longnameresult = (yield sql(
@@ -1021,7 +1025,7 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 	}
 	
 	
-	function* convertDocument(job, k2pdfopt, preferredFinalFilename) {
+	function* convertDocument(job, k2pdfopt) {
 		updateJobState(job, "converting");
 
 		let dims = yield getScreenDimensions();
@@ -1069,22 +1073,22 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 			args = args.concat(job.crop.k2pdfoptParams.split(/\s+/));
 		}
 		
-		yield k2pdfopt(args, preferredFinalFilename, function(progress) {
+		yield k2pdfopt(args, job.preferredFinalFilename, function(progress) {
 			job.convertProgress = progress;
 			updateJobState(job);
 		});
 	}
 
 
-	function* sendEmail(job, preferredFinalFilename) {
+	function* sendEmail(job) {
 		updateJobState(job, "sending");
 		
 		job.recipientEmail = yield getRecipientEmail();
-		job.emailedFilename = preferredFinalFilename;
+		job.emailedFilename = job.preferredFinalFilename;
 		var url = buildURL(
 			"http://dontprint.net/cgi-bin/send-document.pl",
 			{
-				filename:	preferredFinalFilename,
+				filename:	job.emailedFilename,
 				email:		job.recipientEmail,
 				itemKey:	job.id
 			}
