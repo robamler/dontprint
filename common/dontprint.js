@@ -540,20 +540,25 @@ PlatformTools.registerMainComponent("Dontprint", function() {
 				}
 
 				job.dates = parseDateString(job.articleDate);
+
+				if (job.jobType === "test") {
+					job.finalFile = job.origPdfFile;
+				} else {
+					yield cropMargins(job);  // Might change job.title
+				}
+
 				job.preferredFinalFilename = job.title.replace(/[^a-zA-Z0-9 ()\-,]+/g, "_");
 				if (job.articleCreators && job.articleCreators.length !== 0 && job.articleCreators[0].lastName) {
 					let filenamePrefix = job.articleCreators[0].lastName.replace(/[^a-zA-Z0-9 ()\-,]+/g, "_");
 					if (job.dates.small != 0) {
+						// File name format "<first autor last name> (<year>), <title>.pdf"
 						filenamePrefix += " (" + Math.floor(job.dates.small / 10000) + ")";
 					}
 					job.preferredFinalFilename = filenamePrefix + ", " + job.preferredFinalFilename;
 				}
 				job.preferredFinalFilename = job.preferredFinalFilename.substr(0, 70) + ".pdf";
 
-				if (job.jobType === "test") {
-					job.finalFile = job.origPdfFile;
-				} else {
-					yield cropMargins(job);
+				if (job.jobType !== "test") {
 					yield convertDocument(job, k2pdfopt);
 				}
 

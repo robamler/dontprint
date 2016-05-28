@@ -39,6 +39,7 @@ h2 { margin:0 0 0.5ex 0 }
 #i0 {margin-right:1em}
 #margininputs input {width:3em; text-align:center}
 #miscoptions td {vertical-align:top; padding:4px 0px}
+#miscoptions input[type="checkbox"] {margin-top:0px}
 #journalname {overflow:hidden;width:30px}
 #buttons {text-align:right}
 a.btn {text-decoration:none; color:#000; background-color:#aaa; border-color:#aaa; border-width:1px; border-style:outset;padding:5px 8px 5px 22px; display:inline-block; background-position:3px center; background-repeat:no-repeat; margin:0px 3px}
